@@ -1,10 +1,6 @@
 /private/**
 /data/**
 /artifacts/**
-!/private/.gitkeep
-!/data/.gitkeep
-!/artifacts/.gitkeep
-
 *.duckdb
 *.duckdb.wal
 *.db
@@ -14,6 +10,8 @@
 *.arrow
 *.csv
 *.tsv
+*.jsonl
+*.ndjson
 *.xlsx
 *.xls
 *.pkl

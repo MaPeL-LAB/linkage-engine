@@ -36,6 +36,8 @@ jobs:
         run: ruff check .
       - name: Type checking
         run: mypy src tests
+      - name: Pre-commit
+        run: pre-commit run --all-files
       - name: Tests
         run: pytest
       - name: Build
