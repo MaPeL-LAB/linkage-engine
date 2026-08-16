@@ -64,12 +64,15 @@ e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855         0  src/
 23576eb8621697e0550543d92c9191e7952013363075437a51e27942c6401e91       552  src/mapel_linkage/synthetic/__init__.py
 94b13d6ac2a2cf2db2e9e77612b629cc7f355e2826ee470e97e7ced08263af02     11185  src/mapel_linkage/synthetic/generator.py
 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855         0  tests/__init__.py
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855         0  tests/configuration/__init__.py
 1c855c10c6ddd0b1b0e407d5eb034fc9a5843af836f5d8b31cd8d7c059f80c2a      4537  tests/configuration/test_compiler.py
 57a74781f5e6c2ef10884e7a5f03e6282514fcb695333ccdeec882948847fc10      8813  tests/configuration/test_loader_and_models.py
 2ed163cfe311bfb4903979c52cc31a7881bca41df1a2cf26511b72845ea95400      1366  tests/configuration/test_registries.py
 4a2033675b55e036d73d2fcff3bc09b2ec3552e1b424c45672fb2e72c8ae642a       927  tests/configuration/test_schema.py
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855         0  tests/governance/__init__.py
 3721455c7d710147a2b5c73f74ba00e3788538d4cf63b8cb0bd41f85c0f74fca      3993  tests/governance/test_paths_logging_and_manifests.py
 a42630085c465a40eae91c1d91c368b4dc890ffe111db710c637ebfe2fcef348       586  tests/helpers.py
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855         0  tests/synthetic/__init__.py
 813cb0691aea3be710cb2905bbee505a027371a68623a9475a67cd32a5016de7      4382  tests/synthetic/test_generator.py
 d9a3df15d4ebfccdf866a973a3329f454d393e5f989b0e3a1732a9dfe58ddfe5      2669  tests/test_cli.py
 7e5a605ae504ba6138c4c9185bce87734ae48a7002ef521cdf7740a24f7d56f2       123  tests/test_package_metadata.py
