@@ -12,10 +12,15 @@ from typing import Any, Literal
 import duckdb
 
 from mapel_linkage.domain.errors import DataPlaneError
-from mapel_linkage.domain.sql_identifiers import quote_identifier, validate_identifier
+from mapel_linkage.domain.sql_identifiers import (
+    quote_identifier,
+    quote_source_identifier,
+    validate_identifier,
+)
 from mapel_linkage.domain.table_refs import TableRef
 
 SqlType = Literal["VARCHAR", "INTEGER", "BIGINT", "DOUBLE", "BOOLEAN", "DATE"]
+SourceFormat = Literal["parquet", "csv", "tsv", "jsonl"]
 _ALLOWED_TYPES: frozenset[str] = frozenset(
     {"VARCHAR", "INTEGER", "BIGINT", "DOUBLE", "BOOLEAN", "DATE"}
 )
@@ -129,6 +134,52 @@ class DuckDBStore:
             row_count=int(count_row[0]),
             _database_label=self._database_label,
         )
+
+    def _read_local_rows(
+        self,
+        path: Path,
+        source_format: SourceFormat,
+        source_columns: Sequence[str],
+    ) -> list[tuple[object, ...]]:
+        """Read selected local columns through package-owned DuckDB SQL.
+
+        This internal method is intentionally absent from the public package
+        exports. It returns rows only to trusted preprocessing code and never
+        renders paths, source columns, or row values in public errors.
+        """
+
+        if not source_columns:
+            raise DataPlaneError("ML-DATA-015", "At least one source column is required.")
+        if len(source_columns) != len(set(source_columns)):
+            raise DataPlaneError("ML-DATA-016", "Duplicate source columns were rejected.")
+        try:
+            if not path.is_file():
+                raise DataPlaneError("ML-DATA-017", "A configured local dataset is unavailable.")
+        except OSError:
+            raise DataPlaneError(
+                "ML-DATA-017", "A configured local dataset is unavailable."
+            ) from None
+
+        projection = ", ".join(quote_source_identifier(column) for column in source_columns)
+        readers: dict[SourceFormat, str] = {
+            "parquet": "read_parquet(?)",
+            "csv": "read_csv_auto(?, header=true, all_varchar=true, sample_size=-1)",
+            "tsv": ("read_csv_auto(?, header=true, all_varchar=true, sample_size=-1, delim='\\t')"),
+            "jsonl": "read_json_auto(?, format='newline_delimited')",
+        }
+        reader = readers[source_format]
+        try:
+            rows = self._connection.execute(
+                f"SELECT {projection} FROM {reader}",
+                [str(path)],
+            ).fetchall()
+        except DataPlaneError:
+            raise
+        except Exception:
+            raise DataPlaneError(
+                "ML-DATA-018", "A configured local dataset could not be read."
+            ) from None
+        return [tuple(row) for row in rows]
 
     def _scalar_int(self, package_owned_sql: str) -> int:
         try:

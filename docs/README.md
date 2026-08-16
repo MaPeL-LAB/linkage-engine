@@ -1,6 +1,6 @@
 # Documentation Index
 
-The repository currently contains the M0 research baseline and the M1 safe configuration implementation candidate.
+The repository contains the M0 research baseline and the stacked M1, M2A, and M2B implementation increments.
 
 This directory is the normative documentation set for Linkage Engine.
 
@@ -69,3 +69,4 @@ Research documents explain the evidence and trade-offs. Accepted ADRs define the
 ## Active implementation increments
 
 - [`implementation/M2A_LOCAL_DATA_PLANE_AND_CANDIDATE_GENERATION.md`](implementation/M2A_LOCAL_DATA_PLANE_AND_CANDIDATE_GENERATION.md)
+- [`implementation/M2B_CONFIGURED_INGESTION_AND_PREPROCESSING.md`](implementation/M2B_CONFIGURED_INGESTION_AND_PREPROCESSING.md)
