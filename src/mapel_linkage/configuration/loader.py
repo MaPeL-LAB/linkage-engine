@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import math
+from collections.abc import Hashable
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal
@@ -40,10 +41,10 @@ class _LimitedSafeLoader(yaml.SafeLoader):
                 raise yaml.YAMLError("YAML alias limit exceeded")
         return super().compose_node(parent, index)
 
-    def construct_mapping(self, node: MappingNode, deep: bool = False) -> dict[str, object]:
+    def construct_mapping(self, node: MappingNode, deep: bool = False) -> dict[Hashable, Any]:
         if not isinstance(node, MappingNode):
             raise yaml.YAMLError("Expected a YAML mapping")
-        mapping: dict[str, object] = {}
+        mapping: dict[Hashable, Any] = {}
         for key_node, value_node in node.value:
             if key_node.tag == "tag:yaml.org,2002:merge":
                 raise yaml.YAMLError("YAML merge keys are not permitted")

@@ -51,7 +51,7 @@ d28bb3e79049150b43cae3ac30021a23e448d2f096a997e8b3a385d650dcfe3b        38  src/
 002214169bb8b7f151f2157e81ee8145b57367fa1779dcd0d467613bbc8416b1      3591  src/mapel_linkage/cli/main.py
 4d7eeeb89b3287090c502d9aba7297116e4722ae503193edda8a5917cdaf45c4       698  src/mapel_linkage/configuration/__init__.py
 3fa7de893e7b90c70c9153efd4c9deeb85b650792ae9e6c7c9139d5298e74a70      4540  src/mapel_linkage/configuration/compiler.py
-835e8970f8f5e9dc7b8bdaaf2e2c4f6f0ce7ec3cf3bc9d49deda437463cad481      7473  src/mapel_linkage/configuration/loader.py
+c4af9b9ec0776c151bb68cf643cce60503295a53bd205277aaeb8ebd35163f58      7514  src/mapel_linkage/configuration/loader.py
 682f3f4f3baf5d855314b839e23dccdd353629eb1c9f392e0bf6a75810650159     27914  src/mapel_linkage/configuration/models.py
 c836d7663717a33024352345baeb87e47bfd7838b6b402e9432e7480479561a6      3682  src/mapel_linkage/configuration/registries.py
 e02ab3dba5a722ae7cbf3ce943ee1ce94965f513b863e4c8b524327fdfb3739d       646  src/mapel_linkage/configuration/schema.py
@@ -68,7 +68,7 @@ e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855         0  test
 57a74781f5e6c2ef10884e7a5f03e6282514fcb695333ccdeec882948847fc10      8813  tests/configuration/test_loader_and_models.py
 2ed163cfe311bfb4903979c52cc31a7881bca41df1a2cf26511b72845ea95400      1366  tests/configuration/test_registries.py
 4a2033675b55e036d73d2fcff3bc09b2ec3552e1b424c45672fb2e72c8ae642a       927  tests/configuration/test_schema.py
-d442df9e38a5f1f2c0df22df514943fec765a5a9f0c478923ed0c9bbc742003f      3970  tests/governance/test_paths_logging_and_manifests.py
+3721455c7d710147a2b5c73f74ba00e3788538d4cf63b8cb0bd41f85c0f74fca      3993  tests/governance/test_paths_logging_and_manifests.py
 a42630085c465a40eae91c1d91c368b4dc890ffe111db710c637ebfe2fcef348       586  tests/helpers.py
 813cb0691aea3be710cb2905bbee505a027371a68623a9475a67cd32a5016de7      4382  tests/synthetic/test_generator.py
 d9a3df15d4ebfccdf866a973a3329f454d393e5f989b0e3a1732a9dfe58ddfe5      2669  tests/test_cli.py

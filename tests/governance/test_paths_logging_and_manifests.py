@@ -36,7 +36,7 @@ def test_safe_logger_accepts_only_aggregate_fields() -> None:
 def test_safe_log_validation_hides_rejected_value() -> None:
     sentinel = "SYNTHETIC-SENTINEL-ROW-VALUE"
     with pytest.raises(ValidationError) as caught:
-        SafeLogEvent(event="unsafe", record=sentinel)
+        SafeLogEvent.model_validate({"event": "unsafe", "record": sentinel})
     assert sentinel not in str(caught.value)
 
 
