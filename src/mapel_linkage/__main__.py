@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from mapel_linkage.cli.main import main
 
 

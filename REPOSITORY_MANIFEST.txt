@@ -44,7 +44,7 @@ e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855         0  priv
 9d7ebe269f632993a7c2667deb87c1df0a7b5ed09e8be6831f97fc1c87a49b25      1708  pyproject.toml
 08e7eb123d35838a2b9389ff09acaa2d3d71ccf1d4b28f51806078db437136a8      4807  scripts/verify_repository.py
 7eed04da02b9547ce3c3f6c8418908e9a0e2ae894ea3917a221ec1e5040b1456       129  src/mapel_linkage/__init__.py
-ae82ca7c0be29c215d9de3c9be4307ce306178f1f49ba856d8b278c7749de956       134  src/mapel_linkage/__main__.py
+109d3cb760bbcf3f371a1ea2d9dda0530849d5a7c0846744a8992c371b60c984        98  src/mapel_linkage/__main__.py
 d28bb3e79049150b43cae3ac30021a23e448d2f096a997e8b3a385d650dcfe3b        38  src/mapel_linkage/cli/__init__.py
 98270d52d1c724828813c0502d8826bfc937ef3d9f6442937ea1a467240698c0      1718  src/mapel_linkage/cli/main.py
 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855         0  src/mapel_linkage/py.typed
