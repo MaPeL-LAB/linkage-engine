@@ -1,6 +1,6 @@
 # Initial Synthetic Vertical Slice Checklist
 
-The checked M1 items below are implemented in the `0.1.0.dev1` development candidate. The complete vertical slice still requires M2.
+The checked items below are implemented through the stacked `0.1.0.dev4` M2C development increment. The complete vertical slice still requires scoring, calibration, assignment, decisions, and evaluation.
 
 ## Repository foundation
 
@@ -39,10 +39,11 @@ The checked M1 items below are implemented in the `0.1.0.dev1` development candi
 
 ## Linkage pipeline
 
-- [ ] preprocessing operates on canonical variables.
-- [ ] deterministic anchors are evidence-only by default.
-- [ ] candidate generation has a hard pair budget.
-- [ ] candidate rule provenance is recorded.
+- [x] preprocessing operates on canonical variables.
+- [x] deterministic anchors are evidence-only by default.
+- [x] candidate generation has a hard pair budget.
+- [x] candidate rule provenance is recorded.
+- [x] comparison features contain configured values, levels, and missingness indicators.
 - [ ] DuckDB and supported Splink blocking paths have parity tests.
 - [ ] Splink Fellegi–Sunter baseline runs.
 - [ ] XGBoost pair classifier runs on comparison features.
@@ -73,7 +74,7 @@ The checked M1 items below are implemented in the `0.1.0.dev1` development candi
 - [x] typed logging rejects unapproved record, identifier, and candidate-pair fields.
 - [x] safe log construction hides rejected keys and values.
 - [x] unrestricted manifests contain no row values, original identifiers, paths, or configuration payload.
-- [ ] backend errors are sanitized after the DuckDB/model boundary exists.
+- [x] DuckDB data, candidate, preprocessing, comparison, and anchor errors are sanitized.
 - [x] CI tests generate synthetic inputs at runtime rather than reading committed row data.
 - [x] CI uploads no row-level artifacts.
 

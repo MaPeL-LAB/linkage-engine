@@ -10,17 +10,17 @@
 | Import package | `mapel_linkage` |
 | Command-line interface | `mapel-linkage` |
 | Initial Python runtime | Python 3.12 |
-| Current package version | `0.1.0.dev3` |
+| Current package version | `0.1.0.dev4` |
 
 The repository name is **`linkage-engine`**. `MaPeL-LAB` identifies the developer and GitHub organisation; it is not part of the repository name.
 
 ## Status
 
-Milestones **M1**, **M2A**, and **M2B** are implemented in the stacked development branches. The package now provides the safe configuration foundation, a local DuckDB data plane, typed bounded candidate generation, and configuration-driven local ingestion with canonical preprocessing.
+Milestones **M1**, **M2A**, **M2B**, and **M2C** are implemented in the stacked development branches. The package now provides the safe configuration foundation, a local DuckDB data plane, typed bounded candidate generation, configuration-driven local ingestion, canonical preprocessing, comparison-feature construction, and deterministic-anchor evidence.
 
-M2B reads approved local Parquet, CSV, TSV, and newline-delimited JSON sources; maps source columns through validated configuration; creates deterministic surrogate record keys; applies allow-listed normalisation; and materialises canonical local DuckDB tables with explicit missingness indicators.
+M2C computes configured exact, string-similarity, q-gram, date-distance, numeric-distance, categorical, level, and missingness features over bounded candidate pairs. It separately evaluates deterministic anchor predicates with per-rule uniqueness diagnostics. Anchor action remains `evidence_only`, and anchor evidence remains ineligible as training truth.
 
-The package does **not** yet implement comparison-feature construction, deterministic-anchor evidence evaluation, Fellegi–Sunter scoring, supervised matching, calibration, assignment, adjudication processing, or a complete linkage run. It is not validated for operational use.
+The package does **not** yet implement Fellegi–Sunter scoring, supervised matching, learned ranking, calibration, assignment, adjudication processing, relationship decisions, or a complete linkage run. It is not validated for operational use.
 
 ## Intended use
 
@@ -70,6 +70,19 @@ M1 includes:
 - machine-readable schema at [`schemas/linkage-config.schema.json`](schemas/linkage-config.schema.json).
 
 No configuration may provide raw SQL, a shell command, a module path, a Python callable, `eval()`, `exec()`, or arbitrary executable content.
+
+## Comparison and anchor evidence
+
+`DuckDBComparisonFeatureBuilder` joins only bounded M2A candidate keys to M2B canonical tables. It emits package-generated comparison values, configured level indices, exact-agreement flags, explicit missingness flags, and retrieval provenance. It does not copy source field values into the feature output.
+
+`DuckDBAnchorEvidenceEvaluator` evaluates exact, prefix, date-window, conjunction, and disjunction predicates independently of pair scoring. Its output records aggregate uniqueness evidence and fixes both:
+
+```text
+evidence_action = evidence_only
+eligible_as_training_truth = false
+```
+
+Neither component emits a probability, relationship status, assignment, merged entity, or master record.
 
 ## Configured local preparation
 
@@ -146,7 +159,7 @@ python -m pip install -e ".[core]"
 
 ## Documentation
 
-The documentation index is [`docs/README.md`](docs/README.md). Implementation reports are indexed in [`docs/README.md`](docs/README.md), including M1, M2A, and M2B. Research claims use keys from [`docs/references/references.bib`](docs/references/references.bib).
+The documentation index is [`docs/README.md`](docs/README.md). Implementation reports are indexed in [`docs/README.md`](docs/README.md), including M1, M2A, M2B, and M2C. Research claims use keys from [`docs/references/references.bib`](docs/references/references.bib).
 
 ## Validation warning
 
