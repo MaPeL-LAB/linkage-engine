@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import TypeAlias
 
 from mapel_linkage.domain.errors import CandidateGenerationError, DataPlaneError
 from mapel_linkage.domain.sql_identifiers import quote_identifier, validate_identifier
@@ -53,7 +52,7 @@ class AnyOf:
             )
 
 
-CandidatePredicate: TypeAlias = Exact | PrefixEqual | AllOf | AnyOf
+type CandidatePredicate = Exact | PrefixEqual | AllOf | AnyOf
 
 
 @dataclass(frozen=True, slots=True)
