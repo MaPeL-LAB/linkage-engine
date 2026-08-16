@@ -2,7 +2,7 @@ name: assemble-m1-large-files
 
 on:
   push:
-    branches: [agent/m1-safe-foundation]
+    branches: [agent/m1-safe-foundation-implementation]
 
 permissions:
   contents: write
