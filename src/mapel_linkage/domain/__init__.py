@@ -5,6 +5,7 @@ from mapel_linkage.domain.errors import (
     CandidateGenerationError,
     DataPlaneError,
     LinkageRuntimeError,
+    PreprocessingError,
 )
 from mapel_linkage.domain.table_refs import TableRef
 
@@ -13,5 +14,6 @@ __all__ = [
     "CandidateGenerationError",
     "DataPlaneError",
     "LinkageRuntimeError",
+    "PreprocessingError",
     "TableRef",
 ]

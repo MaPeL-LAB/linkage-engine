@@ -10,15 +10,17 @@
 | Import package | `mapel_linkage` |
 | Command-line interface | `mapel-linkage` |
 | Initial Python runtime | Python 3.12 |
-| Current package version | `0.1.0.dev1` |
+| Current package version | `0.1.0.dev3` |
 
 The repository name is **`linkage-engine`**. `MaPeL-LAB` identifies the developer and GitHub organisation; it is not part of the repository name.
 
 ## Status
 
-Milestone **M1 — safe configuration foundation** is implemented in this development candidate. The package now provides a strict configuration schema, safe YAML/JSON loading, an immutable execution-plan compiler, immutable allow-list registries, local path controls, value-safe errors, typed aggregate logging, privacy-safe run manifests, a committed JSON Schema, and deterministic synthetic data generation.
+Milestones **M1**, **M2A**, and **M2B** are implemented in the stacked development branches. The package now provides the safe configuration foundation, a local DuckDB data plane, typed bounded candidate generation, and configuration-driven local ingestion with canonical preprocessing.
 
-The package does **not** yet implement candidate generation, Fellegi–Sunter scoring, supervised matching, calibration, assignment, adjudication processing, or a complete linkage run. It is not validated for operational use.
+M2B reads approved local Parquet, CSV, TSV, and newline-delimited JSON sources; maps source columns through validated configuration; creates deterministic surrogate record keys; applies allow-listed normalisation; and materialises canonical local DuckDB tables with explicit missingness indicators.
+
+The package does **not** yet implement comparison-feature construction, deterministic-anchor evidence evaluation, Fellegi–Sunter scoring, supervised matching, calibration, assignment, adjudication processing, or a complete linkage run. It is not validated for operational use.
 
 ## Intended use
 
@@ -47,7 +49,7 @@ See:
 - [`docs/SYNTHETIC_DATA_POLICY.md`](docs/SYNTHETIC_DATA_POLICY.md)
 - [`docs/governance/LABEL_PROVENANCE_POLICY.md`](docs/governance/LABEL_PROVENANCE_POLICY.md)
 
-## Implemented M1 boundary
+## Implemented trust and data-preparation boundary
 
 > **Configuration is data, not executable code.**
 
@@ -68,6 +70,21 @@ M1 includes:
 - machine-readable schema at [`schemas/linkage-config.schema.json`](schemas/linkage-config.schema.json).
 
 No configuration may provide raw SQL, a shell command, a module path, a Python callable, `eval()`, `exec()`, or arbitrary executable content.
+
+## Configured local preparation
+
+`ConfiguredDatasetPreparer` consumes a compiled `ExecutionPlan` and prepares local row-bearing tables without exposing source rows through public interfaces.
+
+The canonical table contract includes:
+
+```text
+__ml_dataset_id
+__ml_record_key
+__ml_v_<stable-variable-digest>
+__ml_m_<stable-variable-digest>
+```
+
+Original record identifiers are used only to derive deterministic SHA-256 surrogate keys and are not retained as the canonical record reference. Source paths, source column names, identifiers, and values are excluded from public object representations and translated errors. Direct attachment of arbitrary DuckDB databases remains deferred.
 
 ## Command line
 
@@ -129,7 +146,7 @@ python -m pip install -e ".[core]"
 
 ## Documentation
 
-The documentation index is [`docs/README.md`](docs/README.md). The M1 implementation report is [`docs/implementation/M1_SAFE_FOUNDATION_REPORT.md`](docs/implementation/M1_SAFE_FOUNDATION_REPORT.md). Research claims use keys from [`docs/references/references.bib`](docs/references/references.bib).
+The documentation index is [`docs/README.md`](docs/README.md). Implementation reports are indexed in [`docs/README.md`](docs/README.md), including M1, M2A, and M2B. Research claims use keys from [`docs/references/references.bib`](docs/references/references.bib).
 
 ## Validation warning
 
