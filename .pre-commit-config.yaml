@@ -1,0 +1,18 @@
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-format-check
+        name: Ruff formatting check
+        entry: ruff format --check .
+        language: system
+        pass_filenames: false
+      - id: ruff-lint
+        name: Ruff lint
+        entry: ruff check .
+        language: system
+        pass_filenames: false
+      - id: repository-boundary
+        name: Repository privacy and documentation boundary
+        entry: python scripts/verify_repository.py
+        language: system
+        pass_filenames: false

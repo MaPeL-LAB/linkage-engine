@@ -1,0 +1,78 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "mapel-linkage-engine"
+version = "0.1.0.dev0"
+description = "Configuration-driven probabilistic record linkage and entity resolution engine."
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+authors = [{ name = "MaPeL-LAB" }]
+classifiers = [
+  "Development Status :: 2 - Pre-Alpha",
+  "Private :: Do Not Upload",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.12",
+  "Typing :: Typed",
+]
+dependencies = ["pydantic>=2,<3", "PyYAML>=6,<7"]
+
+[project.optional-dependencies]
+core = [
+  "duckdb>=1,<2",
+  "networkx>=3,<4",
+  "numpy>=2,<3",
+  "ortools>=9,<10",
+  "scikit-learn>=1,<2",
+  "scipy>=1,<2",
+  "splink>=4,<5",
+  "xgboost>=3,<4",
+]
+lightgbm = ["lightgbm>=4,<5"]
+neural = ["torch>=2,<3"]
+dev = [
+  "build>=1,<2",
+  "hatchling>=1.27,<2",
+  "mypy>=1,<2",
+  "pip-audit>=2,<3",
+  "pre-commit>=4,<5",
+  "pytest>=8,<9",
+  "pytest-cov>=6,<7",
+  "ruff>=0.12,<1",
+  "types-PyYAML>=6,<7",
+]
+
+[project.scripts]
+mapel-linkage = "mapel_linkage.cli.main:main"
+
+[project.urls]
+Repository = "https://github.com/MaPeL-LAB/linkage-engine"
+Documentation = "https://github.com/MaPeL-LAB/linkage-engine/tree/main/docs"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/mapel_linkage"]
+
+[tool.hatch.build.targets.sdist]
+exclude = [
+  "/private/**",
+  "/data/**",
+  "/artifacts/**",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "RUF"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unused_configs = true
+files = ["src", "tests"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers --strict-config"
