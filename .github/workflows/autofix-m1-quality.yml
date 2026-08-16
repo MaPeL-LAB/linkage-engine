@@ -26,6 +26,25 @@ jobs:
           python -m pip install -e ".[dev]"
       - name: Apply canonical formatting and safe lint fixes
         run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("src/mapel_linkage/synthetic/generator.py")
+          text = path.read_text(encoding="utf-8")
+          text = text.replace(
+              "import json\nimport random\n",
+              "import json\nimport random\nfrom contextlib import suppress\n",
+          )
+          text = text.replace(
+              "                try:\n"
+              "                    candidate.unlink(missing_ok=True)\n"
+              "                except OSError:\n"
+              "                    pass\n",
+              "                with suppress(OSError):\n"
+              "                    candidate.unlink(missing_ok=True)\n",
+          )
+          path.write_text(text, encoding="utf-8")
+          PY
           ruff format .
           ruff check --fix .
           ruff format .
