@@ -14,6 +14,7 @@ class TableRef:
     row_count: int
     contains_row_level_data: bool = True
 
+
 @dataclass(frozen=True, slots=True)
 class ModelArtifactRef:
     artifact_id: str
@@ -40,7 +41,9 @@ Consumes candidate and canonical dataset tables. Returns comparison features wit
 ```python
 class PairMatcher(Protocol):
     def fit(self, training: TrainingBundle, context: RunContext) -> ModelArtifactRef: ...
-    def score(self, model: ModelArtifactRef, features: TableRef, context: RunContext) -> TableRef: ...
+    def score(
+        self, model: ModelArtifactRef, features: TableRef, context: RunContext
+    ) -> TableRef: ...
 ```
 
 Scores are not automatically calibrated probabilities or decisions.
@@ -50,7 +53,9 @@ Scores are not automatically calibrated probabilities or decisions.
 ```python
 class CandidateRanker(Protocol):
     def fit(self, training: RankingTrainingBundle, context: RunContext) -> ModelArtifactRef: ...
-    def rank(self, model: ModelArtifactRef, candidates: TableRef, context: RunContext) -> TableRef: ...
+    def rank(
+        self, model: ModelArtifactRef, candidates: TableRef, context: RunContext
+    ) -> TableRef: ...
 ```
 
 Allowed outputs are ranking score, rank, top-K membership, query group, and provenance. Relationship status is prohibited.
