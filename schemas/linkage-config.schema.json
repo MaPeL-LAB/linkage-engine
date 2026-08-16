@@ -1,0 +1,1802 @@
+{
+  "$defs": {
+    "AllPredicate": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "all",
+          "title": "Kind",
+          "type": "string"
+        },
+        "terms": {
+          "items": {
+            "$ref": "#/$defs/BlockPredicate"
+          },
+          "maxItems": 32,
+          "minItems": 1,
+          "title": "Terms",
+          "type": "array"
+        }
+      },
+      "required": [
+        "kind",
+        "terms"
+      ],
+      "title": "AllPredicate",
+      "type": "object"
+    },
+    "AnyPredicate": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "any",
+          "title": "Kind",
+          "type": "string"
+        },
+        "terms": {
+          "items": {
+            "$ref": "#/$defs/BlockPredicate"
+          },
+          "maxItems": 32,
+          "minItems": 1,
+          "title": "Terms",
+          "type": "array"
+        }
+      },
+      "required": [
+        "kind",
+        "terms"
+      ],
+      "title": "AnyPredicate",
+      "type": "object"
+    },
+    "AssignmentConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "constraint": {
+          "$ref": "#/$defs/AssignmentConstraint"
+        },
+        "deterministic_tie_breaking": {
+          "const": true,
+          "default": true,
+          "title": "Deterministic Tie Breaking",
+          "type": "boolean"
+        },
+        "no_match": {
+          "$ref": "#/$defs/NoMatchAssignmentConfig"
+        },
+        "solver": {
+          "enum": [
+            "ortools_min_cost_flow",
+            "unconstrained"
+          ],
+          "title": "Solver",
+          "type": "string"
+        }
+      },
+      "required": [
+        "solver",
+        "constraint",
+        "no_match"
+      ],
+      "title": "AssignmentConfig",
+      "type": "object"
+    },
+    "AssignmentConstraint": {
+      "enum": [
+        "one_to_one",
+        "many_to_one",
+        "one_to_many",
+        "unconstrained"
+      ],
+      "type": "string"
+    },
+    "BlockPredicate": {
+      "discriminator": {
+        "mapping": {
+          "all": "#/$defs/AllPredicate",
+          "any": "#/$defs/AnyPredicate",
+          "date_window": "#/$defs/DateWindowPredicate",
+          "exact": "#/$defs/ExactPredicate",
+          "prefix_equal": "#/$defs/PrefixEqualPredicate"
+        },
+        "propertyName": "kind"
+      },
+      "oneOf": [
+        {
+          "$ref": "#/$defs/ExactPredicate"
+        },
+        {
+          "$ref": "#/$defs/PrefixEqualPredicate"
+        },
+        {
+          "$ref": "#/$defs/DateWindowPredicate"
+        },
+        {
+          "$ref": "#/$defs/AllPredicate"
+        },
+        {
+          "$ref": "#/$defs/AnyPredicate"
+        }
+      ]
+    },
+    "BlockingConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "rules": {
+          "items": {
+            "$ref": "#/$defs/BlockingRuleConfig"
+          },
+          "maxItems": 128,
+          "minItems": 1,
+          "title": "Rules",
+          "type": "array"
+        }
+      },
+      "required": [
+        "rules"
+      ],
+      "title": "BlockingConfig",
+      "type": "object"
+    },
+    "BlockingRuleConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "predicate": {
+          "$ref": "#/$defs/BlockPredicate"
+        }
+      },
+      "required": [
+        "id",
+        "predicate"
+      ],
+      "title": "BlockingRuleConfig",
+      "type": "object"
+    },
+    "BoostedTreeModelConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "implementation": {
+          "enum": [
+            "xgboost_classifier",
+            "lightgbm_classifier"
+          ],
+          "title": "Implementation",
+          "type": "string"
+        },
+        "model_id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "require_verified_labels": {
+          "const": true,
+          "default": true,
+          "title": "Require Verified Labels",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "implementation",
+        "model_id"
+      ],
+      "title": "BoostedTreeModelConfig",
+      "type": "object"
+    },
+    "CalibrationConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "method": {
+          "enum": [
+            "sigmoid",
+            "isotonic"
+          ],
+          "title": "Method",
+          "type": "string"
+        },
+        "partition": {
+          "const": "calibration",
+          "default": "calibration",
+          "title": "Partition",
+          "type": "string"
+        },
+        "require_independent_partition": {
+          "const": true,
+          "default": true,
+          "title": "Require Independent Partition",
+          "type": "boolean"
+        },
+        "source_model": {
+          "$ref": "#/$defs/Identifier"
+        }
+      },
+      "required": [
+        "method",
+        "source_model"
+      ],
+      "title": "CalibrationConfig",
+      "type": "object"
+    },
+    "CasefoldTransform": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "casefold",
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "CasefoldTransform",
+      "type": "object"
+    },
+    "CategoricalComparison": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "categorical",
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "CategoricalComparison",
+      "type": "object"
+    },
+    "CollapseWhitespaceTransform": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "collapse_whitespace",
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "CollapseWhitespaceTransform",
+      "type": "object"
+    },
+    "ColumnName": {
+      "maxLength": 256,
+      "minLength": 1,
+      "type": "string"
+    },
+    "ComparisonConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "function": {
+          "$ref": "#/$defs/ComparisonFunction"
+        },
+        "id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "levels": {
+          "items": {
+            "$ref": "#/$defs/ComparisonLevel"
+          },
+          "maxItems": 32,
+          "minItems": 2,
+          "title": "Levels",
+          "type": "array"
+        },
+        "variable": {
+          "$ref": "#/$defs/Identifier"
+        }
+      },
+      "required": [
+        "id",
+        "variable",
+        "function",
+        "levels"
+      ],
+      "title": "ComparisonConfig",
+      "type": "object"
+    },
+    "ComparisonFunction": {
+      "discriminator": {
+        "mapping": {
+          "categorical": "#/$defs/CategoricalComparison",
+          "damerau_levenshtein": "#/$defs/DamerauLevenshteinComparison",
+          "date_difference": "#/$defs/DateDifferenceComparison",
+          "exact": "#/$defs/ExactComparison",
+          "jaro_winkler": "#/$defs/JaroWinklerComparison",
+          "levenshtein": "#/$defs/LevenshteinComparison",
+          "numeric_difference": "#/$defs/NumericDifferenceComparison",
+          "qgram": "#/$defs/QGramComparison"
+        },
+        "propertyName": "kind"
+      },
+      "oneOf": [
+        {
+          "$ref": "#/$defs/ExactComparison"
+        },
+        {
+          "$ref": "#/$defs/JaroWinklerComparison"
+        },
+        {
+          "$ref": "#/$defs/LevenshteinComparison"
+        },
+        {
+          "$ref": "#/$defs/DamerauLevenshteinComparison"
+        },
+        {
+          "$ref": "#/$defs/QGramComparison"
+        },
+        {
+          "$ref": "#/$defs/DateDifferenceComparison"
+        },
+        {
+          "$ref": "#/$defs/NumericDifferenceComparison"
+        },
+        {
+          "$ref": "#/$defs/CategoricalComparison"
+        }
+      ]
+    },
+    "ComparisonLevel": {
+      "discriminator": {
+        "mapping": {
+          "else": "#/$defs/ElseLevel",
+          "exact": "#/$defs/ExactLevel",
+          "maximum_difference": "#/$defs/MaximumDifferenceLevel",
+          "missing": "#/$defs/MissingLevel",
+          "threshold": "#/$defs/ThresholdLevel"
+        },
+        "propertyName": "kind"
+      },
+      "oneOf": [
+        {
+          "$ref": "#/$defs/MissingLevel"
+        },
+        {
+          "$ref": "#/$defs/ExactLevel"
+        },
+        {
+          "$ref": "#/$defs/ThresholdLevel"
+        },
+        {
+          "$ref": "#/$defs/MaximumDifferenceLevel"
+        },
+        {
+          "$ref": "#/$defs/ElseLevel"
+        }
+      ]
+    },
+    "ConfirmedDecisionConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "minimum_probability": {
+          "$ref": "#/$defs/Probability"
+        },
+        "minimum_probability_margin": {
+          "$ref": "#/$defs/Probability"
+        },
+        "require_assignment": {
+          "default": true,
+          "title": "Require Assignment",
+          "type": "boolean"
+        },
+        "require_valid_calibration": {
+          "const": true,
+          "default": true,
+          "title": "Require Valid Calibration",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "minimum_probability",
+        "minimum_probability_margin"
+      ],
+      "title": "ConfirmedDecisionConfig",
+      "type": "object"
+    },
+    "DamerauLevenshteinComparison": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "damerau_levenshtein",
+          "title": "Kind",
+          "type": "string"
+        },
+        "maximum_distance": {
+          "anyOf": [
+            {
+              "maximum": 1024,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Maximum Distance"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "DamerauLevenshteinComparison",
+      "type": "object"
+    },
+    "DataType": {
+      "enum": [
+        "string",
+        "date",
+        "integer",
+        "float",
+        "boolean",
+        "categorical"
+      ],
+      "type": "string"
+    },
+    "DatasetConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "format": {
+          "enum": [
+            "parquet",
+            "csv",
+            "tsv",
+            "jsonl",
+            "duckdb"
+          ],
+          "title": "Format",
+          "type": "string"
+        },
+        "id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "path": {
+          "$ref": "#/$defs/PathText"
+        },
+        "record_id_column": {
+          "$ref": "#/$defs/ColumnName"
+        },
+        "role": {
+          "enum": [
+            "source",
+            "target",
+            "reference",
+            "auxiliary"
+          ],
+          "title": "Role",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "role",
+        "path",
+        "format",
+        "record_id_column"
+      ],
+      "title": "DatasetConfig",
+      "type": "object"
+    },
+    "DateDifferenceComparison": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "date_difference",
+          "title": "Kind",
+          "type": "string"
+        },
+        "unit": {
+          "default": "day",
+          "enum": [
+            "day",
+            "month",
+            "year"
+          ],
+          "title": "Unit",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "DateDifferenceComparison",
+      "type": "object"
+    },
+    "DateWindowPredicate": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "date_window",
+          "title": "Kind",
+          "type": "string"
+        },
+        "maximum_days": {
+          "exclusiveMinimum": 0,
+          "maximum": 36525,
+          "title": "Maximum Days",
+          "type": "integer"
+        },
+        "variable": {
+          "$ref": "#/$defs/Identifier"
+        }
+      },
+      "required": [
+        "kind",
+        "variable",
+        "maximum_days"
+      ],
+      "title": "DateWindowPredicate",
+      "type": "object"
+    },
+    "DecisionPolicyConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "confirmed": {
+          "$ref": "#/$defs/ConfirmedDecisionConfig"
+        },
+        "no_match": {
+          "$ref": "#/$defs/NoMatchDecisionConfig"
+        },
+        "review_required": {
+          "$ref": "#/$defs/ReviewDecisionConfig"
+        },
+        "unresolved": {
+          "$ref": "#/$defs/UnresolvedDecisionConfig"
+        }
+      },
+      "required": [
+        "confirmed",
+        "review_required",
+        "no_match",
+        "unresolved"
+      ],
+      "title": "DecisionPolicyConfig",
+      "type": "object"
+    },
+    "DeterministicAnchorConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "const": "evidence_only",
+          "default": "evidence_only",
+          "title": "Action",
+          "type": "string"
+        },
+        "allow_as_training_truth": {
+          "const": false,
+          "default": false,
+          "title": "Allow As Training Truth",
+          "type": "boolean"
+        },
+        "id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "predicate": {
+          "$ref": "#/$defs/BlockPredicate"
+        },
+        "require_unique_left": {
+          "default": true,
+          "title": "Require Unique Left",
+          "type": "boolean"
+        },
+        "require_unique_right": {
+          "default": true,
+          "title": "Require Unique Right",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "predicate"
+      ],
+      "title": "DeterministicAnchorConfig",
+      "type": "object"
+    },
+    "ElseLevel": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "else",
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "ElseLevel",
+      "type": "object"
+    },
+    "ExactComparison": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "exact",
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "ExactComparison",
+      "type": "object"
+    },
+    "ExactLevel": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "exact",
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "ExactLevel",
+      "type": "object"
+    },
+    "ExactPredicate": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "exact",
+          "title": "Kind",
+          "type": "string"
+        },
+        "variable": {
+          "$ref": "#/$defs/Identifier"
+        }
+      },
+      "required": [
+        "kind",
+        "variable"
+      ],
+      "title": "ExactPredicate",
+      "type": "object"
+    },
+    "FellegiSunterModelConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "implementation": {
+          "const": "splink_duckdb",
+          "title": "Implementation",
+          "type": "string"
+        },
+        "model_id": {
+          "$ref": "#/$defs/Identifier"
+        }
+      },
+      "required": [
+        "implementation",
+        "model_id"
+      ],
+      "title": "FellegiSunterModelConfig",
+      "type": "object"
+    },
+    "Fraction": {
+      "exclusiveMaximum": 1.0,
+      "exclusiveMinimum": 0.0,
+      "type": "number"
+    },
+    "FrozenColumnMap": {
+      "additionalProperties": {
+        "$ref": "#/$defs/ColumnName"
+      },
+      "propertyNames": {
+        "$ref": "#/$defs/Identifier"
+      },
+      "type": "object"
+    },
+    "HardNegativeSamplingConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "verified_nonmatches_only": {
+          "const": true,
+          "default": true,
+          "title": "Verified Nonmatches Only",
+          "type": "boolean"
+        }
+      },
+      "title": "HardNegativeSamplingConfig",
+      "type": "object"
+    },
+    "Identifier": {
+      "maxLength": 128,
+      "minLength": 1,
+      "pattern": "^[A-Za-z][A-Za-z0-9_.-]*$",
+      "type": "string"
+    },
+    "JaroWinklerComparison": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "jaro_winkler",
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "JaroWinklerComparison",
+      "type": "object"
+    },
+    "LabelSource": {
+      "discriminator": {
+        "mapping": {
+          "synthetic_truth": "#/$defs/SyntheticTruthSource",
+          "unverified_reference": "#/$defs/UnverifiedReferenceSource",
+          "verified_gold_standard": "#/$defs/VerifiedGoldStandardSource",
+          "verified_human_adjudication": "#/$defs/VerifiedAdjudicationSource"
+        },
+        "propertyName": "kind"
+      },
+      "oneOf": [
+        {
+          "$ref": "#/$defs/SyntheticTruthSource"
+        },
+        {
+          "$ref": "#/$defs/VerifiedAdjudicationSource"
+        },
+        {
+          "$ref": "#/$defs/VerifiedGoldStandardSource"
+        },
+        {
+          "$ref": "#/$defs/UnverifiedReferenceSource"
+        }
+      ]
+    },
+    "LabelsConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "permit_unverified_crosswalk": {
+          "const": false,
+          "default": false,
+          "title": "Permit Unverified Crosswalk",
+          "type": "boolean"
+        },
+        "permit_weak_labels_for_training": {
+          "const": false,
+          "default": false,
+          "title": "Permit Weak Labels For Training",
+          "type": "boolean"
+        },
+        "source": {
+          "$ref": "#/$defs/LabelSource"
+        }
+      },
+      "required": [
+        "source"
+      ],
+      "title": "LabelsConfig",
+      "type": "object"
+    },
+    "LevenshteinComparison": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "levenshtein",
+          "title": "Kind",
+          "type": "string"
+        },
+        "maximum_distance": {
+          "anyOf": [
+            {
+              "maximum": 1024,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Maximum Distance"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "LevenshteinComparison",
+      "type": "object"
+    },
+    "LinkageMode": {
+      "enum": [
+        "link_only",
+        "dedupe_only",
+        "link_and_dedupe",
+        "multi_source"
+      ],
+      "type": "string"
+    },
+    "MaximumDifferenceLevel": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "maximum_difference",
+          "title": "Kind",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "ge": 0,
+          "title": "Value"
+        }
+      },
+      "required": [
+        "kind",
+        "value"
+      ],
+      "title": "MaximumDifferenceLevel",
+      "type": "object"
+    },
+    "MissingLevel": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "missing",
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "MissingLevel",
+      "type": "object"
+    },
+    "MissingnessConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "blank_is_missing": {
+          "default": true,
+          "title": "Blank Is Missing",
+          "type": "boolean"
+        },
+        "comparison_policy": {
+          "default": "explicit_missing_level",
+          "enum": [
+            "explicit_missing_level",
+            "ignore_comparison"
+          ],
+          "title": "Comparison Policy",
+          "type": "string"
+        }
+      },
+      "title": "MissingnessConfig",
+      "type": "object"
+    },
+    "ModelSelectionConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "const": "champion_challenger",
+          "default": "champion_challenger",
+          "title": "Mode",
+          "type": "string"
+        },
+        "primary_metric": {
+          "default": "average_precision",
+          "enum": [
+            "average_precision",
+            "brier_score"
+          ],
+          "title": "Primary Metric",
+          "type": "string"
+        },
+        "selection_partition": {
+          "const": "validation",
+          "default": "validation",
+          "title": "Selection Partition",
+          "type": "string"
+        },
+        "test_partition_may_select_model": {
+          "const": false,
+          "default": false,
+          "title": "Test Partition May Select Model",
+          "type": "boolean"
+        }
+      },
+      "title": "ModelSelectionConfig",
+      "type": "object"
+    },
+    "ModelsConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "boosted_tree": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BoostedTreeModelConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "fellegi_sunter": {
+          "$ref": "#/$defs/FellegiSunterModelConfig"
+        },
+        "neural": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NeuralModelConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "ranking": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RankingModelConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "fellegi_sunter"
+      ],
+      "title": "ModelsConfig",
+      "type": "object"
+    },
+    "NeuralModelConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "default": false,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "implementation": {
+          "const": "pytorch_pair_mlp",
+          "title": "Implementation",
+          "type": "string"
+        },
+        "model_id": {
+          "$ref": "#/$defs/Identifier",
+          "default": "neural_pair_matcher"
+        },
+        "require_verified_labels": {
+          "const": true,
+          "default": true,
+          "title": "Require Verified Labels",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "implementation"
+      ],
+      "title": "NeuralModelConfig",
+      "type": "object"
+    },
+    "NoMatchAssignmentConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "const": true,
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "utility": {
+          "default": 0.0,
+          "title": "Utility",
+          "type": "number"
+        }
+      },
+      "title": "NoMatchAssignmentConfig",
+      "type": "object"
+    },
+    "NoMatchDecisionConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "maximum_top_probability": {
+          "$ref": "#/$defs/Probability"
+        },
+        "require_complete_candidate_search": {
+          "const": true,
+          "default": true,
+          "title": "Require Complete Candidate Search",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "maximum_top_probability"
+      ],
+      "title": "NoMatchDecisionConfig",
+      "type": "object"
+    },
+    "NumericCastTransform": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "numeric_cast",
+          "title": "Kind",
+          "type": "string"
+        },
+        "target": {
+          "enum": [
+            "integer",
+            "float"
+          ],
+          "title": "Target",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "target"
+      ],
+      "title": "NumericCastTransform",
+      "type": "object"
+    },
+    "NumericDifferenceComparison": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "numeric_difference",
+          "title": "Kind",
+          "type": "string"
+        },
+        "scale": {
+          "default": 1.0,
+          "exclusiveMinimum": 0.0,
+          "title": "Scale",
+          "type": "number"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "NumericDifferenceComparison",
+      "type": "object"
+    },
+    "OutputConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "permitted_fields": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/OutputField"
+          },
+          "title": "Permitted Fields",
+          "type": "array"
+        },
+        "permitted_variable_values": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Identifier"
+          },
+          "title": "Permitted Variable Values",
+          "type": "array"
+        },
+        "restricted_directory": {
+          "$ref": "#/$defs/PathText"
+        }
+      },
+      "required": [
+        "restricted_directory"
+      ],
+      "title": "OutputConfig",
+      "type": "object"
+    },
+    "OutputField": {
+      "enum": [
+        "relationship_id",
+        "source_dataset_id",
+        "target_dataset_id",
+        "source_record_ref",
+        "target_record_ref",
+        "relationship_status",
+        "model_family",
+        "model_version",
+        "calibrated_probability",
+        "candidate_rank",
+        "probability_margin",
+        "decision_rule_id",
+        "assignment_method",
+        "assignment_constraint",
+        "anchor_rule_ids",
+        "candidate_rule_ids",
+        "run_id",
+        "configuration_digest",
+        "feature_schema_digest",
+        "non_sensitive_provenance",
+        "created_at"
+      ],
+      "type": "string"
+    },
+    "ParseDateTransform": {
+      "additionalProperties": false,
+      "properties": {
+        "formats": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 16,
+          "minItems": 1,
+          "title": "Formats",
+          "type": "array"
+        },
+        "kind": {
+          "const": "parse_date",
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "formats"
+      ],
+      "title": "ParseDateTransform",
+      "type": "object"
+    },
+    "PathText": {
+      "maxLength": 4096,
+      "minLength": 1,
+      "type": "string"
+    },
+    "PrefixEqualPredicate": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "prefix_equal",
+          "title": "Kind",
+          "type": "string"
+        },
+        "length": {
+          "exclusiveMinimum": 0,
+          "maximum": 128,
+          "title": "Length",
+          "type": "integer"
+        },
+        "variable": {
+          "$ref": "#/$defs/Identifier"
+        }
+      },
+      "required": [
+        "kind",
+        "variable",
+        "length"
+      ],
+      "title": "PrefixEqualPredicate",
+      "type": "object"
+    },
+    "PrivacyConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "allow_network_access": {
+          "const": false,
+          "default": false,
+          "title": "Allow Network Access",
+          "type": "boolean"
+        },
+        "allow_remote_uris": {
+          "const": false,
+          "default": false,
+          "title": "Allow Remote Uris",
+          "type": "boolean"
+        },
+        "allowed_input_roots": {
+          "items": {
+            "$ref": "#/$defs/PathText"
+          },
+          "maxItems": 16,
+          "minItems": 1,
+          "title": "Allowed Input Roots",
+          "type": "array"
+        },
+        "allowed_output_roots": {
+          "items": {
+            "$ref": "#/$defs/PathText"
+          },
+          "maxItems": 16,
+          "minItems": 1,
+          "title": "Allowed Output Roots",
+          "type": "array"
+        },
+        "include_tracebacks": {
+          "const": false,
+          "default": false,
+          "title": "Include Tracebacks",
+          "type": "boolean"
+        },
+        "log_policy": {
+          "const": "aggregate_only",
+          "default": "aggregate_only",
+          "title": "Log Policy",
+          "type": "string"
+        }
+      },
+      "required": [
+        "allowed_input_roots",
+        "allowed_output_roots"
+      ],
+      "title": "PrivacyConfig",
+      "type": "object"
+    },
+    "Probability": {
+      "maximum": 1.0,
+      "minimum": 0.0,
+      "type": "number"
+    },
+    "ProjectConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "assignment_constraint": {
+          "$ref": "#/$defs/AssignmentConstraint"
+        },
+        "entity_type": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "linkage_mode": {
+          "$ref": "#/$defs/LinkageMode"
+        },
+        "project_id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "random_seed": {
+          "maximum": 4294967295,
+          "minimum": 0,
+          "title": "Random Seed",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "project_id",
+        "entity_type",
+        "linkage_mode",
+        "assignment_constraint",
+        "random_seed"
+      ],
+      "title": "ProjectConfig",
+      "type": "object"
+    },
+    "QGramComparison": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "qgram",
+          "title": "Kind",
+          "type": "string"
+        },
+        "q": {
+          "default": 2,
+          "exclusiveMinimum": 0,
+          "maximum": 8,
+          "minimum": 1,
+          "title": "Q",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "QGramComparison",
+      "type": "object"
+    },
+    "RankingModelConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "implementation": {
+          "enum": [
+            "xgboost_ranker",
+            "lightgbm_ranker"
+          ],
+          "title": "Implementation",
+          "type": "string"
+        },
+        "model_id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "query_side": {
+          "enum": [
+            "source",
+            "target"
+          ],
+          "title": "Query Side",
+          "type": "string"
+        },
+        "require_verified_labels": {
+          "const": true,
+          "default": true,
+          "title": "Require Verified Labels",
+          "type": "boolean"
+        },
+        "top_k": {
+          "exclusiveMinimum": 0,
+          "maximum": 1000,
+          "title": "Top K",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "implementation",
+        "model_id",
+        "query_side",
+        "top_k"
+      ],
+      "title": "RankingModelConfig",
+      "type": "object"
+    },
+    "ReviewDecisionConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "minimum_probability": {
+          "$ref": "#/$defs/Probability"
+        }
+      },
+      "required": [
+        "minimum_probability"
+      ],
+      "title": "ReviewDecisionConfig",
+      "type": "object"
+    },
+    "RuntimeConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "backend": {
+          "const": "duckdb",
+          "default": "duckdb",
+          "title": "Backend",
+          "type": "string"
+        },
+        "deterministic_mode": {
+          "const": true,
+          "default": true,
+          "title": "Deterministic Mode",
+          "type": "boolean"
+        },
+        "maximum_candidate_pairs": {
+          "exclusiveMinimum": 0,
+          "maximum": 10000000000,
+          "title": "Maximum Candidate Pairs",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "maximum_candidate_pairs"
+      ],
+      "title": "RuntimeConfig",
+      "type": "object"
+    },
+    "SplitConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "calibration_fraction": {
+          "$ref": "#/$defs/Fraction"
+        },
+        "decision_fraction": {
+          "$ref": "#/$defs/Fraction"
+        },
+        "method": {
+          "const": "entity_household_connected_components",
+          "title": "Method",
+          "type": "string"
+        },
+        "test_fraction": {
+          "$ref": "#/$defs/Fraction"
+        },
+        "training_fraction": {
+          "$ref": "#/$defs/Fraction"
+        },
+        "validation_fraction": {
+          "$ref": "#/$defs/Fraction"
+        }
+      },
+      "required": [
+        "method",
+        "training_fraction",
+        "validation_fraction",
+        "calibration_fraction",
+        "decision_fraction",
+        "test_fraction"
+      ],
+      "title": "SplitConfig",
+      "type": "object"
+    },
+    "StripTransform": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "strip",
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "StripTransform",
+      "type": "object"
+    },
+    "SyntheticTruthSource": {
+      "additionalProperties": false,
+      "properties": {
+        "entity_group_columns": {
+          "$ref": "#/$defs/FrozenColumnMap",
+          "minLength": 1
+        },
+        "household_group_columns": {
+          "$ref": "#/$defs/FrozenColumnMap"
+        },
+        "kind": {
+          "const": "synthetic_truth",
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "entity_group_columns"
+      ],
+      "title": "SyntheticTruthSource",
+      "type": "object"
+    },
+    "ThresholdLevel": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "threshold",
+          "title": "Kind",
+          "type": "string"
+        },
+        "minimum": {
+          "$ref": "#/$defs/Probability"
+        }
+      },
+      "required": [
+        "kind",
+        "minimum"
+      ],
+      "title": "ThresholdLevel",
+      "type": "object"
+    },
+    "TransformSpec": {
+      "discriminator": {
+        "mapping": {
+          "casefold": "#/$defs/CasefoldTransform",
+          "collapse_whitespace": "#/$defs/CollapseWhitespaceTransform",
+          "numeric_cast": "#/$defs/NumericCastTransform",
+          "parse_date": "#/$defs/ParseDateTransform",
+          "strip": "#/$defs/StripTransform",
+          "unicode_normalize": "#/$defs/UnicodeNormalizeTransform"
+        },
+        "propertyName": "kind"
+      },
+      "oneOf": [
+        {
+          "$ref": "#/$defs/StripTransform"
+        },
+        {
+          "$ref": "#/$defs/CasefoldTransform"
+        },
+        {
+          "$ref": "#/$defs/UnicodeNormalizeTransform"
+        },
+        {
+          "$ref": "#/$defs/CollapseWhitespaceTransform"
+        },
+        {
+          "$ref": "#/$defs/ParseDateTransform"
+        },
+        {
+          "$ref": "#/$defs/NumericCastTransform"
+        }
+      ]
+    },
+    "UnicodeNormalizeTransform": {
+      "additionalProperties": false,
+      "properties": {
+        "form": {
+          "default": "NFKC",
+          "enum": [
+            "NFC",
+            "NFKC"
+          ],
+          "title": "Form",
+          "type": "string"
+        },
+        "kind": {
+          "const": "unicode_normalize",
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "UnicodeNormalizeTransform",
+      "type": "object"
+    },
+    "UnresolvedDecisionConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "fallback": {
+          "const": true,
+          "default": true,
+          "title": "Fallback",
+          "type": "boolean"
+        }
+      },
+      "title": "UnresolvedDecisionConfig",
+      "type": "object"
+    },
+    "UnverifiedReferenceSource": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "unverified_reference",
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "$ref": "#/$defs/PathText"
+        }
+      },
+      "required": [
+        "kind",
+        "path"
+      ],
+      "title": "UnverifiedReferenceSource",
+      "type": "object"
+    },
+    "ValidationConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "candidate_recall_k": {
+          "items": {
+            "exclusiveMinimum": 0,
+            "type": "integer"
+          },
+          "maxItems": 32,
+          "minItems": 1,
+          "title": "Candidate Recall K",
+          "type": "array"
+        },
+        "hard_negative_sampling": {
+          "$ref": "#/$defs/HardNegativeSamplingConfig"
+        },
+        "split": {
+          "$ref": "#/$defs/SplitConfig"
+        }
+      },
+      "required": [
+        "split",
+        "hard_negative_sampling",
+        "candidate_recall_k"
+      ],
+      "title": "ValidationConfig",
+      "type": "object"
+    },
+    "VariableConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "data_type": {
+          "$ref": "#/$defs/DataType"
+        },
+        "id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "missingness": {
+          "$ref": "#/$defs/MissingnessConfig"
+        },
+        "normalisation": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/TransformSpec"
+          },
+          "title": "Normalisation",
+          "type": "array"
+        },
+        "restricted_output": {
+          "default": false,
+          "title": "Restricted Output",
+          "type": "boolean"
+        },
+        "source_columns": {
+          "$ref": "#/$defs/FrozenColumnMap",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "id",
+        "data_type",
+        "source_columns"
+      ],
+      "title": "VariableConfig",
+      "type": "object"
+    },
+    "VerifiedAdjudicationSource": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "verified_human_adjudication",
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "$ref": "#/$defs/PathText"
+        },
+        "protocol_version": {
+          "$ref": "#/$defs/Identifier"
+        }
+      },
+      "required": [
+        "kind",
+        "path",
+        "protocol_version"
+      ],
+      "title": "VerifiedAdjudicationSource",
+      "type": "object"
+    },
+    "VerifiedGoldStandardSource": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "verified_gold_standard",
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "$ref": "#/$defs/PathText"
+        },
+        "protocol_version": {
+          "$ref": "#/$defs/Identifier"
+        }
+      },
+      "required": [
+        "kind",
+        "path",
+        "protocol_version"
+      ],
+      "title": "VerifiedGoldStandardSource",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "assignment": {
+      "$ref": "#/$defs/AssignmentConfig"
+    },
+    "blocking": {
+      "$ref": "#/$defs/BlockingConfig"
+    },
+    "calibration": {
+      "$ref": "#/$defs/CalibrationConfig"
+    },
+    "comparisons": {
+      "items": {
+        "$ref": "#/$defs/ComparisonConfig"
+      },
+      "maxItems": 512,
+      "minItems": 1,
+      "title": "Comparisons",
+      "type": "array"
+    },
+    "datasets": {
+      "items": {
+        "$ref": "#/$defs/DatasetConfig"
+      },
+      "maxItems": 64,
+      "minItems": 1,
+      "title": "Datasets",
+      "type": "array"
+    },
+    "decision_policy": {
+      "$ref": "#/$defs/DecisionPolicyConfig"
+    },
+    "deterministic_anchors": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/DeterministicAnchorConfig"
+      },
+      "title": "Deterministic Anchors",
+      "type": "array"
+    },
+    "labels": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/LabelsConfig"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "model_selection": {
+      "$ref": "#/$defs/ModelSelectionConfig"
+    },
+    "models": {
+      "$ref": "#/$defs/ModelsConfig"
+    },
+    "outputs": {
+      "$ref": "#/$defs/OutputConfig"
+    },
+    "privacy": {
+      "$ref": "#/$defs/PrivacyConfig"
+    },
+    "project": {
+      "$ref": "#/$defs/ProjectConfig"
+    },
+    "runtime": {
+      "$ref": "#/$defs/RuntimeConfig"
+    },
+    "schema_version": {
+      "const": "0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "validation": {
+      "$ref": "#/$defs/ValidationConfig"
+    },
+    "variables": {
+      "items": {
+        "$ref": "#/$defs/VariableConfig"
+      },
+      "maxItems": 512,
+      "minItems": 1,
+      "title": "Variables",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "project",
+    "runtime",
+    "privacy",
+    "datasets",
+    "variables",
+    "blocking",
+    "comparisons",
+    "models",
+    "calibration",
+    "assignment",
+    "decision_policy",
+    "validation",
+    "outputs"
+  ],
+  "title": "LinkageConfig",
+  "type": "object"
+}

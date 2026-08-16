@@ -44,7 +44,7 @@ e8d4dd5de5cd1ed12015d4e81cbdde895ea457d4d2b301d4b817d134c737e002       398  sche
 0054798c3038924b552ca5cbe5c012650a13642a366cc52d571c7570195bfd04     42363  schemas/linkage-config.schema.json
 1c8aa14d877c6d9898f171c74d099573778880d7eefb77cd8810dd3eabc4a651       505  scripts/generate_config_schema.py
 7814386304b81cac79749e373934031dba74b678ad79c3e5e145c86634f4a53e       883  scripts/generate_repository_manifest.py
-1bda39a35ecfd4ce69318f86d7101975e7a3bbfafc6634bd8f63f9726a4bd01b      6596  scripts/verify_repository.py
+0215fa6bfe4184f83fdd8d3ffd2663198f7de093014efcc77e9bed8e01c2993d      6596  scripts/verify_repository.py
 611879c9570b26f2681fa78731438591f7f296b6a90e863d05cfe62ccf80d62b       129  src/mapel_linkage/__init__.py
 5d5a4a1680e94f20a2c751f6d1598bd3115af5cae1dfae30405a809cf199def0        97  src/mapel_linkage/__main__.py
 d28bb3e79049150b43cae3ac30021a23e448d2f096a997e8b3a385d650dcfe3b        38  src/mapel_linkage/cli/__init__.py
