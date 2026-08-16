@@ -1,7 +1,7 @@
 # SHA-256 repository manifest
 # Generated 2026-08-16; excludes this manifest file itself.
 8749d9d9752b7af59242df2de7b39ab81950c22177f5f4b8501fa6961748b0e5       689  .github/pull_request_template.md
-9f4c082fe94f53c3b8a62dcf386a5b9dde165d1910fa545a5e5c279742cb128b      1080  .github/workflows/ci.yml
+4e4ae5993935635517e953a6567b2dd5d9a2cac0a905b07e364cbb448e369325      1080  .github/workflows/ci.yml
 d40bad8f9adadceb7774d8c13f668cade0b96631e1b8b756669197fcb2203b6a       433  .gitignore
 3936774c19c9d469cea32d5b5ef5daa458b8ba691a5e0ae0d2e35716c9ab2656       519  .pre-commit-config.yaml
 16ad515eb1f6696cbbfb1c2cbcf63dcce5dd2e27add96ee4dccd85808cbf4905      2274  AGENTS.md
@@ -41,13 +41,13 @@ dab718bf7f15680d6b0b735297276a774a3f9c7a2dd7681742aeacb01793fd8b     14272  docs
 750035d43667bdd379c78e2f85eb1e01a000041621e964e8b269d2779edabd0e      7397  docs/research/SOFTWARE_LANDSCAPE.md
 5ec5ea9d7ec70cd6d11c4b7b7244dd0e97299ff257b81ce0dbf7705137130361      1071  docs/research/SOURCE_PROVENANCE.md
 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855         0  private/.gitkeep
-e41aab921b7142668eef84af198c4fa6c857dccf662ca55cdb27f6d417e5c947      1628  pyproject.toml
-90ced268bbd918835848685d676f0373e875a3248bc3929c4fc109818cbbad21      4401  scripts/verify_repository.py
-17531fda7c6b0c2e42601bfec0480247a2210862323a05ec04117d6ec4f7ddea       127  src/mapel_linkage/__init__.py
-3581c75ac6498187c7d7122018b2fb6e5134007724ad9d1c516e89f3276676fd       131  src/mapel_linkage/__main__.py
+9d7ebe269f632993a7c2667deb87c1df0a7b5ed09e8be6831f97fc1c87a49b25      1708  pyproject.toml
+08e7eb123d35838a2b9389ff09acaa2d3d71ccf1d4b28f51806078db437136a8      4807  scripts/verify_repository.py
+7eed04da02b9547ce3c3f6c8418908e9a0e2ae894ea3917a221ec1e5040b1456       129  src/mapel_linkage/__init__.py
+ae82ca7c0be29c215d9de3c9be4307ce306178f1f49ba856d8b278c7749de956       134  src/mapel_linkage/__main__.py
 d28bb3e79049150b43cae3ac30021a23e448d2f096a997e8b3a385d650dcfe3b        38  src/mapel_linkage/cli/__init__.py
-5b9f9a0ab9343f9429d5738ed0393d4a547a47c0b0d8e59327c223acea764f66      1598  src/mapel_linkage/cli/main.py
+98270d52d1c724828813c0502d8826bfc937ef3d9f6442937ea1a467240698c0      1718  src/mapel_linkage/cli/main.py
 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855         0  src/mapel_linkage/py.typed
-0016b867c4282e1688e2803fa315ba322519b6bf60ed76dcd024766bc01a8847       418  tests/test_cli.py
-954ec4df30e0548a71f1389c91249694afb334ecc570b39f20a137600e195de1       118  tests/test_package_metadata.py
-a1f42e620daffa26ef55f2e8b2af80979ac0cf4e8a057a31b9bdf459b72a4c1f       558  tests/test_repository_boundaries.py
+ff538c867163ed14b21205a0aa099e49613eeba66a199a9ad73c8c4f1dec4d45       498  tests/test_cli.py
+c663b448db1281168a8e73f6408909f6e3a06c71233ce93377bc91f65742d15e       120  tests/test_package_metadata.py
+a01355a53d9e5e9f46cdf13bfac4ea9c50273a4caa7764b0a3e35b8dfdf79a2e       636  tests/test_repository_boundaries.py
