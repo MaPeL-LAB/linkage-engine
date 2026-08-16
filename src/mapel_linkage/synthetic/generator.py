@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import random
 from collections.abc import Iterable, Mapping
+from contextlib import suppress
 from dataclasses import asdict, dataclass, field
 from datetime import date, timedelta
 from pathlib import Path
@@ -303,10 +304,8 @@ def write_synthetic_bundle(directory: Path, bundle: SyntheticBundle) -> tuple[Pa
         ):
             temporary = path.with_name(path.name + ".tmp")
             for candidate in (path, temporary):
-                try:
+                with suppress(OSError):
                     candidate.unlink(missing_ok=True)
-                except OSError:
-                    pass
         raise SafeError(
             SafeErrorCode.SYNTHETIC_GENERATION,
             "Synthetic fixtures could not be written.",

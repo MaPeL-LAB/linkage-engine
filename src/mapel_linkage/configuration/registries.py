@@ -74,16 +74,10 @@ PAIR_MODELS: Final = MappingProxyType(
     }
 )
 RANKERS: Final = MappingProxyType(
-    {
-        key: OperationDescriptor(key, "ranker")
-        for key in ("xgboost_ranker", "lightgbm_ranker")
-    }
+    {key: OperationDescriptor(key, "ranker") for key in ("xgboost_ranker", "lightgbm_ranker")}
 )
 CALIBRATORS: Final = MappingProxyType(
-    {
-        key: OperationDescriptor(key, "calibrator")
-        for key in ("sigmoid", "isotonic")
-    }
+    {key: OperationDescriptor(key, "calibrator") for key in ("sigmoid", "isotonic")}
 )
 ASSIGNMENT_SOLVERS: Final = MappingProxyType(
     {
@@ -119,10 +113,7 @@ def resolve_operation(category: RegistryCategory, key: str) -> OperationDescript
 
 
 def registry_snapshot() -> dict[str, tuple[str, ...]]:
-    return {
-        category: tuple(sorted(registry))
-        for category, registry in sorted(_REGISTRIES.items())
-    }
+    return {category: tuple(sorted(registry)) for category, registry in sorted(_REGISTRIES.items())}
 
 
 def registry_digest() -> str:

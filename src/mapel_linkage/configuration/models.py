@@ -135,20 +135,16 @@ class DateWindowPredicate(ConfigNode):
 
 class AllPredicate(ConfigNode):
     kind: Literal["all"]
-    terms: Annotated[tuple["BlockPredicate", ...], Field(min_length=1, max_length=32)]
+    terms: Annotated[tuple[BlockPredicate, ...], Field(min_length=1, max_length=32)]
 
 
 class AnyPredicate(ConfigNode):
     kind: Literal["any"]
-    terms: Annotated[tuple["BlockPredicate", ...], Field(min_length=1, max_length=32)]
+    terms: Annotated[tuple[BlockPredicate, ...], Field(min_length=1, max_length=32)]
 
 
 type BlockPredicate = Annotated[
-    ExactPredicate
-    | PrefixEqualPredicate
-    | DateWindowPredicate
-    | AllPredicate
-    | AnyPredicate,
+    ExactPredicate | PrefixEqualPredicate | DateWindowPredicate | AllPredicate | AnyPredicate,
     Field(discriminator="kind"),
 ]
 
@@ -320,21 +316,16 @@ class ComparisonConfig(ConfigNode):
         if kinds[-1] != "else":
             raise ValueError("The final comparison level must be else.")
         if len(kinds) != len(set(kinds)) and any(
-            kind in {"missing", "exact", "else"} and kinds.count(kind) > 1
-            for kind in kinds
+            kind in {"missing", "exact", "else"} and kinds.count(kind) > 1 for kind in kinds
         ):
             raise ValueError("Missing, exact, and else levels may occur at most once.")
-        thresholds = [
-            level.minimum for level in self.levels if isinstance(level, ThresholdLevel)
-        ]
+        thresholds = [level.minimum for level in self.levels if isinstance(level, ThresholdLevel)]
         if len(thresholds) != len(set(thresholds)):
             raise ValueError("Threshold comparison levels must be unique.")
         if thresholds != sorted(thresholds, reverse=True):
             raise ValueError("Threshold comparison levels must be ordered from high to low.")
         differences = [
-            float(level.value)
-            for level in self.levels
-            if isinstance(level, MaximumDifferenceLevel)
+            float(level.value) for level in self.levels if isinstance(level, MaximumDifferenceLevel)
         ]
         if len(differences) != len(set(differences)):
             raise ValueError("Maximum-difference levels must be unique.")
@@ -778,7 +769,9 @@ class LinkageConfig(ConfigNode):
             raise ValueError("Output variable values require restricted_output permission.")
 
 
-def walk_predicate(predicate: BlockPredicate) -> tuple[
+def walk_predicate(
+    predicate: BlockPredicate,
+) -> tuple[
     ExactPredicate | PrefixEqualPredicate | DateWindowPredicate,
     ...,
 ]:

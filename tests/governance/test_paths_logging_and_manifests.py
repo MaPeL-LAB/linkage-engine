@@ -28,9 +28,7 @@ def test_safe_logger_accepts_only_aggregate_fields() -> None:
     logger.propagate = False
     logger.setLevel(logging.INFO)
     logger.addHandler(logging.StreamHandler(stream))
-    SafeLogger(logger).emit(
-        SafeLogEvent(event="config_validated", count=2, digest="a" * 12)
-    )
+    SafeLogger(logger).emit(SafeLogEvent(event="config_validated", count=2, digest="a" * 12))
     payload = json.loads(stream.getvalue())
     assert payload == {"count": 2, "digest": "a" * 12, "event": "config_validated"}
 

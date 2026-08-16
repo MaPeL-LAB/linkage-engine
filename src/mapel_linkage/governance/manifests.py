@@ -61,10 +61,7 @@ def create_run_manifest(
     run_id: str | None = None,
     created_at: datetime | None = None,
 ) -> RunManifest:
-    versions = {
-        name: _version_for(name)
-        for name in ("pydantic", "PyYAML", "mapel-linkage-engine")
-    }
+    versions = {name: _version_for(name) for name in ("pydantic", "PyYAML", "mapel-linkage-engine")}
     return RunManifest(
         run_id=run_id or uuid.uuid4().hex,
         created_at=created_at or datetime.now(UTC),

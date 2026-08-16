@@ -81,12 +81,10 @@ class PathPolicy:
         default_host_inputs = (root / "data", root / "private")
         default_host_outputs = (root / "private", root / "artifacts")
         host_inputs = tuple(
-            path.resolve(strict=False)
-            for path in (host_input_roots or default_host_inputs)
+            path.resolve(strict=False) for path in (host_input_roots or default_host_inputs)
         )
         host_outputs = tuple(
-            path.resolve(strict=False)
-            for path in (host_output_roots or default_host_outputs)
+            path.resolve(strict=False) for path in (host_output_roots or default_host_outputs)
         )
         inputs = tuple(_resolve(root, raw) for raw in configured_input_roots)
         outputs = tuple(_resolve(root, raw) for raw in configured_output_roots)

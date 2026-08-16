@@ -37,10 +37,13 @@ class SafeLogEvent(BaseModel):
     status: SafeToken | None = None
     version: SafeToken | None = None
     digest: Annotated[StrictStr, Field(pattern=r"^[a-f0-9]{12,64}$")] | None = None
-    safe_error_code: Annotated[
-        StrictStr,
-        Field(pattern=r"^ML-[A-Z]+-[0-9]{3}$"),
-    ] | None = None
+    safe_error_code: (
+        Annotated[
+            StrictStr,
+            Field(pattern=r"^ML-[A-Z]+-[0-9]{3}$"),
+        ]
+        | None
+    ) = None
 
 
 class SafeLogger:

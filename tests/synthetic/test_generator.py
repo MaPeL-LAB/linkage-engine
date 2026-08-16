@@ -47,8 +47,7 @@ def test_generator_includes_required_edge_cases() -> None:
             entity_counts[truth.entity_key] = entity_counts.get(truth.entity_key, 0) + 1
     assert any(count > 1 for count in entity_counts.values())
     assert any(
-        record.label_value is None or record.date_value is None
-        for record in bundle.source_b
+        record.label_value is None or record.date_value is None for record in bundle.source_b
     )
     assert any(record.record_key.startswith("AL") for record in bundle.source_a)
     assert any(record.record_key.startswith("BR") for record in bundle.source_b)
@@ -98,10 +97,8 @@ def test_source_specific_corruption_changes_matched_records() -> None:
     common = set(source_a_by_entity) & set(source_b_by_entity)
     assert any(
         (
-            source_a_by_entity[entity].label_value
-            != source_b_by_entity[entity].label_value
-            or source_a_by_entity[entity].date_value
-            != source_b_by_entity[entity].date_value
+            source_a_by_entity[entity].label_value != source_b_by_entity[entity].label_value
+            or source_a_by_entity[entity].date_value != source_b_by_entity[entity].date_value
         )
         for entity in common
     )

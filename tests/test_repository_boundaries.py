@@ -26,8 +26,7 @@ def test_machine_readable_schema_is_committed() -> None:
 
 def test_example_source_columns_are_not_hard_coded_in_package_logic() -> None:
     package_source = "\n".join(
-        path.read_text(encoding="utf-8")
-        for path in (ROOT / "src/mapel_linkage").rglob("*.py")
+        path.read_text(encoding="utf-8") for path in (ROOT / "src/mapel_linkage").rglob("*.py")
     )
     for column in (
         "record_key_a",

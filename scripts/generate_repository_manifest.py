@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import hashlib
-from pathlib import Path
 
 from verify_repository import MANIFEST_PATH, ROOT, candidate_files
 

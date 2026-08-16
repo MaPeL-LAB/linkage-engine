@@ -140,7 +140,7 @@ def test_duplicate_json_keys_are_rejected() -> None:
 
 
 def test_yaml_merge_keys_are_rejected() -> None:
-    text = 'base: &base {kind: exact}\nitem: {<<: *base, variable: label_text}\n'
+    text = "base: &base {kind: exact}\nitem: {<<: *base, variable: label_text}\n"
     with pytest.raises(SafeError) as caught:
         load_config_text(text, source_format="yaml")
     assert caught.value.code == SafeErrorCode.CONFIG_PARSE
