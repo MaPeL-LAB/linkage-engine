@@ -1,0 +1,128 @@
+schema_version: "0.1"
+project:
+  project_id: synthetic_demo
+  entity_type: generic_entity
+  linkage_mode: link_only
+  assignment_constraint: one_to_one
+  random_seed: 20260816
+runtime:
+  backend: duckdb
+  maximum_candidate_pairs: 100000
+  deterministic_mode: true
+privacy:
+  allowed_input_roots: [data, private]
+  allowed_output_roots: [private, artifacts]
+  allow_remote_uris: false
+  allow_network_access: false
+  log_policy: aggregate_only
+datasets:
+  - id: source_a
+    role: source
+    path: data/synthetic/source_a.parquet
+    format: parquet
+    record_id_column: record_key_a
+  - id: source_b
+    role: target
+    path: data/synthetic/source_b.parquet
+    format: parquet
+    record_id_column: record_key_b
+variables:
+  - id: label_text
+    data_type: string
+    source_columns: {source_a: label_value_a, source_b: label_value_b}
+    normalisation:
+      - {kind: unicode_normalize, form: NFKC}
+      - {kind: casefold}
+      - {kind: strip}
+      - {kind: collapse_whitespace}
+    missingness: {blank_is_missing: true, comparison_policy: explicit_missing_level}
+  - id: date_value
+    data_type: date
+    source_columns: {source_a: date_value_a, source_b: date_value_b}
+    normalisation:
+      - kind: parse_date
+        formats: ["%Y-%m-%d"]
+    missingness: {blank_is_missing: true, comparison_policy: explicit_missing_level}
+deterministic_anchors:
+  - id: exact_label_date
+    predicate:
+      kind: all
+      terms:
+        - {kind: exact, variable: label_text}
+        - {kind: exact, variable: date_value}
+    require_unique_left: true
+    require_unique_right: true
+    action: evidence_only
+    allow_as_training_truth: false
+blocking:
+  rules:
+    - id: date_and_label_prefix
+      predicate:
+        kind: all
+        terms:
+          - {kind: exact, variable: date_value}
+          - {kind: prefix_equal, variable: label_text, length: 1}
+comparisons:
+  - id: label_similarity
+    variable: label_text
+    function: {kind: jaro_winkler}
+    levels:
+      - {kind: missing}
+      - {kind: exact}
+      - {kind: threshold, minimum: 0.92}
+      - {kind: threshold, minimum: 0.85}
+      - {kind: else}
+models:
+  fellegi_sunter: {enabled: true, implementation: splink_duckdb, model_id: fs_baseline}
+  boosted_tree:
+    enabled: true
+    implementation: xgboost_classifier
+    model_id: xgb_pair_classifier
+    require_verified_labels: true
+  ranking:
+    enabled: true
+    implementation: xgboost_ranker
+    model_id: xgb_candidate_ranker
+    query_side: source
+    top_k: 5
+    require_verified_labels: true
+  neural: {enabled: false, implementation: pytorch_pair_mlp}
+calibration: {method: sigmoid, source_model: xgb_pair_classifier, partition: calibration}
+assignment:
+  solver: ortools_min_cost_flow
+  constraint: one_to_one
+  no_match: {enabled: true, utility: 0.0}
+decision_policy:
+  confirmed: {minimum_probability: 0.97, minimum_probability_margin: 0.15, require_assignment: true}
+  review_required: {minimum_probability: 0.60}
+  no_match: {maximum_top_probability: 0.20, require_complete_candidate_search: true}
+  unresolved: {fallback: true}
+validation:
+  split:
+    method: entity_household_connected_components
+    training_fraction: 0.55
+    validation_fraction: 0.15
+    calibration_fraction: 0.10
+    decision_fraction: 0.10
+    test_fraction: 0.10
+  hard_negative_sampling: {enabled: true, verified_nonmatches_only: true}
+  candidate_recall_k: [1, 5, 10]
+outputs:
+  restricted_directory: private/outputs
+  permitted_fields:
+    - relationship_id
+    - source_dataset_id
+    - target_dataset_id
+    - source_record_ref
+    - target_record_ref
+    - relationship_status
+    - model_version
+    - calibrated_probability
+    - candidate_rank
+    - probability_margin
+    - decision_rule_id
+    - assignment_method
+    - run_id
+    - configuration_digest
+    - non_sensitive_provenance
+  permitted_variable_values: []
