@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+### Added — M2C comparison features and anchor evidence
+
+- Package-owned DuckDB comparison-feature construction over bounded candidate pairs.
+- Exact, categorical, Jaro–Winkler, normalised Levenshtein/Damerau, q-gram, date, and numeric metrics.
+- Configured comparison-level indices plus left, right, both, and any-missing indicators.
+- Deterministic exact, prefix, date-window, conjunction, and disjunction anchor evidence.
+- Per-anchor left/right uniqueness counts and evidence-only/training-ineligible flags.
+- Pre-materialisation anchor-pair budgets and value-safe M2C errors.
+- Synthetic-only feature, anchor, missingness, authority-boundary, and privacy tests.
+
 ### Added — M2B configured ingestion and preprocessing
 
 - Local configuration-driven readers for Parquet, CSV, TSV, and newline-delimited JSON.
@@ -44,6 +54,6 @@
 - M1 strict configuration schema, bounded safe loaders, compiler, allow-list registries, path policy, safe logging/errors, run manifests, generated JSON Schema, and deterministic synthetic generator.
 - Repository manifest generation and integrity verification.
 
-### Not yet implemented after M2B
+### Not yet implemented after M2C
 
-- Comparison features, anchor evidence, linkage models, calibration, assignment, adjudication processing, and real-world validation.
+- Fellegi–Sunter and supervised linkage models, learned ranking, calibration, assignment, relationship decisions, adjudication processing, and real-world validation.
