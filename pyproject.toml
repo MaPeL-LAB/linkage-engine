@@ -54,7 +54,11 @@ Documentation = "https://github.com/MaPeL-LAB/linkage-engine/tree/main/docs"
 packages = ["src/mapel_linkage"]
 
 [tool.hatch.build.targets.sdist]
-exclude = ["/private", "/data", "/artifacts"]
+exclude = [
+  "/private/**",
+  "/data/**",
+  "/artifacts/**",
+]
 
 [tool.ruff]
 target-version = "py312"
