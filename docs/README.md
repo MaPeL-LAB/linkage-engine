@@ -65,3 +65,7 @@ Research documents explain the evidence and trade-offs. Accepted ADRs define the
 
 - [`implementation/M1_SAFE_FOUNDATION_REPORT.md`](implementation/M1_SAFE_FOUNDATION_REPORT.md) — delivered configuration, governance, schema, synthetic generation, tests, limitations, and next gate.
 - [`../schemas/linkage-config.schema.json`](../schemas/linkage-config.schema.json) — normative generated configuration schema.
+
+## Active implementation increments
+
+- [`implementation/M2A_LOCAL_DATA_PLANE_AND_CANDIDATE_GENERATION.md`](implementation/M2A_LOCAL_DATA_PLANE_AND_CANDIDATE_GENERATION.md)
