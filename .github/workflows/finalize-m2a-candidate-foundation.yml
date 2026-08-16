@@ -24,9 +24,12 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install -e ".[dev]"
-      - name: Verify M2A source and package
+      - name: Format and verify M2A source and package
         run: |
           rm .github/workflows/finalize-m2a-candidate-foundation.yml
+          ruff format .
+          ruff check --fix .
+          ruff format .
           python scripts/generate_repository_manifest.py
           python scripts/verify_repository.py
           ruff format --check .
