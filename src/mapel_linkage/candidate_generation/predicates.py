@@ -103,25 +103,33 @@ def compile_predicate(
             f"SUBSTR({left}, 1, {length}) = SUBSTR({right}, 1, {length}))"
         )
     if isinstance(predicate, AllOf):
-        return "(" + " AND ".join(
-            compile_predicate(
-                clause,
-                variable_columns,
-                left_alias=left_alias,
-                right_alias=right_alias,
+        return (
+            "("
+            + " AND ".join(
+                compile_predicate(
+                    clause,
+                    variable_columns,
+                    left_alias=left_alias,
+                    right_alias=right_alias,
+                )
+                for clause in predicate.clauses
             )
-            for clause in predicate.clauses
-        ) + ")"
+            + ")"
+        )
     if isinstance(predicate, AnyOf):
-        return "(" + " OR ".join(
-            compile_predicate(
-                clause,
-                variable_columns,
-                left_alias=left_alias,
-                right_alias=right_alias,
+        return (
+            "("
+            + " OR ".join(
+                compile_predicate(
+                    clause,
+                    variable_columns,
+                    left_alias=left_alias,
+                    right_alias=right_alias,
+                )
+                for clause in predicate.clauses
             )
-            for clause in predicate.clauses
-        ) + ")"
+            + ")"
+        )
     raise CandidateGenerationError(
         "ML-CANDIDATE-006", "An unsupported blocking predicate was rejected."
     )

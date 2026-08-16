@@ -16,7 +16,6 @@ from mapel_linkage.domain import (
 )
 from mapel_linkage.io import ColumnSpec, DuckDBStore
 
-
 COLUMNS = (
     ColumnSpec("__ml_record_key", "VARCHAR"),
     ColumnSpec("v_name", "VARCHAR"),

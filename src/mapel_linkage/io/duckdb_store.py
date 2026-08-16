@@ -90,9 +90,7 @@ class DuckDBStore:
         insert_sql = f"INSERT INTO {quoted_table} VALUES ({placeholders})"
         materialised_rows = [tuple(row) for row in rows]
         if any(len(row) != len(columns) for row in materialised_rows):
-            raise DataPlaneError(
-                "ML-DATA-006", "A row did not match the declared internal schema."
-            )
+            raise DataPlaneError("ML-DATA-006", "A row did not match the declared internal schema.")
 
         try:
             self._connection.execute(f"DROP TABLE IF EXISTS {quoted_table}")
@@ -114,9 +112,7 @@ class DuckDBStore:
         quoted_table = quote_identifier(table_name)
         try:
             schema_rows = self._connection.execute(f"DESCRIBE {quoted_table}").fetchall()
-            count_row = self._connection.execute(
-                f"SELECT COUNT(*) FROM {quoted_table}"
-            ).fetchone()
+            count_row = self._connection.execute(f"SELECT COUNT(*) FROM {quoted_table}").fetchone()
         except Exception:
             raise DataPlaneError(
                 "ML-DATA-008", "The requested local table is unavailable."
