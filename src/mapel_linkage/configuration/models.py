@@ -383,6 +383,14 @@ class FellegiSunterModelConfig(ConfigNode):
     enabled: StrictBool = True
     implementation: Literal["splink_duckdb"]
     model_id: Identifier
+    probability_two_random_records_match: Annotated[StrictFloat, Field(gt=0.0, lt=1.0)] = 0.0001
+    u_max_pairs: Annotated[PositiveInt, Field(le=10_000_000_000)] = 1_000_000
+    em_max_iterations: Annotated[PositiveInt, Field(le=1000)] = 25
+    em_convergence: Annotated[StrictFloat, Field(gt=0.0, le=0.1)] = 0.0001
+    probability_smoothing: Annotated[StrictFloat, Field(gt=0.0, le=100.0)] = 0.5
+    estimate_u_by_random_sampling: Literal[True] = True
+    estimate_m_by_em: Literal[True] = True
+    term_frequency_adjustments: Literal[False] = False
 
 
 class BoostedTreeModelConfig(ConfigNode):
@@ -588,6 +596,10 @@ class LinkageConfig(ConfigNode):
         self._validate_comparisons(variable_by_id)
         self._validate_labels(dataset_ids)
         self._validate_models()
+        if self.models.fellegi_sunter.u_max_pairs > self.runtime.maximum_candidate_pairs:
+            raise ValueError(
+                "Fellegi-Sunter random-pair sampling cannot exceed the runtime pair budget."
+            )
         self._validate_outputs(set(variable_by_id))
         if self.assignment.constraint != self.project.assignment_constraint:
             raise ValueError("Project and assignment constraints must agree.")

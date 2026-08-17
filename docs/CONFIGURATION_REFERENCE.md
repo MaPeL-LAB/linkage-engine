@@ -119,6 +119,21 @@ The label source and verification metadata determine purpose-specific eligibilit
 
 Model sections are discriminated unions. A model selects an approved implementation key and validated parameters; it cannot specify an import path.
 
+### Fellegi–Sunter baseline
+
+The initial statistical baseline uses `implementation: splink_duckdb` and requires a stable model identifier. M2D validates and records:
+
+- `probability_two_random_records_match`;
+- `u_max_pairs`;
+- `em_max_iterations`;
+- `em_convergence`;
+- `probability_smoothing`;
+- `estimate_u_by_random_sampling: true`;
+- `estimate_m_by_em: true`;
+- `term_frequency_adjustments: false` for the initial reference model.
+
+The `u_max_pairs` value may not exceed the runtime candidate-pair budget. The initial score output is explicitly `model_posterior_uncalibrated` and `evidence_only`; it cannot satisfy a confirmation rule or bypass calibration, assignment, or the decision policy. Term-frequency adjustment remains a later M2D extension rather than an implied capability.
+
 ## Calibration
 
 Calibration declares source model, method, partition, and independence requirement. Supported initial methods are sigmoid and isotonic. Beta calibration is a later challenger.

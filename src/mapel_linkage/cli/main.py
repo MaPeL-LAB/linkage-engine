@@ -52,7 +52,7 @@ def build_parser() -> argparse.ArgumentParser:
     for command in UNIMPLEMENTED_COMMANDS:
         subparser = subparsers.add_parser(
             command,
-            help="Target interface; not implemented in M1.",
+            help="Target interface; not yet implemented end to end.",
         )
         subparser.add_argument("--config", metavar="CONFIG")
         subparser.set_defaults(handler=_not_implemented)
@@ -60,8 +60,8 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def _status(_: argparse.Namespace) -> int:
-    print("Linkage Engine M1 safe configuration foundation is implemented.")
-    print("Linkage models and execution stages remain pre-alpha.")
+    print("Linkage Engine M1 through M2C are implemented; M2D is an evidence-only candidate.")
+    print("Calibration, assignment, decisions, and end-to-end execution remain pre-alpha.")
     return 0
 
 

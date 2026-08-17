@@ -181,6 +181,22 @@ class DuckDBStore:
             ) from None
         return [tuple(row) for row in rows]
 
+    def _fetch_internal_rows(self, package_owned_sql: str) -> list[tuple[object, ...]]:
+        """Fetch package-owned aggregate rows without public rendering.
+
+        Only trusted package modules may call this internal method.  Callers are
+        responsible for ensuring the query returns comparison metadata or
+        aggregates rather than source values.
+        """
+
+        try:
+            rows = self._connection.execute(package_owned_sql).fetchall()
+        except Exception:
+            raise DataPlaneError(
+                "ML-DATA-019", "An internal aggregate query could not be completed."
+            ) from None
+        return [tuple(row) for row in rows]
+
     def _scalar_int(self, package_owned_sql: str) -> int:
         try:
             row = self._connection.execute(package_owned_sql).fetchone()

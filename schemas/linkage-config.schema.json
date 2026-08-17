@@ -668,9 +668,35 @@
     "FellegiSunterModelConfig": {
       "additionalProperties": false,
       "properties": {
+        "em_convergence": {
+          "default": 0.0001,
+          "exclusiveMinimum": 0.0,
+          "maximum": 0.1,
+          "title": "Em Convergence",
+          "type": "number"
+        },
+        "em_max_iterations": {
+          "default": 25,
+          "exclusiveMinimum": 0,
+          "maximum": 1000,
+          "title": "Em Max Iterations",
+          "type": "integer"
+        },
         "enabled": {
           "default": true,
           "title": "Enabled",
+          "type": "boolean"
+        },
+        "estimate_m_by_em": {
+          "const": true,
+          "default": true,
+          "title": "Estimate M By Em",
+          "type": "boolean"
+        },
+        "estimate_u_by_random_sampling": {
+          "const": true,
+          "default": true,
+          "title": "Estimate U By Random Sampling",
           "type": "boolean"
         },
         "implementation": {
@@ -680,6 +706,33 @@
         },
         "model_id": {
           "$ref": "#/$defs/Identifier"
+        },
+        "probability_smoothing": {
+          "default": 0.5,
+          "exclusiveMinimum": 0.0,
+          "maximum": 100.0,
+          "title": "Probability Smoothing",
+          "type": "number"
+        },
+        "probability_two_random_records_match": {
+          "default": 0.0001,
+          "exclusiveMaximum": 1.0,
+          "exclusiveMinimum": 0.0,
+          "title": "Probability Two Random Records Match",
+          "type": "number"
+        },
+        "term_frequency_adjustments": {
+          "const": false,
+          "default": false,
+          "title": "Term Frequency Adjustments",
+          "type": "boolean"
+        },
+        "u_max_pairs": {
+          "default": 1000000,
+          "exclusiveMinimum": 0,
+          "maximum": 10000000000,
+          "title": "U Max Pairs",
+          "type": "integer"
         }
       },
       "required": [

@@ -7,6 +7,8 @@ from mapel_linkage.domain.errors import (
     CandidateGenerationError,
     ComparisonFeatureError,
     DataPlaneError,
+    FellegiSunterBudgetExceeded,
+    FellegiSunterError,
     LinkageRuntimeError,
     PreprocessingError,
 )
@@ -19,6 +21,8 @@ __all__ = [
     "CandidateGenerationError",
     "ComparisonFeatureError",
     "DataPlaneError",
+    "FellegiSunterBudgetExceeded",
+    "FellegiSunterError",
     "LinkageRuntimeError",
     "PreprocessingError",
     "TableRef",

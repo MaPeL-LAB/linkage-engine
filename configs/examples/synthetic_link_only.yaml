@@ -84,7 +84,18 @@ labels:
   permit_weak_labels_for_training: false
   permit_unverified_crosswalk: false
 models:
-  fellegi_sunter: {enabled: true, implementation: splink_duckdb, model_id: fs_baseline}
+  fellegi_sunter:
+    enabled: true
+    implementation: splink_duckdb
+    model_id: fs_baseline
+    probability_two_random_records_match: 0.001
+    u_max_pairs: 100000
+    em_max_iterations: 25
+    em_convergence: 0.0001
+    probability_smoothing: 0.5
+    estimate_u_by_random_sampling: true
+    estimate_m_by_em: true
+    term_frequency_adjustments: false
   boosted_tree:
     enabled: true
     implementation: xgboost_classifier

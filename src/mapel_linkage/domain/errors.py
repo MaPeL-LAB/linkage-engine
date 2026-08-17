@@ -40,3 +40,11 @@ class AnchorEvidenceError(LinkageRuntimeError):
 
 class AnchorBudgetExceeded(AnchorEvidenceError):
     """Raised before materialisation when the anchor pair budget is exceeded."""
+
+
+class FellegiSunterError(LinkageRuntimeError):
+    """Raised when Fellegi-Sunter evidence estimation cannot complete safely."""
+
+
+class FellegiSunterBudgetExceeded(FellegiSunterError):
+    """Raised before fitting when a configured pair budget is exceeded."""
