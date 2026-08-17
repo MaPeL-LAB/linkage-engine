@@ -1,5 +1,7 @@
 # Documentation Index
 
+The repository currently contains the M0 research baseline and the M1 safe configuration implementation candidate.
+
 This directory is the normative documentation set for Linkage Engine.
 
 ## Research
@@ -58,3 +60,8 @@ When documents conflict, use this precedence unless an ADR explicitly supersedes
 6. research synthesis and comparative landscape documents.
 
 Research documents explain the evidence and trade-offs. Accepted ADRs define the chosen architecture.
+
+## M1 implementation
+
+- [`implementation/M1_SAFE_FOUNDATION_REPORT.md`](implementation/M1_SAFE_FOUNDATION_REPORT.md) — delivered configuration, governance, schema, synthetic generation, tests, limitations, and next gate.
+- [`../schemas/linkage-config.schema.json`](../schemas/linkage-config.schema.json) — normative generated configuration schema.

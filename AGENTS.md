@@ -44,3 +44,14 @@ Configuration is data, not code. Prohibit raw SQL, `eval`, `exec`, imports, dott
 ## Source-column rule
 
 Dataset-specific source column names may appear only in project configuration, synthetic fixture generation, and IO-mapping tests. They must not appear in model, comparison, assignment, calibration, decision, or orchestration logic.
+
+## M1 configuration invariant
+
+- Add configuration behavior through typed Pydantic nodes and immutable package registries only.
+- Do not resolve modules, functions, plugins, SQL, or shell content from project configuration.
+- Keep configuration values and arbitrary mapping keys out of public validation errors.
+- A configured filesystem root must also fit within the trusted host path envelope.
+- Regenerate `schemas/linkage-config.schema.json` after every configuration-model change.
+- Maintain parity between the committed schema and `LinkageConfig.model_json_schema()`.
+- Use `SafeLogEvent`/`build_safe_log_event`; do not add free-form row-bearing log calls.
+- Keep row-bearing dataclass representations value-hidden.

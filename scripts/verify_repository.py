@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import re
 import sys
 import tarfile
@@ -9,6 +10,7 @@ import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+MANIFEST_PATH = ROOT / "REPOSITORY_MANIFEST.txt"
 FORBIDDEN_SUFFIXES = {
     ".arrow",
     ".cbm",
@@ -17,6 +19,8 @@ FORBIDDEN_SUFFIXES = {
     ".duckdb",
     ".feather",
     ".joblib",
+    ".jsonl",
+    ".ndjson",
     ".onnx",
     ".parquet",
     ".pickle",
@@ -37,6 +41,7 @@ REQUIRED_FILES = {
     "docs/architecture/ARCHITECTURE.md",
     "docs/governance/PRIVACY_THREAT_MODEL.md",
     "docs/references/references.bib",
+    "schemas/linkage-config.schema.json",
 }
 CHATGPT_MARKERS = ("\ue200cite", "\ue200filecite", "\ue200turn", "\ue201")
 
@@ -60,6 +65,41 @@ def candidate_files() -> list[Path]:
         for path in ROOT.rglob("*")
         if path.is_file() and not any(part in excluded for part in path.relative_to(ROOT).parts)
     )
+
+
+def validate_manifest() -> list[str]:
+    errors: list[str] = []
+    if not MANIFEST_PATH.is_file():
+        return ["missing repository manifest"]
+    entries: dict[str, tuple[str, int]] = {}
+    for line in MANIFEST_PATH.read_text(encoding="utf-8").splitlines():
+        if not line or line.startswith("#"):
+            continue
+        match = re.fullmatch(r"([0-9a-f]{64})\s+(\d+)\s+(.+)", line)
+        if match is None:
+            errors.append("malformed repository manifest entry")
+            continue
+        digest, size_text, relative = match.groups()
+        if relative in entries:
+            errors.append(f"duplicate repository manifest entry: {relative}")
+            continue
+        entries[relative] = (digest, int(size_text))
+
+    files = [path for path in candidate_files() if path != MANIFEST_PATH]
+    actual = {str(path.relative_to(ROOT)): path for path in files}
+    for relative in sorted(set(actual) - set(entries)):
+        errors.append(f"repository manifest missing entry: {relative}")
+    for relative in sorted(set(entries) - set(actual)):
+        errors.append(f"repository manifest has stale entry: {relative}")
+    for relative in sorted(set(actual) & set(entries)):
+        path = actual[relative]
+        expected_digest, expected_size = entries[relative]
+        payload = path.read_bytes()
+        if len(payload) != expected_size:
+            errors.append(f"repository manifest size mismatch: {relative}")
+        if hashlib.sha256(payload).hexdigest() != expected_digest:
+            errors.append(f"repository manifest digest mismatch: {relative}")
+    return errors
 
 
 def validate_repository() -> list[str]:
@@ -104,6 +144,7 @@ def validate_repository() -> list[str]:
     missing = sorted(citations - set(keys))
     if missing:
         errors.append("missing BibTeX keys: " + ", ".join(missing))
+    errors.extend(validate_manifest())
     return errors
 
 

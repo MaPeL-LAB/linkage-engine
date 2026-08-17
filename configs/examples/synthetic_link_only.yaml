@@ -72,6 +72,17 @@ comparisons:
       - {kind: threshold, minimum: 0.92}
       - {kind: threshold, minimum: 0.85}
       - {kind: else}
+labels:
+  source:
+    kind: synthetic_truth
+    entity_group_columns:
+      source_a: synthetic_entity_id_a
+      source_b: synthetic_entity_id_b
+    household_group_columns:
+      source_a: synthetic_household_id_a
+      source_b: synthetic_household_id_b
+  permit_weak_labels_for_training: false
+  permit_unverified_crosswalk: false
 models:
   fellegi_sunter: {enabled: true, implementation: splink_duckdb, model_id: fs_baseline}
   boosted_tree:

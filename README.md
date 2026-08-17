@@ -10,12 +10,15 @@
 | Import package | `mapel_linkage` |
 | Command-line interface | `mapel-linkage` |
 | Initial Python runtime | Python 3.12 |
+| Current package version | `0.1.0.dev1` |
 
 The repository name is **`linkage-engine`**. `MaPeL-LAB` identifies the developer and GitHub organisation; it is not part of the repository name.
 
 ## Status
 
-This repository is a documentation-first, installable pre-alpha scaffold. It establishes the research basis, architectural boundaries, governance controls, configuration contract, verification expectations, and staged implementation plan. It does **not** yet implement or validate a production linkage model.
+Milestone **M1 — safe configuration foundation** is implemented in this development candidate. The package now provides a strict configuration schema, safe YAML/JSON loading, an immutable execution-plan compiler, immutable allow-list registries, local path controls, value-safe errors, typed aggregate logging, privacy-safe run manifests, a committed JSON Schema, and deterministic synthetic data generation.
+
+The package does **not** yet implement candidate generation, Fellegi–Sunter scoring, supervised matching, calibration, assignment, adjudication processing, or a complete linkage run. It is not validated for operational use.
 
 ## Intended use
 
@@ -28,7 +31,7 @@ The package is designed to support, without study-specific assumptions:
 - multi-source entity resolution;
 - within-dataset deduplication.
 
-The implementation must never hard-code source dataset column names. Project configuration maps source columns to canonical variables and defines linkage mode, assignment constraints, transformations, blocking, comparisons, models, calibration, decision rules, validation, and restricted outputs.
+Source column names are accepted only through validated dataset and variable mappings. They are not embedded in model, comparison, assignment, calibration, decision, or orchestration logic.
 
 ## Non-negotiable privacy boundary
 
@@ -44,29 +47,41 @@ See:
 - [`docs/SYNTHETIC_DATA_POLICY.md`](docs/SYNTHETIC_DATA_POLICY.md)
 - [`docs/governance/LABEL_PROVENANCE_POLICY.md`](docs/governance/LABEL_PROVENANCE_POLICY.md)
 
-## Architectural position
+## Implemented M1 boundary
 
 > **Configuration is data, not executable code.**
 
-YAML or JSON is validated with strict Pydantic models and compiled into an immutable execution plan. Configuration may select only package-owned allow-list registry entries. Raw SQL, arbitrary imports, dotted callable paths, `eval()`, `exec()`, and arbitrary code supplied through configuration are prohibited.
+M1 includes:
 
-The planned pipeline separates configuration, local IO, normalisation, deterministic evidence, candidate retrieval, comparison features, pair scoring, ranking, calibration, model selection, assignment, decision policy, adjudication, and validation.
+- strict, immutable Pydantic models with unknown fields forbidden;
+- safe YAML/JSON loading with size, alias, duplicate-key, merge-key, depth, node-count, and scalar controls;
+- value-safe validation translation that hides submitted values and arbitrary mapping keys;
+- cross-field validation for linkage modes, variables, operations, labels, enabled models, comparison levels, thresholds, partitions, and outputs;
+- a package-owned typed blocking/comparison DSL;
+- immutable allow-list registries and frozen configuration mappings with no configured import or callable resolution;
+- canonical configuration and registry digests;
+- project and host path envelopes with remote URI, UNC, traversal, and root-widening protection;
+- deny-by-default output fields and restricted variable-value permission;
+- typed aggregate-only logging;
+- privacy-safe run manifests containing versions, digests, counts, and seeds only;
+- deterministic synthetic source generation with separately held truth;
+- machine-readable schema at [`schemas/linkage-config.schema.json`](schemas/linkage-config.schema.json).
 
-A ranking model may retrieve and order candidates, but it cannot decide identity. No model may silently merge records or create a master entity table.
+No configuration may provide raw SQL, a shell command, a module path, a Python callable, `eval()`, `exec()`, or arbitrary executable content.
 
-## Relationship outcomes
+## Command line
 
-- `confirmed`
-- `review_required`
-- `unresolved`
-- `no_match`
-
-`no_match` and `unresolved` are intentionally distinct.
-
-## Planned command line
+Implemented:
 
 ```text
-mapel-linkage validate-config --config CONFIG
+mapel-linkage status
+mapel-linkage validate-config --config CONFIG --project-root ROOT
+mapel-linkage emit-config-schema --output OUTPUT
+```
+
+Reserved target interfaces that still return an explicit pre-alpha error:
+
+```text
 mapel-linkage generate-candidates --config CONFIG
 mapel-linkage train --config CONFIG
 mapel-linkage predict --config CONFIG
@@ -75,11 +90,20 @@ mapel-linkage evaluate --config CONFIG
 mapel-linkage run --config CONFIG
 ```
 
-These are target interfaces. The current scaffold exposes package status and an explicit pre-alpha response for unimplemented commands.
+Successful configuration validation reports only a digest prefix and aggregate counts. It does not print the configuration path, source columns, project ID, dataset IDs, or submitted values.
 
-## Documentation
+## Synthetic generator
 
-The complete index is [`docs/README.md`](docs/README.md). Research claims use keys from [`docs/references/references.bib`](docs/references/references.bib).
+`mapel_linkage.synthetic.generate_synthetic_bundle()` creates deterministic generic source tables with:
+
+- source-specific corruption;
+- missing values;
+- duplicates and one-to-one assignment conflicts;
+- source-only no-match records;
+- competing candidates;
+- truth held in a separate test-only structure.
+
+Generated rows and truth records use value-hiding representations and are never stored in the repository.
 
 ## Development
 
@@ -87,15 +111,25 @@ The complete index is [`docs/README.md`](docs/README.md). Research claims use ke
 python -m venv .venv
 source .venv/bin/activate
 python -m pip install -e ".[dev]"
+python scripts/generate_config_schema.py
 ruff format --check .
 ruff check .
 mypy src tests
 pytest
 python scripts/verify_repository.py
 python -m build
+python scripts/verify_repository.py --distribution dist
 ```
 
-Install the planned scientific core with `python -m pip install -e ".[core]"` after dependency compatibility is reviewed.
+Install the planned scientific core only when working on M2:
+
+```bash
+python -m pip install -e ".[core]"
+```
+
+## Documentation
+
+The documentation index is [`docs/README.md`](docs/README.md). The M1 implementation report is [`docs/implementation/M1_SAFE_FOUNDATION_REPORT.md`](docs/implementation/M1_SAFE_FOUNDATION_REPORT.md). Research claims use keys from [`docs/references/references.bib`](docs/references/references.bib).
 
 ## Validation warning
 

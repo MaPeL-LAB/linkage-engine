@@ -1,5 +1,7 @@
 # Privacy Threat Model
 
+**M1 status:** configuration, path, error, logging, manifest, output-allow-list, and synthetic-sentinel controls are implemented. DuckDB/model boundaries remain future work.
+
 ## Protected material
 
 Protected material includes real records, direct and quasi-identifiers, project configurations, source-system metadata classified as sensitive, candidate pairs, comparison values, labels, adjudication events, model artifacts, linkage outputs, logs, secrets, and credentials.
@@ -60,4 +62,4 @@ Hashing or Bloom-filter encoding does not automatically satisfy privacy requirem
 
 ## Verification
 
-Privacy tests generate unique synthetic sentinels and assert their absence from every unrestricted channel. Distribution inspection rejects row-level and model-artifact file types.
+Privacy tests generate unique synthetic sentinels and assert their absence from validation errors, CLI errors, typed log construction, emitted logs, manifests, and unrestricted representations. Validation locations replace arbitrary user-provided mapping keys with `*`. Distribution inspection rejects row-level and model-artifact file types, including JSONL/NDJSON.

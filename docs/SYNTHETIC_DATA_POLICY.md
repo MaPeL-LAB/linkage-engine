@@ -1,5 +1,7 @@
 # Synthetic Data Policy
 
+**M1 status:** `mapel_linkage.synthetic` implements deterministic generic source generation, separate truth, provenance, corruption, missingness, duplicates, no-match cases, competitors, and assignment conflicts.
+
 ## Repository rule
 
 Only generated synthetic record-level data may appear in the repository, tests, examples, documentation, notebooks, issues, pull requests, or CI.
