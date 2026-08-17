@@ -10,17 +10,17 @@
 | Import package | `mapel_linkage` |
 | Command-line interface | `mapel-linkage` |
 | Initial Python runtime | Python 3.12 |
-| Current package version | `0.1.0.dev4` |
+| Current package version | `0.1.0.dev5` |
 
 The repository name is **`linkage-engine`**. `MaPeL-LAB` identifies the developer and GitHub organisation; it is not part of the repository name.
 
 ## Status
 
-Milestones **M1**, **M2A**, **M2B**, and **M2C** are implemented in the stacked development branches. The package now provides the safe configuration foundation, a local DuckDB data plane, typed bounded candidate generation, configuration-driven local ingestion, canonical preprocessing, comparison-feature construction, and deterministic-anchor evidence.
+Milestones **M1**, **M2A**, **M2B**, and **M2C** are merged into `main`; M2D is the current Fellegi–Sunter evidence-model candidate. The package now provides the safe configuration foundation, a local DuckDB data plane, typed bounded candidate generation, configuration-driven local ingestion, canonical preprocessing, comparison-feature construction, and deterministic-anchor evidence.
 
 M2C computes configured exact, string-similarity, q-gram, date-distance, numeric-distance, categorical, level, and missingness features over bounded candidate pairs. It separately evaluates deterministic anchor predicates with per-rule uniqueness diagnostics. Anchor action remains `evidence_only`, and anchor evidence remains ineligible as training truth.
 
-The package does **not** yet implement Fellegi–Sunter scoring, supervised matching, learned ranking, calibration, assignment, adjudication processing, relationship decisions, or a complete linkage run. It is not validated for operational use.
+The M2D candidate implements an evidence-only Fellegi–Sunter reference estimator and a package-owned Splink settings compiler. It does **not** yet provide the completed production Splink runtime adapter, supervised matching, learned ranking, independent calibration, assignment, adjudication processing, relationship decisions, or a complete linkage run. It is not validated for operational use.
 
 ## Intended use
 
@@ -98,6 +98,20 @@ __ml_m_<stable-variable-digest>
 ```
 
 Original record identifiers are used only to derive deterministic SHA-256 surrogate keys and are not retained as the canonical record reference. Source paths, source column names, identifiers, and values are excluded from public object representations and translated errors. Direct attachment of arbitrary DuckDB databases remains deferred.
+
+## Fellegi–Sunter evidence baseline
+
+M2D adds deterministic bounded random-pair sampling, smoothed `u` estimation,
+aggregate-vector expectation–maximisation for `m`, per-level log2 Bayes factors,
+and local evidence scoring. The package also compiles validated canonical
+configuration into a Splink 4 settings plan.
+
+M2D probabilities are explicitly `model_posterior_uncalibrated` and
+`evidence_only`. They cannot confirm identity, select thresholds, perform
+assignment, or merge records.
+
+See
+[`docs/implementation/M2D_FELLEGI_SUNTER_BASELINE.md`](docs/implementation/M2D_FELLEGI_SUNTER_BASELINE.md).
 
 ## Command line
 

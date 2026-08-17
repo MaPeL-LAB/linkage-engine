@@ -52,6 +52,14 @@ class PairMatcher(Protocol):
 
 Scores are not automatically calibrated probabilities or decisions.
 
+### M2D Fellegi–Sunter contract
+
+`DuckDBFellegiSunterMatcher` consumes M2C comparison-level features rather than source values. It estimates smoothed nonmatch (`u`) probabilities from a bounded deterministic cross-source sample and match (`m`) probabilities by expectation–maximisation over aggregated comparison vectors. Its immutable public artifact retains only aggregate parameters, digests, counts, convergence metadata, and model provenance.
+
+The corresponding pair table retains surrogate pair references and evidence fields locally, including log2 Bayes factor, match weight, model posterior, model/version identifiers, and the parameter digest. Every M2D result is labelled `model_posterior_uncalibrated` and `evidence_only`.
+
+`SplinkSettingsPlanCompiler` separately translates the same validated canonical comparison and blocking configuration into a package-owned Splink 4 settings plan. Full production runtime fitting, parity, and native model export remain later M2D work.
+
 ## CandidateRanker
 
 ```python

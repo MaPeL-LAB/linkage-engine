@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+### Added — M2D Fellegi–Sunter evidence baseline
+
+- Deterministic bounded cross-source sampling for `u` estimation.
+- Smoothed comparison-level `u` probabilities and aggregate-vector EM for `m`.
+- Immutable aggregate model artifacts and canonical parameter digests.
+- Local DuckDB Fellegi–Sunter evidence scores with explicit uncalibrated status.
+- Package-owned Splink 4 settings compilation over canonical internal columns.
+- Synthetic-only statistical, adapter, budget, and privacy tests.
+
+
 ### Added — M2C comparison features and anchor evidence
 
 - Package-owned DuckDB comparison-feature construction over bounded candidate pairs.
@@ -54,6 +64,6 @@
 - M1 strict configuration schema, bounded safe loaders, compiler, allow-list registries, path policy, safe logging/errors, run manifests, generated JSON Schema, and deterministic synthetic generator.
 - Repository manifest generation and integrity verification.
 
-### Not yet implemented after M2C
+### Not yet implemented after M2D
 
-- Fellegi–Sunter and supervised linkage models, learned ranking, calibration, assignment, relationship decisions, adjudication processing, and real-world validation.
+- Completed production Splink runtime integration, supervised linkage models, learned ranking, calibration, assignment, relationship decisions, adjudication processing, and real-world validation.

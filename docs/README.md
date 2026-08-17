@@ -1,6 +1,6 @@
 # Documentation Index
 
-The repository contains the M0 research baseline and the stacked M1, M2A, M2B, and M2C implementation increments.
+The repository contains the M0 research baseline, the merged M1–M2C implementation increments, and the active M2D Fellegi–Sunter evidence-model candidate.
 
 This directory is the normative documentation set for Linkage Engine.
 
@@ -71,3 +71,5 @@ Research documents explain the evidence and trade-offs. Accepted ADRs define the
 - [`implementation/M2A_LOCAL_DATA_PLANE_AND_CANDIDATE_GENERATION.md`](implementation/M2A_LOCAL_DATA_PLANE_AND_CANDIDATE_GENERATION.md)
 - [`implementation/M2B_CONFIGURED_INGESTION_AND_PREPROCESSING.md`](implementation/M2B_CONFIGURED_INGESTION_AND_PREPROCESSING.md)
 - [`implementation/M2C_COMPARISON_FEATURES_AND_ANCHOR_EVIDENCE.md`](implementation/M2C_COMPARISON_FEATURES_AND_ANCHOR_EVIDENCE.md)
+
+- [`implementation/M2D_FELLEGI_SUNTER_BASELINE.md`](implementation/M2D_FELLEGI_SUNTER_BASELINE.md)

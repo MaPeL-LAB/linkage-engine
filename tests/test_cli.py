@@ -11,7 +11,7 @@ from tests.helpers import EXAMPLE_CONFIG, ROOT
 def test_status(capsys: pytest.CaptureFixture[str]) -> None:
     assert main(["status"]) == 0
     output = capsys.readouterr().out
-    assert "M1" in output
+    assert "M2D" in output
     assert "record-level" not in output
 
 
