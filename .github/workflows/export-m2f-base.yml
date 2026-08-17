@@ -1,0 +1,33 @@
+name: export-m2f-base
+
+on:
+  push:
+    branches:
+      - agent/m2f-calibration-champion-challenger
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          fetch-depth: 0
+
+      - name: Create exact M2E source archive
+        run: |
+          git archive --format=tar.gz \
+            --output=/tmp/linkage-engine-m2f-base.tar.gz \
+            d1fb18008f2e0a0d6fa29e9a0c0f6dc99ca2bb11
+          sha256sum /tmp/linkage-engine-m2f-base.tar.gz
+
+      - name: Upload exact source archive
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: linkage-engine-m2f-base
+          path: /tmp/linkage-engine-m2f-base.tar.gz
+          if-no-files-found: error
+          retention-days: 1
