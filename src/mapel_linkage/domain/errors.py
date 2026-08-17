@@ -28,3 +28,15 @@ class CandidateBudgetExceeded(CandidateGenerationError):
 
 class PreprocessingError(LinkageRuntimeError):
     """Raised when configured ingestion or normalisation cannot complete safely."""
+
+
+class ComparisonFeatureError(LinkageRuntimeError):
+    """Raised when configured comparison features cannot be built safely."""
+
+
+class AnchorEvidenceError(LinkageRuntimeError):
+    """Raised when deterministic anchor evidence cannot be evaluated safely."""
+
+
+class AnchorBudgetExceeded(AnchorEvidenceError):
+    """Raised before materialisation when the anchor pair budget is exceeded."""

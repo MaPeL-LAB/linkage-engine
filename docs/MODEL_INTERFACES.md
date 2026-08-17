@@ -34,7 +34,11 @@ Consumes dataset catalog, compiled candidate plan, and run context. Returns a ca
 
 ## PairFeatureBuilder
 
-Consumes candidate and canonical dataset tables. Returns comparison features without source values in unrestricted metadata.
+Consumes bounded candidate and canonical dataset tables. M2C implements this contract with `DuckDBComparisonFeatureBuilder`. It returns pair-key/retrieval provenance plus package-generated values, configured level indices, exact indicators, and explicit missingness indicators. Source field values are not copied to the feature output.
+
+## DeterministicAnchorEvaluator
+
+Consumes prepared canonical datasets and the validated deterministic-anchor plan. It returns evidence rows with per-rule left/right uniqueness counts, `evidence_only` authority, and `eligible_as_training_truth = false`. Anchor evidence cannot emit relationship status or bypass later calibrated scoring, assignment, and decision policy.
 
 ## PairMatcher
 

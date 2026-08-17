@@ -19,7 +19,13 @@
 - deterministic synthetic generator;
 - CLI skeleton for target commands.
 
-## Then: M2 synthetic vertical slice
+## Current implemented M2 increments
+
+- M2A: local DuckDB data plane and bounded candidate generation;
+- M2B: configured local ingestion and canonical preprocessing;
+- M2C: comparison features and deterministic-anchor evidence.
+
+## Then: complete M2 synthetic vertical slice
 
 - canonical normalization;
 - deterministic anchor evidence;
