@@ -24,3 +24,7 @@ class CandidateGenerationError(LinkageRuntimeError):
 
 class CandidateBudgetExceeded(CandidateGenerationError):
     """Raised before materialisation when the configured pair budget is exceeded."""
+
+
+class PreprocessingError(LinkageRuntimeError):
+    """Raised when configured ingestion or normalisation cannot complete safely."""

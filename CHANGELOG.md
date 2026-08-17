@@ -2,6 +2,25 @@
 
 ## [Unreleased]
 
+### Added — M2B configured ingestion and preprocessing
+
+- Local configuration-driven readers for Parquet, CSV, TSV, and newline-delimited JSON.
+- Canonical variable mapping independent of source column names.
+- Deterministic SHA-256 surrogate record keys with duplicate-ID rejection.
+- Allow-listed Unicode, text, date, numeric, and Boolean normalisation.
+- Explicit per-variable missingness indicators in canonical DuckDB tables.
+- Opaque prepared-dataset and prepared-catalog structural contracts.
+- Value-safe ingestion, normalisation, and data-preparation errors.
+- Synthetic-only preprocessing, configuration-renaming, determinism, and privacy tests.
+
+### Added — M2A local data plane and candidate generation
+
+- Opaque row-bearing `TableRef` contract.
+- Parameterised local DuckDB table creation.
+- Typed exact, prefix, conjunction, and disjunction blocking predicates.
+- Bounded, deduplicated, multi-rule candidate retrieval with aggregate diagnostics.
+
+
 ### Added — M1 safe configuration foundation
 
 - Strict immutable Pydantic configuration schema and cross-field validation.
@@ -25,6 +44,6 @@
 - M1 strict configuration schema, bounded safe loaders, compiler, allow-list registries, path policy, safe logging/errors, run manifests, generated JSON Schema, and deterministic synthetic generator.
 - Repository manifest generation and integrity verification.
 
-### Not yet implemented after M1
+### Not yet implemented after M2B
 
-- Linkage pipeline, models, calibration, assignment, adjudication processing, and real-world validation.
+- Comparison features, anchor evidence, linkage models, calibration, assignment, adjudication processing, and real-world validation.
