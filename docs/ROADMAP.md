@@ -23,7 +23,9 @@
 
 - M2A: local DuckDB data plane and bounded candidate generation;
 - M2B: configured local ingestion and canonical preprocessing;
-- M2C: comparison features and deterministic-anchor evidence.
+- M2C: comparison features and deterministic-anchor evidence;
+- M2D: Fellegi–Sunter evidence baseline;
+- M2E: verified-label provenance, protected partitions, hard negatives, and XGBoost pair-classifier challenger.
 
 ## Then: complete M2 synthetic vertical slice
 
@@ -32,7 +34,7 @@
 - bounded DuckDB candidate generation;
 - Splink candidate parity and Fellegi–Sunter baseline;
 - comparison features;
-- XGBoost classifier and ranker;
+- complete independent validation of the XGBoost classifier and implement the ranker;
 - independent calibration;
 - OR-Tools one-to-one assignment with no-match;
 - relationship decision policy;

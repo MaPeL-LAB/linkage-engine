@@ -1,6 +1,6 @@
 # Documentation Index
 
-The repository contains the M0 research baseline, the merged M1–M2C implementation increments, and the active M2D Fellegi–Sunter evidence-model candidate.
+The repository contains the M0 research baseline, merged M1–M2D implementation increments, and the active M2E verified-label XGBoost challenger candidate.
 
 This directory is the normative documentation set for Linkage Engine.
 
@@ -73,3 +73,4 @@ Research documents explain the evidence and trade-offs. Accepted ADRs define the
 - [`implementation/M2C_COMPARISON_FEATURES_AND_ANCHOR_EVIDENCE.md`](implementation/M2C_COMPARISON_FEATURES_AND_ANCHOR_EVIDENCE.md)
 
 - [`implementation/M2D_FELLEGI_SUNTER_BASELINE.md`](implementation/M2D_FELLEGI_SUNTER_BASELINE.md)
+- [`implementation/M2E_VERIFIED_LABEL_XGBOOST_CHALLENGER.md`](implementation/M2E_VERIFIED_LABEL_XGBOOST_CHALLENGER.md)

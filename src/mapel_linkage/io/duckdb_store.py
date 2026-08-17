@@ -197,6 +197,22 @@ class DuckDBStore:
             ) from None
         return [tuple(row) for row in rows]
 
+    def _fetch_model_rows(self, package_owned_sql: str) -> list[tuple[object, ...]]:
+        """Fetch private model-matrix rows for trusted package adapters only.
+
+        Pair references and features returned here must remain inside row-bearing
+        model contracts and must never be rendered in logs, errors, or public
+        summaries.
+        """
+
+        try:
+            rows = self._connection.execute(package_owned_sql).fetchall()
+        except Exception:
+            raise DataPlaneError(
+                "ML-DATA-020", "An internal model-matrix query could not be completed."
+            ) from None
+        return [tuple(row) for row in rows]
+
     def _scalar_int(self, package_owned_sql: str) -> int:
         try:
             row = self._connection.execute(package_owned_sql).fetchone()

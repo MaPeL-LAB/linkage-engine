@@ -3,6 +3,12 @@
 from __future__ import annotations
 
 from mapel_linkage.governance.errors import SafeError, SafeErrorCode
+from mapel_linkage.governance.labels import (
+    PartitionDisjointnessReport,
+    VerifiedLabelBatch,
+    VerifiedPairLabel,
+    assert_disjoint_label_partitions,
+)
 from mapel_linkage.governance.manifests import RunManifest, create_run_manifest, write_manifest
 from mapel_linkage.governance.paths import PathPolicy
 from mapel_linkage.governance.safe_logging import (
@@ -12,12 +18,16 @@ from mapel_linkage.governance.safe_logging import (
 )
 
 __all__ = [
+    "PartitionDisjointnessReport",
     "PathPolicy",
     "RunManifest",
     "SafeError",
     "SafeErrorCode",
     "SafeLogEvent",
     "SafeLogger",
+    "VerifiedLabelBatch",
+    "VerifiedPairLabel",
+    "assert_disjoint_label_partitions",
     "build_safe_log_event",
     "create_run_manifest",
     "write_manifest",

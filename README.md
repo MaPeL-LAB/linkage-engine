@@ -10,17 +10,17 @@
 | Import package | `mapel_linkage` |
 | Command-line interface | `mapel-linkage` |
 | Initial Python runtime | Python 3.12 |
-| Current package version | `0.1.0.dev5` |
+| Current package version | `0.1.0.dev6` |
 
 The repository name is **`linkage-engine`**. `MaPeL-LAB` identifies the developer and GitHub organisation; it is not part of the repository name.
 
 ## Status
 
-Milestones **M1**, **M2A**, **M2B**, and **M2C** are merged into `main`; M2D is the current Fellegi–Sunter evidence-model candidate. The package now provides the safe configuration foundation, a local DuckDB data plane, typed bounded candidate generation, configuration-driven local ingestion, canonical preprocessing, comparison-feature construction, and deterministic-anchor evidence.
+Milestones **M1** through **M2D** are merged into `main`; M2E is the current verified-label XGBoost challenger candidate. The package now provides the safe configuration foundation, local DuckDB data handling, bounded candidate generation, canonical preprocessing, comparison features, deterministic-anchor evidence, and a Fellegi–Sunter evidence baseline.
 
 M2C computes configured exact, string-similarity, q-gram, date-distance, numeric-distance, categorical, level, and missingness features over bounded candidate pairs. It separately evaluates deterministic anchor predicates with per-rule uniqueness diagnostics. Anchor action remains `evidence_only`, and anchor evidence remains ineligible as training truth.
 
-The M2D candidate implements an evidence-only Fellegi–Sunter reference estimator and a package-owned Splink settings compiler. It does **not** yet provide the completed production Splink runtime adapter, supervised matching, learned ranking, independent calibration, assignment, adjudication processing, relationship decisions, or a complete linkage run. It is not validated for operational use.
+M2D implements an evidence-only Fellegi–Sunter reference estimator and a package-owned Splink settings compiler. M2E adds verified-label provenance, protected partitions, deterministic hard-negative selection, and an XGBoost pair-classifier challenger over canonical comparison features. The package does **not** yet provide independent probability calibration, champion–challenger selection, learned ranking, assignment, adjudication processing, relationship decisions, or a complete linkage run. It is not validated for operational use.
 
 ## Intended use
 
@@ -113,6 +113,24 @@ assignment, or merge records.
 See
 [`docs/implementation/M2D_FELLEGI_SUNTER_BASELINE.md`](docs/implementation/M2D_FELLEGI_SUNTER_BASELINE.md).
 
+## Verified-label XGBoost challenger
+
+M2E accepts only synthetic truth, verified adjudication, or an independently
+verified gold standard for supervised use. Pair, entity, and household
+components cannot cross protected partitions. Unknown pairs remain unknown.
+
+The XGBoost challenger consumes only package-generated comparison and
+missingness features. Training is bounded, single-threaded, seeded, and may
+prioritise verified hard nonmatches. Native JSON model artifacts retain safe
+aggregate manifests and exact feature-schema, label-authority, selection,
+parameter, and model digests.
+
+All M2E scores remain `model_score_uncalibrated`, `not_calibrated`, and
+`evidence_only`. Diagnostic thresholds have no operational decision authority.
+
+See
+[`docs/implementation/M2E_VERIFIED_LABEL_XGBOOST_CHALLENGER.md`](docs/implementation/M2E_VERIFIED_LABEL_XGBOOST_CHALLENGER.md).
+
 ## Command line
 
 Implemented:
@@ -173,7 +191,7 @@ python -m pip install -e ".[core]"
 
 ## Documentation
 
-The documentation index is [`docs/README.md`](docs/README.md). Implementation reports are indexed in [`docs/README.md`](docs/README.md), including M1, M2A, M2B, and M2C. Research claims use keys from [`docs/references/references.bib`](docs/references/references.bib).
+The documentation index is [`docs/README.md`](docs/README.md). Implementation reports are indexed in [`docs/README.md`](docs/README.md), including M1 through M2E. Research claims use keys from [`docs/references/references.bib`](docs/references/references.bib).
 
 ## Validation warning
 

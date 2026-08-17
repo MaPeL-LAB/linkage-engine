@@ -1,5 +1,5 @@
 from mapel_linkage import __version__
 
 
-def test_version_is_m2d_pre_alpha() -> None:
-    assert __version__ == "0.1.0.dev5"
+def test_version_is_m2e_pre_alpha() -> None:
+    assert __version__ == "0.1.0.dev6"

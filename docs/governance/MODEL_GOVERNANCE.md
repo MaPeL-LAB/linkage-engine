@@ -53,3 +53,16 @@ A default model-based confirmation requires:
 ## Model cards
 
 Every operational candidate model requires a model card describing intended use, data provenance, features, validation design, thresholds, calibration, subgroup performance, limitations, and prohibited uses.
+
+## M2E boosted challenger boundary
+
+The initial XGBoost challenger is trained only from a verified training
+partition over package-generated comparison features. It is persisted as native
+JSON with a safe aggregate manifest and exact model, parameter, feature-schema,
+label-authority, and selection digests. Pickle and joblib are not accepted as
+canonical artifacts.
+
+Its output is `model_score_uncalibrated`, `not_calibrated`, and
+`evidence_only`. Aggregate validation on a nontraining partition may support
+champion–challenger review, but cannot itself authorise an operational threshold
+or relationship decision.

@@ -231,3 +231,28 @@ def test_all_validation_partitions_must_be_nonempty() -> None:
     payload["validation"]["split"]["training_fraction"] = 0.65
     with pytest.raises(SafeError):
         load_config_text(yaml_text(payload), source_format="yaml")
+
+
+def test_boosted_tree_plan_has_bounded_deterministic_defaults() -> None:
+    loaded = load_config_text(yaml_text(valid_payload()), source_format="yaml")
+    model = loaded.config.models.boosted_tree
+    assert model is not None
+    assert model.implementation == "xgboost_classifier"
+    assert model.n_jobs == 1
+    assert model.deterministic_mode is True
+    assert model.maximum_training_pairs == 100000
+    assert model.hard_negative_fraction == 0.75
+
+
+def test_boosted_tree_training_budget_cannot_exceed_runtime_pair_budget() -> None:
+    payload = valid_payload()
+    payload["models"]["boosted_tree"]["maximum_training_pairs"] = 100001
+    with pytest.raises(SafeError):
+        load_config_text(yaml_text(payload), source_format="yaml")
+
+
+def test_boosted_tree_single_thread_safeguard_cannot_be_disabled() -> None:
+    payload = valid_payload()
+    payload["models"]["boosted_tree"]["n_jobs"] = 2
+    with pytest.raises(SafeError):
+        load_config_text(yaml_text(payload), source_format="yaml")
