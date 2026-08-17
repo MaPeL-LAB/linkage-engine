@@ -1,0 +1,1 @@
+Trigger the temporary M2 checksum bootstrap through a pull-request synchronize event.
