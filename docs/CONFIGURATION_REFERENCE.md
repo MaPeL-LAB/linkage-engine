@@ -134,6 +134,23 @@ The initial statistical baseline uses `implementation: splink_duckdb` and requir
 
 The `u_max_pairs` value may not exceed the runtime candidate-pair budget. The initial score output is explicitly `model_posterior_uncalibrated` and `evidence_only`; it cannot satisfy a confirmation rule or bypass calibration, assignment, or the decision policy. Term-frequency adjustment remains a later M2D extension rather than an implied capability.
 
+### Boosted-tree challenger
+
+The initial supervised challenger uses `implementation: xgboost_classifier` and requires eligible verified labels. Its bounded configuration contains:
+
+- `n_estimators`;
+- `max_depth`;
+- `learning_rate`;
+- `subsample`;
+- `column_sample`;
+- `maximum_training_pairs`;
+- `hard_negative_fraction`;
+- `n_jobs: 1`;
+- `deterministic_mode: true`;
+- `require_verified_labels: true`.
+
+`maximum_training_pairs` may not exceed the runtime candidate-pair budget. Configuration cannot supply an arbitrary objective, evaluation callback, import path, Python callable, raw SQL, or unrestricted XGBoost parameter map. M2E scores are `model_score_uncalibrated`, `not_calibrated`, and `evidence_only`.
+
 ## Calibration
 
 Calibration declares source model, method, partition, and independence requirement. Supported initial methods are sigmoid and isotonic. Beta calibration is a later challenger.

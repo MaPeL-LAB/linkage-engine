@@ -159,10 +159,27 @@
     "BoostedTreeModelConfig": {
       "additionalProperties": false,
       "properties": {
+        "column_sample": {
+          "default": 1.0,
+          "exclusiveMinimum": 0.0,
+          "maximum": 1.0,
+          "title": "Column Sample",
+          "type": "number"
+        },
+        "deterministic_mode": {
+          "const": true,
+          "default": true,
+          "title": "Deterministic Mode",
+          "type": "boolean"
+        },
         "enabled": {
           "default": true,
           "title": "Enabled",
           "type": "boolean"
+        },
+        "hard_negative_fraction": {
+          "$ref": "#/$defs/Probability",
+          "default": 0.75
         },
         "implementation": {
           "enum": [
@@ -172,14 +189,55 @@
           "title": "Implementation",
           "type": "string"
         },
+        "learning_rate": {
+          "default": 0.05,
+          "exclusiveMinimum": 0.0,
+          "maximum": 1.0,
+          "title": "Learning Rate",
+          "type": "number"
+        },
+        "max_depth": {
+          "default": 5,
+          "exclusiveMinimum": 0,
+          "maximum": 32,
+          "title": "Max Depth",
+          "type": "integer"
+        },
+        "maximum_training_pairs": {
+          "default": 1000000,
+          "exclusiveMinimum": 0,
+          "maximum": 10000000,
+          "title": "Maximum Training Pairs",
+          "type": "integer"
+        },
         "model_id": {
           "$ref": "#/$defs/Identifier"
+        },
+        "n_estimators": {
+          "default": 300,
+          "exclusiveMinimum": 0,
+          "maximum": 5000,
+          "title": "N Estimators",
+          "type": "integer"
+        },
+        "n_jobs": {
+          "const": 1,
+          "default": 1,
+          "title": "N Jobs",
+          "type": "integer"
         },
         "require_verified_labels": {
           "const": true,
           "default": true,
           "title": "Require Verified Labels",
           "type": "boolean"
+        },
+        "subsample": {
+          "default": 1.0,
+          "exclusiveMinimum": 0.0,
+          "maximum": 1.0,
+          "title": "Subsample",
+          "type": "number"
         }
       },
       "required": [

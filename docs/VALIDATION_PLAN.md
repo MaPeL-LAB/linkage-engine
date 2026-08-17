@@ -106,3 +106,31 @@ The final test partition may not select models, features, hyperparameters, block
 ## Required report statement
 
 > **Synthetic testing establishes software behaviour only. It does not validate linkage accuracy, calibration, fairness, sensitivity, positive predictive value, false-link rates, missed-link rates, or operational fitness on real populations or systems.**
+
+## M2E supervised-model safeguards
+
+Before supervised fitting, label snapshots must pass a partition-disjointness
+check covering private pair digests, entity components, and household
+components. Duplicate partitions, duplicate/conflicting pair labels, or any
+cross-partition overlap are validation failures.
+
+The XGBoost challenger is fitted only on the training partition. Hard-negative
+selection retains all eligible verified matches and selects only eligible
+verified nonmatches from the bounded candidate-feature table. Unknown pairs are
+never recoded as nonmatches.
+
+Model comparison uses the validation partition. M2E reports aggregate average
+precision, ROC AUC, Brier score, sensitivity, positive predictive value,
+false-link rate, and missed-link rate at a fixed diagnostic threshold. These
+metrics are labelled according to their evidence scope. Synthetic metrics are
+`synthetic_mechanical_evaluation`; they do not establish operational validity.
+
+Calibration and decision-threshold selection remain separate subsequent stages.
+The M2E model and validation report explicitly retain:
+
+```text
+calibration_status = not_calibrated
+threshold_authority = diagnostic_only
+decision_authority = evidence_only
+real_data_validation_status = not_established
+```

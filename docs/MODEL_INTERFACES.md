@@ -91,3 +91,60 @@ Writes restricted payloads and unrestricted manifests separately. It verifies pa
 ## Safe representation
 
 Domain objects that may reference row-level material must have value-safe `repr`/`str` implementations. No public object exposes a convenient row preview.
+
+## VerifiedLabelBatch
+
+M2E introduces a partition-specific verified-label contract. It retains private
+surrogate pair references, binary labels, entity-component digests, household-
+component digests, source kind, verification protocol, source digest, and a
+canonical label-authority digest.
+
+Only these source kinds are eligible:
+
+```text
+synthetic_truth
+verified_human_adjudication
+verified_gold_standard
+```
+
+The contract rejects duplicate/conflicting labels and pair, entity, or
+household overlap across protected partitions. An unverified reference cannot
+be converted to this interface.
+
+## BoostedFeatureMatrix and BoostedLabelledMatrix
+
+The M2E matrix interface contains package-generated numeric comparison features
+and private pair references. Feature values, labels, pair references, and
+feature names are excluded from public object representations. Safe summaries
+contain aggregate counts and schema/authority digests only.
+
+A labelled matrix records:
+
+```text
+partition
+label_source_kind
+label_authority_digest
+selection_digest
+positive_count
+negative_count
+hard_negative_count
+```
+
+Training selection is allowed only for the training partition and may use only
+verified nonmatches.
+
+## XGBoostPairClassifier
+
+`XGBoostPairClassifier.fit` consumes a verified training matrix and a bounded
+`BoostedTreeModelConfig`. It returns a native-JSON `XGBoostModelArtifact` whose
+manifest records aggregate provenance and explicit authority limits.
+
+`XGBoostPairClassifier.score` returns a local `TableRef` containing private pair
+references and uncalibrated evidence scores. It requires an exact feature-schema
+and feature-order match.
+
+`XGBoostPairClassifier.evaluate` accepts only a nontraining labelled matrix and
+returns aggregate diagnostics. Its fixed threshold is diagnostic only.
+
+The interface never returns a relationship status and cannot invoke assignment,
+calibration, or record merging.

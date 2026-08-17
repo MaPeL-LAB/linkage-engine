@@ -398,6 +398,15 @@ class BoostedTreeModelConfig(ConfigNode):
     implementation: Literal["xgboost_classifier", "lightgbm_classifier"]
     model_id: Identifier
     require_verified_labels: Literal[True] = True
+    n_estimators: Annotated[PositiveInt, Field(le=5000)] = 300
+    max_depth: Annotated[PositiveInt, Field(le=32)] = 5
+    learning_rate: Annotated[StrictFloat, Field(gt=0.0, le=1.0)] = 0.05
+    subsample: Annotated[StrictFloat, Field(gt=0.0, le=1.0)] = 1.0
+    column_sample: Annotated[StrictFloat, Field(gt=0.0, le=1.0)] = 1.0
+    maximum_training_pairs: Annotated[PositiveInt, Field(le=10_000_000)] = 1_000_000
+    hard_negative_fraction: Probability = 0.75
+    n_jobs: Literal[1] = 1
+    deterministic_mode: Literal[True] = True
 
 
 class RankingModelConfig(ConfigNode):
@@ -600,6 +609,13 @@ class LinkageConfig(ConfigNode):
             raise ValueError(
                 "Fellegi-Sunter random-pair sampling cannot exceed the runtime pair budget."
             )
+        boosted = self.models.boosted_tree
+        if (
+            boosted is not None
+            and boosted.enabled
+            and boosted.maximum_training_pairs > self.runtime.maximum_candidate_pairs
+        ):
+            raise ValueError("Boosted-tree training cannot exceed the runtime pair budget.")
         self._validate_outputs(set(variable_by_id))
         if self.assignment.constraint != self.project.assignment_constraint:
             raise ValueError("Project and assignment constraints must agree.")

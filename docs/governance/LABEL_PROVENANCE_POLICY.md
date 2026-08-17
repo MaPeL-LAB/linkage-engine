@@ -52,3 +52,16 @@ eligible_for_testing
 ## Partition protection
 
 Label snapshots are assigned to entity/household-disjoint partitions before pair-model development. Every model manifest records the exact eligible snapshot and partition IDs.
+
+## M2E implementation contract
+
+M2E implements supervised-use objects only for `synthetic_truth`,
+`verified_human_adjudication`, and `verified_gold_standard`. Other source types
+remain policy concepts and cannot be instantiated as an eligible
+`VerifiedLabelBatch`.
+
+The implementation rejects duplicate/conflicting pair labels and requires pair,
+entity-component, and household-component disjointness across protected
+partitions. The deterministic `label_authority_digest` and training-selection
+digest are retained in model manifests; private pair and grouping references
+are not retained in unrestricted metadata.

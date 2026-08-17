@@ -48,3 +48,15 @@ class FellegiSunterError(LinkageRuntimeError):
 
 class FellegiSunterBudgetExceeded(FellegiSunterError):
     """Raised before fitting when a configured pair budget is exceeded."""
+
+
+class LabelProvenanceError(LinkageRuntimeError):
+    """Raised when verified-label provenance or partition safety is invalid."""
+
+
+class BoostedTreeError(LinkageRuntimeError):
+    """Raised when boosted pair-model training or scoring cannot complete safely."""
+
+
+class BoostedTreeBudgetExceeded(BoostedTreeError):
+    """Raised before fitting when a boosted-model pair budget is exceeded."""

@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+### Added — M2E verified-label XGBoost challenger
+
+- Verified synthetic, adjudicated, and gold-standard label-source contracts.
+- Pair, entity, and household partition-disjointness guards.
+- Immutable numeric training/scoring matrices over M2C comparison features.
+- Deterministic bounded hard-negative selection using verified nonmatches only.
+- Native JSON XGBoost pair-classifier artifacts with aggregate manifests and digests.
+- Evidence-only uncalibrated score tables and diagnostic validation reports.
+- Expanded statistical package-version provenance in run manifests.
+- Synthetic-only label, training, artifact, metric, determinism, and privacy tests.
+
 ### Added — M2D Fellegi–Sunter evidence baseline
 
 - Deterministic bounded cross-source sampling for `u` estimation.
@@ -64,6 +75,6 @@
 - M1 strict configuration schema, bounded safe loaders, compiler, allow-list registries, path policy, safe logging/errors, run manifests, generated JSON Schema, and deterministic synthetic generator.
 - Repository manifest generation and integrity verification.
 
-### Not yet implemented after M2D
+### Not yet implemented after M2E
 
-- Completed production Splink runtime integration, supervised linkage models, learned ranking, calibration, assignment, relationship decisions, adjudication processing, and real-world validation.
+- Independent probability calibration, champion–challenger selection, learned ranking, assignment, relationship decisions, adjudication processing, and real-world validation.
