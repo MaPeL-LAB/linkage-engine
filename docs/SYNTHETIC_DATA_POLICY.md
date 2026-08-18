@@ -1,12 +1,22 @@
 # Synthetic Data Policy
 
-**M1 status:** `mapel_linkage.synthetic` implements deterministic generic source generation, separate truth, provenance, corruption, missingness, duplicates, no-match cases, competitors, and assignment conflicts.
+**M2 status:** `mapel_linkage.synthetic` implements deterministic generic source
+generation, separate truth, provenance, corruption, missingness, duplicates,
+no-match cases, competitors, and assignment conflicts. The complete synthetic
+vertical slice accepts only its package-generated fixture paths and
+`synthetic_truth` label authority when `--synthetic-demo` is selected.
 
 ## Repository rule
 
 Only generated synthetic record-level data may appear in the repository, tests, examples, documentation, notebooks, issues, pull requests, or CI.
 
 De-identified, masked, hashed, tokenized, sampled, or perturbed real records are not repository-safe synthetic data.
+
+The synthetic-demo flag is not permission to run an arbitrary configuration.
+Before any fixture generation or dataset access, orchestration verifies the
+exact project-local generated fixture paths, JSONL format, configured record
+keys, synthetic label authority, absence of an external label path, and the
+configured generator seed. Any mismatch fails closed.
 
 ## Generator requirements
 

@@ -57,7 +57,7 @@ def _identity_text(value: object) -> str:
     return str(value)
 
 
-def _surrogate_record_key(dataset_id: str, record_identifier: object) -> str:
+def surrogate_record_key(dataset_id: str, record_identifier: object) -> str:
     payload = f"{dataset_id}\x1f{_identity_text(record_identifier)}"
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
@@ -181,7 +181,7 @@ class ConfiguredDatasetPreparer:
                 raise PreprocessingError(
                     "ML-PREP-004", "A configured record identifier is missing."
                 )
-            surrogate_key = _surrogate_record_key(dataset.id, record_identifier)
+            surrogate_key = surrogate_record_key(dataset.id, record_identifier)
             if surrogate_key in observed_keys:
                 raise PreprocessingError(
                     "ML-PREP-005", "Duplicate record identifiers were rejected."

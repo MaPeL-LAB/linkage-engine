@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-from contextlib import suppress
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Annotated, Any, ClassVar, Final, Literal
@@ -18,6 +17,7 @@ from mapel_linkage.configuration.models import BoostedTreeModelConfig
 from mapel_linkage.domain.errors import BoostedTreeBudgetExceeded, BoostedTreeError, DataPlaneError
 from mapel_linkage.domain.sql_identifiers import validate_identifier
 from mapel_linkage.domain.table_refs import TableRef
+from mapel_linkage.governance.atomic import atomic_write_bytes, atomic_write_text
 from mapel_linkage.governance.labels import (
     LabelSourceKind,
     PartitionDisjointnessReport,
@@ -559,21 +559,13 @@ def write_xgboost_artifact(
         )
     destination_model.parent.mkdir(parents=True, exist_ok=True)
     destination_manifest.parent.mkdir(parents=True, exist_ok=True)
-    temporary_model = destination_model.with_suffix(destination_model.suffix + ".tmp")
-    temporary_manifest = destination_manifest.with_suffix(destination_manifest.suffix + ".tmp")
     try:
-        temporary_model.write_bytes(artifact.model_json)
-        temporary_manifest.write_text(
+        atomic_write_bytes(destination_model, artifact.model_json)
+        atomic_write_text(
+            destination_manifest,
             json.dumps(artifact.manifest(), indent=2, sort_keys=True) + "\n",
-            encoding="utf-8",
         )
-        temporary_model.replace(destination_model)
-        temporary_manifest.replace(destination_manifest)
     except OSError:
-        with suppress(OSError):
-            temporary_model.unlink(missing_ok=True)
-        with suppress(OSError):
-            temporary_manifest.unlink(missing_ok=True)
         raise BoostedTreeError(
             "ML-BOOST-039", "The XGBoost model artifact could not be written."
         ) from None

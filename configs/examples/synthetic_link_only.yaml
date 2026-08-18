@@ -18,18 +18,18 @@ privacy:
 datasets:
   - id: source_a
     role: source
-    path: data/synthetic/source_a.parquet
-    format: parquet
-    record_id_column: record_key_a
+    path: data/synthetic/source_a.jsonl
+    format: jsonl
+    record_id_column: record_key
   - id: source_b
     role: target
-    path: data/synthetic/source_b.parquet
-    format: parquet
-    record_id_column: record_key_b
+    path: data/synthetic/source_b.jsonl
+    format: jsonl
+    record_id_column: record_key
 variables:
   - id: label_text
     data_type: string
-    source_columns: {source_a: label_value_a, source_b: label_value_b}
+    source_columns: {source_a: label_value, source_b: label_value}
     normalisation:
       - {kind: unicode_normalize, form: NFKC}
       - {kind: casefold}
@@ -38,10 +38,17 @@ variables:
     missingness: {blank_is_missing: true, comparison_policy: explicit_missing_level}
   - id: date_value
     data_type: date
-    source_columns: {source_a: date_value_a, source_b: date_value_b}
+    source_columns: {source_a: date_value, source_b: date_value}
     normalisation:
       - kind: parse_date
         formats: ["%Y-%m-%d"]
+    missingness: {blank_is_missing: true, comparison_policy: explicit_missing_level}
+  - id: group_value
+    data_type: categorical
+    source_columns: {source_a: group_value, source_b: group_value}
+    normalisation:
+      - {kind: casefold}
+      - {kind: strip}
     missingness: {blank_is_missing: true, comparison_policy: explicit_missing_level}
 deterministic_anchors:
   - id: exact_label_date
@@ -56,6 +63,8 @@ deterministic_anchors:
     allow_as_training_truth: false
 blocking:
   rules:
+    - id: group_value_exact
+      predicate: {kind: exact, variable: group_value}
     - id: date_and_label_prefix
       predicate:
         kind: all
@@ -71,6 +80,22 @@ comparisons:
       - {kind: exact}
       - {kind: threshold, minimum: 0.92}
       - {kind: threshold, minimum: 0.85}
+      - {kind: else}
+  - id: date_difference
+    variable: date_value
+    function: {kind: date_difference, unit: day}
+    levels:
+      - {kind: missing}
+      - {kind: exact}
+      - {kind: maximum_difference, value: 2}
+      - {kind: maximum_difference, value: 31}
+      - {kind: else}
+  - id: group_agreement
+    variable: group_value
+    function: {kind: categorical}
+    levels:
+      - {kind: missing}
+      - {kind: exact}
       - {kind: else}
 labels:
   source:
@@ -101,8 +126,8 @@ models:
     implementation: xgboost_classifier
     model_id: xgb_pair_classifier
     require_verified_labels: true
-    n_estimators: 300
-    max_depth: 5
+    n_estimators: 120
+    max_depth: 4
     learning_rate: 0.05
     subsample: 1.0
     column_sample: 1.0
@@ -117,8 +142,14 @@ models:
     query_side: source
     top_k: 5
     require_verified_labels: true
+    n_estimators: 100
+    max_depth: 4
+    learning_rate: 0.05
+    maximum_training_pairs: 100000
+    n_jobs: 1
+    deterministic_mode: true
   neural: {enabled: false, implementation: pytorch_pair_mlp}
-calibration: {method: sigmoid, source_model: xgb_pair_classifier, partition: calibration}
+calibration: {method: sigmoid, source_model: selected_champion, partition: calibration}
 assignment:
   solver: ortools_min_cost_flow
   constraint: one_to_one
@@ -147,13 +178,20 @@ outputs:
     - source_record_ref
     - target_record_ref
     - relationship_status
+    - model_family
     - model_version
     - calibrated_probability
     - candidate_rank
     - probability_margin
     - decision_rule_id
     - assignment_method
+    - assignment_constraint
+    - anchor_rule_ids
+    - candidate_rule_ids
+    - review_reason_codes
     - run_id
     - configuration_digest
+    - feature_schema_digest
     - non_sensitive_provenance
+    - created_at
   permitted_variable_values: []

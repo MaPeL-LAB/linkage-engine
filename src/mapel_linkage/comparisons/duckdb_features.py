@@ -191,6 +191,7 @@ class DuckDBComparisonFeatureBuilder:
 
         digest_input = "|".join(
             (
+                candidates.table_name,
                 candidates.schema_digest,
                 left.table.schema_digest,
                 right.table.schema_digest,

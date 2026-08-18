@@ -1,6 +1,10 @@
 # Privacy Threat Model
 
-**M1 status:** configuration, path, error, logging, manifest, output-allow-list, and synthetic-sentinel controls are implemented. DuckDB/model boundaries remain future work.
+**M2 development-candidate status:** configuration, path, error, aggregate logging, manifest,
+output allow-list, synthetic-sentinel, local DuckDB, protected-label partition, native model
+artifact, calibration, ranking, assignment, decision, and restricted-review boundaries are
+implemented for the complete synthetic vertical slice. Real-data validation, operational
+approval, deployment hardening, and external security assessment are not established.
 
 ## Protected material
 
@@ -23,6 +27,8 @@ Protected material must never be committed or processed in repository CI.
 | adjudication | sensitive fields or decisions leaked | restricted local files, append-only audit, no Git/CI |
 | CI | real data or secret exposure | generated synthetic data, read-only token, no row artifact uploads |
 | supply chain | mutable actions/dependencies | pinned GitHub Action SHAs; tested constraints; dependency audit |
+| synthetic demo | operational configuration causes real input access | require synthetic truth and the exact generated two-source fixture paths before any generation, dataset read, or write |
+| intermediate tables | same-schema materialisation overwrites prior evidence | derive table identity from both schema and package-owned input-table provenance; retain coverage assertions |
 
 ## Logging policy
 
@@ -63,3 +69,9 @@ Hashing or Bloom-filter encoding does not automatically satisfy privacy requirem
 ## Verification
 
 Privacy tests generate unique synthetic sentinels and assert their absence from validation errors, CLI errors, typed log construction, emitted logs, manifests, and unrestricted representations. Validation locations replace arbitrary user-provided mapping keys with `*`. Distribution inspection rejects row-level and model-artifact file types, including JSONL/NDJSON.
+
+The `--synthetic-demo` flag is not, by itself, sufficient authority to use an arbitrary
+configuration. The runner rejects non-synthetic label authority, any configured label-source
+path, non-generated dataset paths, and seed mismatch before creating fixtures or opening a
+dataset. This is a software privacy boundary, not evidence of population fidelity or operational
+fitness.

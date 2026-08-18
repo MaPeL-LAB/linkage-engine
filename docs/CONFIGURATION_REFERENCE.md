@@ -1,6 +1,6 @@
 # Configuration Reference
 
-**Implementation status:** M1 schema and compiler implemented in `0.1.0.dev1`.
+**Implementation status:** complete two-source synthetic MVP contract in `0.2.0.dev0`.
 
 ## Normative principles
 
@@ -9,9 +9,10 @@
 - Unknown and duplicate keys are rejected.
 - Configuration is data, not executable code.
 - Operations resolve through package-owned allow-list registries.
-- Raw SQL and arbitrary Python callables are prohibited.
-- Filesystem and outputs are default-deny.
-- Configuration values and arbitrary mapping keys are not printed in validation errors.
+- Raw SQL, shell commands, import paths, arbitrary Python callables, `eval()`, and `exec()` are prohibited.
+- Filesystem access and exported fields are default-deny.
+- Configuration values, local paths, source columns, and arbitrary mapping keys are not printed in public validation errors.
+- A completed real project configuration is protected local material and must remain Git-ignored.
 
 ## Top-level structure
 
@@ -37,7 +38,7 @@ outputs
 
 ## Project
 
-Required concepts:
+Required fields:
 
 - `project_id`
 - `entity_type`
@@ -45,11 +46,25 @@ Required concepts:
 - `assignment_constraint`: `one_to_one`, `many_to_one`, `one_to_many`, or `unconstrained`
 - `random_seed`
 
+The complete synthetic MVP currently executes `link_only` with `one_to_one` assignment. Other validated enum values are reserved for later mode-specific implementations and fail safely where no runtime implementation exists.
+
+## Runtime and privacy
+
+The runtime section declares DuckDB, deterministic execution, and a hard candidate-pair budget. Run directories are supplied by the trusted host/orchestrator rather than project YAML. The privacy section declares requested local roots and aggregate-only logging. Requested roots must also fall within a separate host-approved path envelope supplied by trusted startup code.
+
+Remote URI schemes, UNC paths, traversal outside approved roots, project-root widening, network access, and public tracebacks are rejected.
+
 ## Datasets
 
-A dataset definition includes a stable config ID, role, local path, format, record-ID source column, and optional source metadata. Source column names are legal here and in variable mappings only.
+A dataset definition includes:
 
-Remote URI schemes are rejected by default. Paths are resolved and checked against approved roots.
+- stable configuration ID;
+- role;
+- local path;
+- approved format;
+- source record-ID column.
+
+Current readers support Parquet, CSV, TSV, and newline-delimited JSON. Source column names are legal only in dataset declarations, variable mappings, and protected local truth declarations. They are never embedded in model, assignment, decision, or orchestration logic.
 
 ## Variables
 
@@ -57,14 +72,16 @@ A variable definition includes:
 
 - canonical variable ID;
 - data type;
-- per-dataset source column;
+- per-dataset source-column mapping;
 - allow-listed normalisation pipeline;
 - missingness policy;
-- sensitivity/output metadata.
+- restricted-output permission metadata.
+
+Current data types include string, categorical, date, numeric, integer, and Boolean. Every prepared canonical variable receives an explicit missingness indicator.
 
 ## Transformation registry
 
-Initial candidates include:
+Current allow-listed operations include:
 
 ```text
 strip
@@ -75,28 +92,28 @@ parse_date
 numeric_cast
 ```
 
-Every transform declares supported input/output types and safe parameters.
+Each operation has fixed validated parameters and type compatibility. Unknown operations fail before data access.
 
 ## Blocking DSL
 
-The public language uses semantic predicates such as:
+The public language uses semantic predicates rather than SQL:
 
 ```yaml
 predicate:
   kind: all
   terms:
     - kind: exact
-      variable: date_value
+      variable: date_attribute
     - kind: prefix_equal
-      variable: label_text
+      variable: text_attribute
       length: 2
 ```
 
-SQL is not part of the public configuration contract.
+Current predicates include exact equality, prefix equality, date windows, conjunction, and disjunction. Package code compiles the same supported predicate subset to DuckDB and Splink. The synthetic MVP requires exact candidate-pair parity between those paths.
 
 ## Comparisons
 
-Initial comparison families:
+Current comparison families are:
 
 ```text
 exact
@@ -109,91 +126,195 @@ numeric_difference
 categorical
 ```
 
-Each comparison declares levels, missingness behaviour, supported types, and output feature schema.
+Each comparison declares ordered levels, explicit missingness behaviour, supported variable types, and a deterministic internal feature schema. The final level must be `else`.
+
+## Deterministic anchors
+
+Anchors evaluate exact or bounded package-owned predicates with uniqueness and contradiction evidence. The only supported action is initially:
+
+```text
+action: evidence_only
+allow_as_training_truth: false
+```
+
+An anchor cannot silently create a confirmed relationship or training label.
 
 ## Labels
 
-The label source and verification metadata determine purpose-specific eligibility. `permit_unverified_crosswalk` is false and should not become a bypass.
+Supported sources are:
+
+```text
+synthetic_truth
+verified_human_adjudication
+verified_gold_standard
+unverified_reference
+```
+
+Synthetic truth declares entity and optional household grouping columns. Verified adjudication and verified gold-standard sources declare a protected local path plus a protocol version. An unverified reference may be retained as evidence but is statically ineligible for training, validation, calibration, threshold selection, and testing.
+
+The following safeguards are fixed and cannot be disabled:
+
+```yaml
+permit_weak_labels_for_training: false
+permit_unverified_crosswalk: false
+```
 
 ## Models
 
-Model sections are discriminated unions. A model selects an approved implementation key and validated parameters; it cannot specify an import path.
+### Fellegi–Sunter
 
-### Fellegi–Sunter baseline
+The initial baseline uses `implementation: splink_duckdb` and records:
 
-The initial statistical baseline uses `implementation: splink_duckdb` and requires a stable model identifier. M2D validates and records:
+- prior match probability;
+- random-pair budget for `u` estimation;
+- EM limits for `m` estimation;
+- probability smoothing;
+- deterministic seed and artifact digests.
 
-- `probability_two_random_records_match`;
-- `u_max_pairs`;
-- `em_max_iterations`;
-- `em_convergence`;
-- `probability_smoothing`;
-- `estimate_u_by_random_sampling: true`;
-- `estimate_m_by_em: true`;
-- `term_frequency_adjustments: false` for the initial reference model.
+The engine-owned reference estimator produces `model_posterior_uncalibrated` evidence. The Splink adapter compiles the safe configuration and verifies candidate parity. Neither path has decision authority.
 
-The `u_max_pairs` value may not exceed the runtime candidate-pair budget. The initial score output is explicitly `model_posterior_uncalibrated` and `evidence_only`; it cannot satisfy a confirmation rule or bypass calibration, assignment, or the decision policy. Term-frequency adjustment remains a later M2D extension rather than an implied capability.
+### Boosted-tree pair classifier
 
-### Boosted-tree challenger
+The initial supervised model uses `implementation: xgboost_classifier` with:
 
-The initial supervised challenger uses `implementation: xgboost_classifier` and requires eligible verified labels. Its bounded configuration contains:
+- eligible verified labels only;
+- bounded deterministic hard-negative selection;
+- fixed single-thread execution;
+- bounded estimators, depth, learning rate, subsampling, and training-pair count;
+- native JSON model artifacts with integrity digests.
 
-- `n_estimators`;
-- `max_depth`;
-- `learning_rate`;
-- `subsample`;
-- `column_sample`;
-- `maximum_training_pairs`;
-- `hard_negative_fraction`;
-- `n_jobs: 1`;
-- `deterministic_mode: true`;
-- `require_verified_labels: true`.
+The score remains uncalibrated evidence until the protected calibration stage.
 
-`maximum_training_pairs` may not exceed the runtime candidate-pair budget. Configuration cannot supply an arbitrary objective, evaluation callback, import path, Python callable, raw SQL, or unrestricted XGBoost parameter map. M2E scores are `model_score_uncalibrated`, `not_calibrated`, and `evidence_only`.
+### Candidate ranker
+
+The initial ranker uses `implementation: xgboost_ranker` and declares:
+
+- `query_side`;
+- `top_k`;
+- verified-label requirement;
+- bounded deterministic training controls.
+
+Ranker outputs contain scores, ranks, top-K membership, model identity, and artifact provenance only. They cannot contain relationship statuses, assignment authority, or merge instructions.
+
+### Neural matcher
+
+`pytorch_pair_mlp` remains an optional, disabled future implementation. It is not required for the synthetic MVP.
+
+## Champion–challenger selection
+
+```yaml
+model_selection:
+  mode: champion_challenger
+  selection_partition: validation
+  primary_metric: average_precision
+  test_partition_may_select_model: false
+```
+
+The validation partition compares Fellegi–Sunter and XGBoost aggregate evidence. The test partition cannot select a model. Selection artifacts retain model identities, evidence digests, label authority, partition evidence, metrics, and a deterministic selection digest.
 
 ## Calibration
 
-Calibration declares source model, method, partition, and independence requirement. Supported initial methods are sigmoid and isotonic. Beta calibration is a later challenger.
+```yaml
+calibration:
+  method: sigmoid
+  source_model: selected_champion
+  partition: calibration
+  require_independent_partition: true
+```
+
+Supported methods are sigmoid and isotonic. Calibration uses only the protected calibration partition and writes native JSON payload/manifest artifacts with tamper detection. A calibrated probability still has `decision_authority: evidence_only` until the separate decision stage.
 
 ## Assignment
 
-Assignment declares solver, constraint, utility transform, no-match policy, capacities, and deterministic tie-breaking.
+```yaml
+assignment:
+  solver: ortools_min_cost_flow
+  constraint: one_to_one
+  deterministic_tie_breaking: true
+  no_match:
+    enabled: true
+    utility: 0.0
+```
+
+The synthetic MVP supports sparse one-to-one assignment with a private no-match option for each source record. SciPy provides a small-problem oracle. Assignment selects a globally compatible real or no-match edge but cannot emit a relationship status.
 
 ## Decision policy
 
-The policy defines non-overlapping criteria for `confirmed`, `review_required`, `no_match`, and fallback `unresolved`.
+The policy contains non-overlapping regions for:
+
+```text
+confirmed
+review_required
+no_match
+unresolved
+```
+
+`no_match` requires a complete candidate search and an explicit no-match assignment with no plausible candidate. Candidate truncation, invalid calibration, critical data-quality failure, unsupported execution, or incomplete retrieval produces `unresolved`, not `no_match`.
+
+Decision thresholds fitted from the synthetic decision partition are labelled `synthetic_benchmark_only` and are not operational recommendations.
+
+## Validation
+
+The split method is `entity_household_connected_components` with five positive fractions:
+
+```text
+training
+validation
+calibration
+decision
+test
+```
+
+The fractions must sum to one. Entities and households cannot cross partitions. Hard negatives must be verified nonmatches. `candidate_recall_k` must be unique and ascending.
+
+The complete synthetic report includes candidate retrieval, pair discrimination, precision–recall points, calibration, ranking, assignment, decision, missingness-pattern, candidate-set-size, and versioned synthetic regression diagnostics.
 
 ## Outputs
 
-`permitted_fields` is an allow-list. Variable values require separate permission. Restricted output directories must resolve under approved local roots.
+`permitted_fields` is a strict allow-list. The supported relationship/review fields are enumerated in the generated JSON Schema, including `review_reason_codes`. Canonical variable values require separate permission in `permitted_variable_values`.
+
+Restricted directories must resolve under approved output roots. Unrestricted manifests contain only aggregate counts, versions, methods, statuses, and digests.
 
 ## Cross-field rejection cases
 
-Validation fails for duplicate IDs, unknown references, type-incompatible operations, unsafe paths/URIs, invalid dataset counts for linkage mode, supervised models without eligible labels, overlapping partitions, invalid threshold ordering, unbounded Cartesian candidates, candidate-budget violations, and reserved internal source columns.
+Validation fails for, among other conditions:
+
+- duplicate dataset, variable, rule, comparison, or model IDs;
+- unknown references;
+- type-incompatible transforms, predicates, comparisons, or levels;
+- unsafe paths and URIs;
+- invalid dataset counts or roles for linkage mode;
+- supervised models without eligible labels;
+- calibration of a disabled/unknown source model;
+- assignment/project constraint disagreement;
+- overlapping decision probability regions;
+- invalid protected split fractions;
+- candidate or training budgets above the runtime limit;
+- output fields or variable values outside their allow-lists;
+- reserved internal source columns.
+
+The loader also rejects YAML merge keys, excessive aliases, excessive nesting or node counts, duplicate keys, non-string mapping keys, non-finite JSON numbers, recursive values, and non-JSON-compatible YAML scalars.
 
 ## Machine-readable schema
 
-The loader also rejects YAML merge keys, excessive aliases, excessive nesting or node counts, non-string mapping keys, non-finite JSON numbers, and non-JSON-compatible YAML scalar types.
-
-The normative machine-readable contract is committed at:
+The normative machine-readable contract is:
 
 ```text
 schemas/linkage-config.schema.json
 ```
 
-It is generated directly from `LinkageConfig` by `scripts/generate_config_schema.py`. The test suite compares the committed schema with the live Pydantic schema.
+It is generated directly from `LinkageConfig` by `scripts/generate_config_schema.py`. Tests require byte-equivalent semantic parity between the committed schema and the live Pydantic model.
 
 ## Compilation result
 
-A valid configuration compiles to an immutable `ExecutionPlan` containing configuration and registry digests, aggregate counts, the random seed, hidden resolved dataset paths, the hidden restricted output directory, and the path policy. `repr()` and `safe_summary()` do not expose paths, source columns, project IDs, or dataset IDs.
+A valid configuration compiles to an immutable `ExecutionPlan` containing configuration and registry digests, aggregate counts, the seed, hidden resolved dataset paths, the hidden restricted-output directory, and the path policy. Public representations do not expose paths, source columns, project IDs, dataset IDs, or submitted values.
 
-## Host path envelope
+## Local template
 
-Configured roots do not authorize themselves. They must also fit inside roots supplied by the host application. The CLI's M1 default envelope is:
+Copy the generic worksheet only inside the authorised local environment:
 
 ```text
-input:  data/, private/
-output: private/, artifacts/
+configs/templates/local_project.template.yaml
 ```
 
-A later deployment may pass different host-approved roots explicitly through trusted Python startup code. Project YAML cannot widen that envelope.
+The completed copy belongs under `private/config/` and must never be committed.

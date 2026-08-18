@@ -5,9 +5,9 @@ from typing import Any
 import pytest
 import yaml
 
-from mapel_linkage.configuration import load_config_text
+from mapel_linkage.configuration import load_config, load_config_text
 from mapel_linkage.governance.errors import SafeError, SafeErrorCode
-from tests.helpers import valid_payload, yaml_text
+from tests.helpers import ROOT, valid_payload, yaml_text
 
 
 def test_unknown_key_is_rejected_without_exposing_value() -> None:
@@ -176,9 +176,17 @@ def test_supervised_label_requirement_cannot_be_disabled() -> None:
 
 def test_calibration_cannot_reference_a_disabled_pair_model() -> None:
     payload = valid_payload()
+    payload["calibration"]["source_model"] = "xgb_pair_classifier"
     payload["models"]["boosted_tree"]["enabled"] = False
     with pytest.raises(SafeError):
         load_config_text(yaml_text(payload), source_format="yaml")
+
+
+def test_calibration_may_reference_validation_selected_champion() -> None:
+    payload = valid_payload()
+    payload["calibration"]["source_model"] = "selected_champion"
+    loaded = load_config_text(yaml_text(payload), source_format="yaml")
+    assert loaded.config.calibration.source_model == "selected_champion"
 
 
 def test_synthetic_entity_truth_must_cover_every_dataset() -> None:
@@ -251,8 +259,29 @@ def test_boosted_tree_training_budget_cannot_exceed_runtime_pair_budget() -> Non
         load_config_text(yaml_text(payload), source_format="yaml")
 
 
+def test_ranking_training_budget_cannot_exceed_runtime_pair_budget() -> None:
+    payload = valid_payload()
+    payload["models"]["ranking"]["maximum_training_pairs"] = 100001
+    with pytest.raises(SafeError):
+        load_config_text(yaml_text(payload), source_format="yaml")
+
+
+def test_selected_champion_requires_two_enabled_pair_models() -> None:
+    payload = valid_payload()
+    payload["models"]["boosted_tree"]["enabled"] = False
+    with pytest.raises(SafeError):
+        load_config_text(yaml_text(payload), source_format="yaml")
+
+
 def test_boosted_tree_single_thread_safeguard_cannot_be_disabled() -> None:
     payload = valid_payload()
     payload["models"]["boosted_tree"]["n_jobs"] = 2
     with pytest.raises(SafeError):
         load_config_text(yaml_text(payload), source_format="yaml")
+
+
+def test_generic_local_template_matches_live_schema() -> None:
+    loaded = load_config(ROOT / "configs" / "templates" / "local_project.template.yaml")
+    assert loaded.config.project.linkage_mode == "link_only"
+    assert loaded.config.calibration.source_model == "selected_champion"
+    assert loaded.config.model_selection.test_partition_may_select_model is False

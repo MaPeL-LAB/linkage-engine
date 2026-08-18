@@ -1,6 +1,6 @@
 # Documentation Index
 
-The repository contains the M0 research baseline, merged M1–M2D implementation increments, and the active M2E verified-label XGBoost challenger candidate.
+The repository contains the M0 research baseline, merged M1 through M2E implementation, and the complete-M2 synthetic-MVP implementation candidate.
 
 This directory is the normative documentation set for Linkage Engine.
 
@@ -66,7 +66,7 @@ Research documents explain the evidence and trade-offs. Accepted ADRs define the
 - [`implementation/M1_SAFE_FOUNDATION_REPORT.md`](implementation/M1_SAFE_FOUNDATION_REPORT.md) — delivered configuration, governance, schema, synthetic generation, tests, limitations, and next gate.
 - [`../schemas/linkage-config.schema.json`](../schemas/linkage-config.schema.json) — normative generated configuration schema.
 
-## Active implementation increments
+## Implementation reports
 
 - [`implementation/M2A_LOCAL_DATA_PLANE_AND_CANDIDATE_GENERATION.md`](implementation/M2A_LOCAL_DATA_PLANE_AND_CANDIDATE_GENERATION.md)
 - [`implementation/M2B_CONFIGURED_INGESTION_AND_PREPROCESSING.md`](implementation/M2B_CONFIGURED_INGESTION_AND_PREPROCESSING.md)
@@ -74,3 +74,14 @@ Research documents explain the evidence and trade-offs. Accepted ADRs define the
 
 - [`implementation/M2D_FELLEGI_SUNTER_BASELINE.md`](implementation/M2D_FELLEGI_SUNTER_BASELINE.md)
 - [`implementation/M2E_VERIFIED_LABEL_XGBOOST_CHALLENGER.md`](implementation/M2E_VERIFIED_LABEL_XGBOOST_CHALLENGER.md)
+
+- [`implementation/M2_COMPLETE_SYNTHETIC_MVP.md`](implementation/M2_COMPLETE_SYNTHETIC_MVP.md)
+
+## Local handoff
+
+- [`LOCAL_DEPLOYMENT_GUIDE.md`](LOCAL_DEPLOYMENT_GUIDE.md)
+- [`OPERATIONAL_VALIDATION_RUNBOOK.md`](OPERATIONAL_VALIDATION_RUNBOOK.md)
+- [`LOCAL_HANDOFF_CHECKLIST.md`](LOCAL_HANDOFF_CHECKLIST.md)
+- [`local_templates/SOURCE_MAPPING_WORKSHEET.md`](local_templates/SOURCE_MAPPING_WORKSHEET.md)
+- [`local_templates/LABEL_PROVENANCE_DECLARATION.md`](local_templates/LABEL_PROVENANCE_DECLARATION.md)
+- [`local_templates/OUTPUT_ALLOWLIST_WORKSHEET.md`](local_templates/OUTPUT_ALLOWLIST_WORKSHEET.md)

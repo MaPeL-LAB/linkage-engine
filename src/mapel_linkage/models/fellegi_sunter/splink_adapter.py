@@ -9,8 +9,13 @@ Splink is the designated production Fellegi-Sunter adapter target.
 from __future__ import annotations
 
 import hashlib
+import importlib
+import importlib.metadata
+import io
 import json
+import logging
 from collections.abc import Mapping, Sequence
+from contextlib import redirect_stderr, redirect_stdout
 from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import Any
@@ -40,6 +45,7 @@ from mapel_linkage.configuration.models import (
 )
 from mapel_linkage.domain.errors import FellegiSunterError
 from mapel_linkage.domain.sql_identifiers import quote_identifier
+from mapel_linkage.io import DuckDBStore
 from mapel_linkage.preprocessing import PreparedDataset
 
 
@@ -292,4 +298,176 @@ class SplinkSettingsPlanCompiler:
             return f"ABS(date_diff('day', {left_value}, {right_value})) <= {predicate.maximum_days}"
         raise FellegiSunterError(
             "ML-FS-030", "An unsupported Splink blocking predicate was rejected."
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class SplinkCandidateParityReport:
+    """Aggregate-only evidence that Splink and engine blocking produce the same pairs."""
+
+    expected_pair_count: int
+    observed_pair_count: int
+    pair_set_digest: str
+    settings_digest: str
+    splink_version: str
+    parity: bool = True
+    decision_authority: str = "none"
+    relationship_authority: str = "none"
+    merge_authority: str = "none"
+
+    def safe_summary(self) -> dict[str, bool | int | str]:
+        return {
+            "expected_pair_count": self.expected_pair_count,
+            "observed_pair_count": self.observed_pair_count,
+            "pair_set_digest": self.pair_set_digest,
+            "settings_digest": self.settings_digest,
+            "splink_version": self.splink_version,
+            "parity": self.parity,
+            "decision_authority": self.decision_authority,
+            "relationship_authority": self.relationship_authority,
+            "merge_authority": self.merge_authority,
+        }
+
+
+def _pair_digest(left_record_key: str, right_record_key: str) -> str:
+    return hashlib.sha256(f"{left_record_key}\x1f{right_record_key}".encode()).hexdigest()
+
+
+def _prepared_records(
+    store: DuckDBStore,
+    dataset: PreparedDataset,
+) -> list[dict[str, object]]:
+    columns = (
+        "__ml_record_key",
+        "__ml_dataset_id",
+        *tuple(sorted(set(dataset.variable_columns.values()))),
+    )
+    select_list = ", ".join(quote_identifier(column) for column in columns)
+    rows = store._fetch_model_rows(
+        f"SELECT {select_list} FROM {quote_identifier(dataset.table.table_name)} "
+        f"ORDER BY {quote_identifier('__ml_record_key')}"
+    )
+    return [dict(zip(columns, row, strict=True)) for row in rows]
+
+
+class SplinkCandidateParityChecker:
+    """Run Splink deterministic blocking internally and compare only pair-key sets."""
+
+    @staticmethod
+    def check(
+        *,
+        store: DuckDBStore,
+        left: PreparedDataset,
+        right: PreparedDataset,
+        settings_plan: SplinkSettingsPlan,
+        expected_pairs: Sequence[tuple[str, str]],
+    ) -> SplinkCandidateParityReport:
+        expected = frozenset(expected_pairs)
+        if not expected:
+            raise FellegiSunterError(
+                "ML-FS-031", "Splink candidate parity requires a non-empty bounded pair set."
+            )
+        if len(expected) != len(expected_pairs) or any(
+            not left_key or not right_key for left_key, right_key in expected_pairs
+        ):
+            raise FellegiSunterError(
+                "ML-FS-038", "Splink candidate parity requires unique valid expected pairs."
+            )
+        try:
+            splink = importlib.import_module("splink")
+            linker_type = splink.Linker
+            settings_type = splink.SettingsCreator
+            duckdb_api_type = splink.DuckDBAPI
+        except (ImportError, AttributeError):
+            raise FellegiSunterError(
+                "ML-FS-032", "The optional Splink runtime is unavailable."
+            ) from None
+
+        raw_rules = settings_plan.settings.get("blocking_rules_to_generate_predictions")
+        if not isinstance(raw_rules, Sequence) or isinstance(raw_rules, (str, bytes)):
+            raise FellegiSunterError(
+                "ML-FS-033", "The package-owned Splink blocking plan is invalid."
+            )
+        rules = tuple(str(rule) for rule in raw_rules)
+        if not rules:
+            raise FellegiSunterError(
+                "ML-FS-034", "Splink candidate parity rejects an unblocked Cartesian join."
+            )
+
+        settings = settings_type(
+            link_type="link_only",
+            blocking_rules_to_generate_predictions=list(rules),
+            unique_id_column_name="__ml_record_key",
+            retain_matching_columns=False,
+            retain_intermediate_calculation_columns=False,
+        )
+        logger = logging.getLogger("splink")
+        previous_level = logger.level
+        previous_disable = logging.root.manager.disable
+        try:
+            logger.setLevel(logging.CRITICAL)
+            logging.disable(logging.CRITICAL)
+            with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+                linker = linker_type(
+                    [
+                        _prepared_records(store, left),
+                        _prepared_records(store, right),
+                    ],
+                    settings,
+                    db_api=duckdb_api_type(),
+                    input_table_aliases=[left.dataset_id, right.dataset_id],
+                )
+                records = linker.inference.deterministic_link().as_record_dict()
+        except Exception:
+            raise FellegiSunterError(
+                "ML-FS-035", "Splink candidate parity could not be evaluated safely."
+            ) from None
+        finally:
+            logging.disable(previous_disable)
+            logger.setLevel(previous_level)
+
+        if not isinstance(records, list):
+            raise FellegiSunterError(
+                "ML-FS-036", "Splink candidate parity returned an invalid result."
+            )
+        observed_pairs: set[tuple[str, str]] = set()
+        for record in records:
+            if not isinstance(record, Mapping):
+                raise FellegiSunterError(
+                    "ML-FS-036", "Splink candidate parity returned an invalid result."
+                )
+            try:
+                left_key = record["__ml_record_key_l"]
+                right_key = record["__ml_record_key_r"]
+            except KeyError:
+                raise FellegiSunterError(
+                    "ML-FS-036", "Splink candidate parity returned an invalid result."
+                ) from None
+            if (
+                not isinstance(left_key, str)
+                or not isinstance(right_key, str)
+                or not left_key
+                or not right_key
+                or (left_key, right_key) in observed_pairs
+            ):
+                raise FellegiSunterError(
+                    "ML-FS-036", "Splink candidate parity returned an invalid result."
+                )
+            observed_pairs.add((left_key, right_key))
+        observed = frozenset(observed_pairs)
+        if observed != expected:
+            raise FellegiSunterError(
+                "ML-FS-037", "DuckDB and Splink candidate pair sets are inconsistent."
+            )
+        pair_set_digest = _digest(sorted(_pair_digest(*pair) for pair in observed))
+        try:
+            runtime_version = importlib.metadata.version("splink")
+        except importlib.metadata.PackageNotFoundError:
+            runtime_version = "unavailable"
+        return SplinkCandidateParityReport(
+            expected_pair_count=len(expected),
+            observed_pair_count=len(observed),
+            pair_set_digest=pair_set_digest,
+            settings_digest=settings_plan.settings_digest,
+            splink_version=runtime_version,
         )

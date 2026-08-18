@@ -1,54 +1,47 @@
 # Roadmap
 
-## Now: repository baseline
+## Completed foundations
 
-- complete documentation and citation library;
-- establish package shell and publication guard;
-- verify privacy and naming boundaries;
-- review and accept/revise ADRs;
-- approve licence decision separately.
+- **M0:** research, repository architecture, ADRs, governance, bibliography, package shell, and publication guard;
+- **M1:** strict configuration compilation, path and logging controls, manifests, generated schema, and deterministic synthetic generation;
+- **M2A:** local DuckDB data plane and bounded candidate retrieval;
+- **M2B:** configuration-driven local ingestion and canonical preprocessing;
+- **M2C:** comparison-feature construction and deterministic-anchor evidence;
+- **M2D:** package-owned Fellegi–Sunter evidence baseline and Splink settings compiler;
+- **M2E:** verified-label provenance, protected partitions, hard-negative selection, and XGBoost pair classifier.
 
-## Next: M1 safe foundation
+## Current acceptance target: complete M2 synthetic MVP
 
-- strict Pydantic configuration and generated JSON Schema;
-- safe YAML/JSON loader;
-- immutable registries and blocking AST;
-- local path/DuckDB security policy;
-- typed aggregate logging and safe errors;
-- run and artifact manifests;
-- deterministic synthetic generator;
-- CLI skeleton for target commands.
+The complete two-source `link_only`, `one_to_one` synthetic slice adds:
 
-## Current implemented M2 increments
+- validation-only Fellegi–Sunter versus XGBoost champion selection;
+- calibration on a separate protected calibration partition;
+- sigmoid and isotonic calibrators with native JSON manifests and integrity checks;
+- XGBoost candidate ranking with ranking-only authority;
+- OR-Tools one-to-one assignment with a private explicit no-match edge;
+- an explicit decision layer producing `confirmed`, `review_required`, `unresolved`, or `no_match`;
+- a restricted local review queue;
+- candidate, pair, calibration, ranking, assignment, decision, and stratified evaluation;
+- functional synthetic workflow CLI commands and deterministic orchestration;
+- local bootstrap, environment-doctor, project-initialisation, and operational-validation handoff documentation.
 
-- M2A: local DuckDB data plane and bounded candidate generation;
-- M2B: configured local ingestion and canonical preprocessing;
-- M2C: comparison features and deterministic-anchor evidence;
-- M2D: Fellegi–Sunter evidence baseline;
-- M2E: verified-label provenance, protected partitions, hard negatives, and XGBoost pair-classifier challenger.
+M2 is complete only after the exact review head and the resulting `main` commit pass the Python 3.12 repository, typing, test, build, distribution, privacy, and synthetic end-to-end gates.
 
-## Then: complete M2 synthetic vertical slice
+## Next: M3 adjudication and label lifecycle
 
-- canonical normalization;
-- deterministic anchor evidence;
-- bounded DuckDB candidate generation;
-- Splink candidate parity and Fellegi–Sunter baseline;
-- comparison features;
-- complete independent validation of the XGBoost classifier and implement the ranker;
-- independent calibration;
-- OR-Tools one-to-one assignment with no-match;
-- relationship decision policy;
-- local synthetic review queue;
-- candidate/pair/ranking/calibration/assignment evaluation.
+- append-only adjudication decision import;
+- superseding corrections and protocol/version provenance;
+- double-review and disagreement handling where configured;
+- explicit label promotion eligibility;
+- active-learning or uncertainty-based review ordering;
+- locked-test protection during review and retraining.
 
-## Later
+## Later milestones
 
-- adjudication lifecycle and active learning;
-- dedupe and other assignment modes;
-- LightGBM champion–challenger;
-- optional feature-based neural matcher;
-- multi-source entity resolution;
-- PPRL research under a separate threat model;
-- performance and release hardening.
+- **M4:** `dedupe_only`, `link_and_dedupe`, many-to-one, one-to-many, and unconstrained modes;
+- **M5:** LightGBM challenger, broader champion–challenger policy, model cards, and optional stacking;
+- **M6:** optional feature-based PyTorch matcher under a deterministic and privacy-tested envelope;
+- **M7:** source-aware multi-source entity resolution, cannot-link constraints, and contradiction-safe graph decisions;
+- **M8:** compatibility matrix, performance benchmarks, security review, API hardening, release checklist, licence decision, and separately approved publication.
 
-No roadmap milestone implies package publication or operational validation without explicit approval.
+Privacy-preserving record linkage remains a separate research stream requiring its own threat model. No roadmap milestone implies operational validation or package publication without explicit approval.

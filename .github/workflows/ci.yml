@@ -12,10 +12,13 @@ env:
   PYTHONHASHSEED: "0"
   MAPEL_TEST_DATA_POLICY: synthetic_only
   MAPEL_TEST_SEED: "20260816"
+  OMP_NUM_THREADS: "1"
+  MKL_NUM_THREADS: "1"
+  OPENBLAS_NUM_THREADS: "1"
 
 jobs:
   quality:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
@@ -27,7 +30,7 @@ jobs:
       - name: Install
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -e ".[dev]"
+          python -m pip install -c constraints/ci-py312.txt -e ".[core,dev]"
       - name: Verify repository
         run: python scripts/verify_repository.py
       - name: Ruff format
@@ -38,6 +41,23 @@ jobs:
         run: mypy src tests
       - name: Pre-commit
         run: pre-commit run --all-files
+      - name: Prepare third-party dependency audit
+        run: |
+          # The unpublished editable project cannot be resolved by the PyPI
+          # advisory service in strict mode. Remove only its distribution
+          # metadata while retaining every installed third-party dependency.
+          python -m pip uninstall --yes mapel-linkage-engine
+      - name: Dependency audit
+        run: pip-audit --local --strict --progress-spinner off
+      - name: Generate privacy-safe SBOM
+        run: |
+          pip-audit --local --strict --progress-spinner off \
+            --format cyclonedx-json \
+            --output "${RUNNER_TEMP}/mapel-linkage-sbom.cdx.json"
+          test -s "${RUNNER_TEMP}/mapel-linkage-sbom.cdx.json"
+      - name: Restore editable project
+        if: always()
+        run: python -m pip install --no-deps --editable .
       - name: Tests
         run: pytest
       - name: Build

@@ -1,83 +1,85 @@
 # Initial Synthetic Vertical Slice Checklist
 
-The checked items below are implemented through the stacked `0.1.0.dev4` M2C development increment. The complete vertical slice still requires scoring, calibration, assignment, decisions, and evaluation.
+The checked items below are implemented in the `0.2.0.dev0` complete-M2 candidate. Items marked **acceptance pending** require the exact review head and post-merge Python 3.12 workflows to pass before M2 is declared accepted.
 
 ## Repository foundation
 
 - [x] Python 3.12 package uses `src/mapel_linkage`.
-- [ ] Current M1 branch builds wheel and source distribution in Python 3.12 CI.
 - [x] CLI entry point is `mapel-linkage`.
-- [x] private, data, and artifact paths are ignored.
-- [x] package publication remains blocked.
-- [ ] Ruff, mypy, pytest, pre-commit, repository verification, and build all pass on the current remote branch.
+- [x] `private/`, `data/`, and `artifacts/` are Git-ignored and excluded from distributions.
+- [x] package publication remains blocked by `Private :: Do Not Upload`.
+- [x] wheel and source-distribution inspection is part of CI.
+- [ ] **Acceptance pending:** Ruff, strict mypy, pre-commit, all tests, repository verification, and builds pass on the exact review and merged heads.
 
 ## Configuration boundary
 
-- [x] YAML and JSON load through strict Pydantic models.
+- [x] YAML and JSON load through strict immutable Pydantic models.
 - [x] unknown and duplicate keys fail.
-- [x] raw SQL fields fail.
-- [x] Python, module, callable, and import-path fields fail.
-- [x] all configurable operations use immutable allow-list registries.
+- [x] raw SQL fields and arbitrary executable configuration fail.
+- [x] Python/module/callable/import-path fields fail.
+- [x] configurable operations resolve only through immutable allow-list registries.
 - [x] dataset-specific columns occur only in project configuration and IO mapping contracts.
 - [x] configured paths resolve inside project and host-approved roots.
 - [x] remote URIs, UNC paths, project-root widening, and out-of-root paths fail.
-- [x] output fields default to deny.
-- [x] restricted variable values require separate permission.
+- [x] output fields default to deny; restricted variable values require separate permission.
 - [x] parser complexity, aliases, merge keys, scalar types, and non-finite numbers are bounded or rejected.
 - [x] validation errors hide values and arbitrary mapping keys.
-- [x] the committed JSON Schema matches the Pydantic model.
+- [x] the generated JSON Schema is tested for parity with the Pydantic model.
 
-## Synthetic input
+## Synthetic input and protected truth
 
-- [x] deterministic seed is recorded.
-- [x] generator produces source-specific corruption.
+- [x] deterministic generator version and seed are recorded.
+- [x] source-specific corruption, missingness, duplicates, no-match records, competitors, and assignment conflicts are generated.
 - [x] truth is held separately from linkage inputs.
-- [x] no truth field is exposed to linkage model records.
-- [x] cases include missingness, duplicates, no-match records, competing candidates, and assignment conflicts.
+- [x] no truth field is exposed to preprocessing, retrieval, comparison, or model inputs.
 - [x] row-bearing representations hide values.
 - [x] local synthetic writes translate filesystem failures without exposing paths.
+- [x] entity–household connected components are assigned to protected training, validation, calibration, decision, and test partitions.
+- [x] pair, entity, and household overlap across protected label partitions fails.
 
 ## Linkage pipeline
 
 - [x] preprocessing operates on canonical variables.
-- [x] deterministic anchors are evidence-only by default.
-- [x] candidate generation has a hard pair budget.
-- [x] candidate rule provenance is recorded.
-- [x] comparison features contain configured values, levels, and missingness indicators.
-- [ ] DuckDB and supported Splink blocking paths have parity tests.
-- [ ] Splink Fellegi–Sunter baseline runs.
-- [ ] XGBoost pair classifier runs on comparison features.
-- [ ] candidate ranker emits top-K only.
-- [ ] probabilities are calibrated on disjoint data.
-- [ ] global one-to-one assignment includes no-match.
-- [ ] decision policy emits exactly one supported status.
-- [ ] no model merges records.
+- [x] deterministic anchors are evidence-only and ineligible as training truth by default.
+- [x] candidate generation has a hard pair budget and records retrieval-rule provenance.
+- [x] comparison features contain configured levels, numeric evidence, and explicit missingness indicators without copying source values.
+- [x] package-owned Fellegi–Sunter scoring runs over comparison levels.
+- [x] canonical configuration compiles to a Splink 4 settings plan; runtime blocking parity is an acceptance test for the supported subset.
+- [x] the XGBoost pair classifier trains only on eligible verified training labels.
+- [x] validation-only champion selection excludes calibration, decision, and test partitions.
+- [x] sigmoid and isotonic calibration fit only on a protected independent calibration partition.
+- [x] the XGBoost candidate ranker emits score/rank/top-K evidence only.
+- [x] global one-to-one assignment includes a private explicit no-match edge.
+- [x] the decision policy emits exactly one of `confirmed`, `review_required`, `unresolved`, or `no_match`.
+- [x] incomplete/truncated search and invalid calibration force `unresolved`, not `no_match`.
+- [x] no stage exposes merge or master-record authority.
+- [x] uncertain cases produce a restricted allow-listed review queue.
 
 ## Validation
 
-- [ ] entity and household groups do not cross partitions.
-- [ ] hard negatives use eligible labels only.
-- [ ] candidate recall@K is reported.
-- [ ] sensitivity and PPV are reported.
-- [ ] false-link and missed-link rates are reported.
-- [ ] precision–recall curve is generated.
-- [ ] Brier score and reliability diagnostics are generated.
-- [ ] ranking and assignment accuracy are reported.
-- [ ] missingness-pattern metrics are reported.
-- [ ] candidate-set-size metrics are reported.
-- [ ] synthetic corruption regression metrics pass.
+- [x] hard negatives use eligible verified nonmatches only; unknown pairs remain unknown.
+- [x] candidate recall@K, zero-candidate rate, candidate-set distribution, Cartesian reduction, and rule contribution are reported.
+- [x] sensitivity, PPV, false-link rate, missed-link rate, average precision, ROC AUC, Brier score, and precision–recall points are reported.
+- [x] reliability bins, calibration slope/intercept, expected calibration error, and maximum calibration error are reported.
+- [x] ranking recall@K, top-1 rate, mean reciprocal rank, and true-match rank are reported.
+- [x] assignment accuracy, no-match accuracy, change from independent top-1, and capacity violations are reported.
+- [x] relationship-status counts and review burden are reported.
+- [x] missingness-pattern and candidate-set-size stratified pair performance is reported.
+- [x] configured synthetic decision-threshold evidence is isolated to the protected decision partition.
+- [x] a versioned conservative synthetic regression guard detects catastrophic mechanical regressions.
+- [ ] **Acceptance pending:** the complete Python 3.12 synthetic end-to-end run passes deterministically on the exact review and merged heads.
 
-## Privacy
+## Privacy and artifact integrity
 
-- [x] sentinel participant-like values never occur in configuration or CLI errors.
-- [x] arbitrary identifier-like mapping keys are removed from displayed validation locations.
-- [x] typed logging rejects unapproved record, identifier, and candidate-pair fields.
-- [x] safe log construction hides rejected keys and values.
-- [x] unrestricted manifests contain no row values, original identifiers, paths, or configuration payload.
-- [x] DuckDB data, candidate, preprocessing, comparison, and anchor errors are sanitized.
-- [x] CI tests generate synthetic inputs at runtime rather than reading committed row data.
-- [x] CI uploads no row-level artifacts.
+- [x] synthetic sentinel values, original identifiers, candidate pairs, paths, and review values are absent from unrestricted logs, errors, representations, and manifests.
+- [x] typed logging rejects unapproved row, identifier, and candidate-pair fields.
+- [x] unrestricted manifests contain only aggregate metadata, versions, counts, and digests.
+- [x] XGBoost pair, XGBoost ranking, and calibrator artifacts use native/package JSON rather than pickle or joblib.
+- [x] model, ranker, and calibrator artifact tampering is detected before use.
+- [x] restricted relationship and review exports obey the configured field allow-list.
+- [x] CI generates synthetic row-level inputs at runtime and uploads no row-level data artifacts.
+- [ ] **Acceptance pending:** built wheel and source distribution contain no restricted directories, row files, local configuration, databases, or model artifacts.
 
 ## Acceptance statement
 
-Passing M1 establishes the safe configuration and synthetic-test foundation only. Passing the future full checklist establishes a working synthetic software slice only. Neither is evidence that linkage models are validated for real data.
+Passing this checklist establishes a working two-source synthetic software slice only. It does not validate linkage accuracy, calibration, fairness, sensitivity, positive predictive value, false-link rates, missed-link rates, or operational fitness on real populations or systems.

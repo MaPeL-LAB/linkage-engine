@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mapel-linkage-engine"
-version = "0.1.0.dev6"
+version = "0.2.0.dev0"
 description = "Configuration-driven probabilistic record linkage and entity resolution engine."
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
@@ -37,7 +37,7 @@ dev = [
   "numpy>=2,<3",
   "pip-audit>=2,<3",
   "pre-commit>=4,<5",
-  "pytest>=8,<9",
+  "pytest>=9.0.3,<10",
   "pytest-cov>=6,<7",
   "ruff>=0.12,<1",
   "scikit-learn>=1,<2",
@@ -99,3 +99,4 @@ files = ["src", "tests"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra --strict-markers --strict-config"
+pythonpath = ["."]

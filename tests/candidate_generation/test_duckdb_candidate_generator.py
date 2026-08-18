@@ -140,3 +140,33 @@ def test_empty_blocking_rules_are_rejected() -> None:
             )
 
     assert exc_info.value.code == "ML-CANDIDATE-001"
+
+
+def test_date_window_blocking_uses_the_typed_dsl() -> None:
+    from mapel_linkage.candidate_generation import DateWindow
+
+    with DuckDBStore() as store:
+        left = store.create_table_from_rows(
+            "date_left",
+            (
+                ColumnSpec("__ml_record_key", "VARCHAR"),
+                ColumnSpec("v_date", "DATE"),
+            ),
+            (("left-1", "2000-01-01"),),
+        )
+        right = store.create_table_from_rows(
+            "date_right",
+            (
+                ColumnSpec("__ml_record_key", "VARCHAR"),
+                ColumnSpec("v_date", "DATE"),
+            ),
+            (("right-1", "2000-01-03"), ("right-2", "2000-02-01")),
+        )
+        result = DuckDBCandidateGenerator(store).generate(
+            left=left,
+            right=right,
+            variable_columns={"date": "v_date"},
+            rules=(BlockingRule("date_window", DateWindow("date", 3)),),
+            maximum_candidate_pairs=10,
+        )
+    assert result.candidate_pair_count == 1

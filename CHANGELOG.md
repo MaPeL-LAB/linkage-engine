@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+### Added — complete M2 synthetic vertical slice
+
+- Validation-only Fellegi–Sunter versus XGBoost champion selection.
+- Independent monotone sigmoid and isotonic probability calibration with native JSON manifests and integrity checks.
+- XGBoost candidate-ranking model with ranking-only authority, top-K outputs, and native JSON artifact verification.
+- Deterministic one-to-one assignment with OR-Tools minimum-cost flow, a SciPy reference solver, and a private explicit no-match edge.
+- Explicit `confirmed`, `review_required`, `unresolved`, and `no_match` relationship-decision policy.
+- Restricted allow-listed review queue with aggregate-only unrestricted manifest.
+- Candidate, pair, calibration, ranking, assignment, decision, threshold, and stratified synthetic evaluation.
+- Entity–household connected-component splitting across training, validation, calibration, decision, and test partitions.
+- Functional synthetic workflow CLI commands, deterministic orchestration, environment doctor, local workspace initialiser, and bootstrap scripts.
+- Complete synthetic end-to-end test, conservative versioned mechanical regression guard, local deployment guide, operational validation runbook, and handoff checklist.
+
+
 ### Added — M2E verified-label XGBoost challenger
 
 - Verified synthetic, adjudicated, and gold-standard label-source contracts.
@@ -75,6 +89,10 @@
 - M1 strict configuration schema, bounded safe loaders, compiler, allow-list registries, path policy, safe logging/errors, run manifests, generated JSON Schema, and deterministic synthetic generator.
 - Repository manifest generation and integrity verification.
 
-### Not yet implemented after M2E
+### Not yet implemented after the complete M2 synthetic slice
 
-- Independent probability calibration, champion–challenger selection, learned ranking, assignment, relationship decisions, adjudication processing, and real-world validation.
+- Append-only adjudication import and label-promotion lifecycle.
+- Dedupe, combined linkage/deduplication, additional assignment constraints, and multi-source resolution.
+- LightGBM and optional neural challengers.
+- Operational performance, calibration, fairness, and real-data validation.
+- Licence selection and package publication.

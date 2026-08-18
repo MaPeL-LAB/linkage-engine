@@ -7,6 +7,7 @@ import json
 import math
 from collections.abc import Sequence
 from dataclasses import dataclass, field
+from decimal import Decimal
 
 import numpy as np
 from numpy.typing import NDArray
@@ -56,7 +57,7 @@ def _as_float(value: object) -> float:
         return math.nan
     if isinstance(value, bool):
         return float(value)
-    if isinstance(value, (int, float)):
+    if isinstance(value, (int, float, Decimal)):
         converted = float(value)
         if math.isfinite(converted):
             return converted

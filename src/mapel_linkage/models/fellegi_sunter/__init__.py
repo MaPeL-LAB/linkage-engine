@@ -10,6 +10,8 @@ from mapel_linkage.models.fellegi_sunter.reference import (
     RandomPairSampleResult,
 )
 from mapel_linkage.models.fellegi_sunter.splink_adapter import (
+    SplinkCandidateParityChecker,
+    SplinkCandidateParityReport,
     SplinkSettingsPlan,
     SplinkSettingsPlanCompiler,
 )
@@ -22,6 +24,8 @@ __all__ = [
     "FellegiSunterModelArtifact",
     "FellegiSunterScoreResult",
     "RandomPairSampleResult",
+    "SplinkCandidateParityChecker",
+    "SplinkCandidateParityReport",
     "SplinkSettingsPlan",
     "SplinkSettingsPlanCompiler",
 ]

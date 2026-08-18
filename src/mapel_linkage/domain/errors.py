@@ -60,3 +60,39 @@ class BoostedTreeError(LinkageRuntimeError):
 
 class BoostedTreeBudgetExceeded(BoostedTreeError):
     """Raised before fitting when a boosted-model pair budget is exceeded."""
+
+
+class ModelSelectionError(LinkageRuntimeError):
+    """Raised when champion-challenger selection violates its trust boundary."""
+
+
+class CalibrationError(LinkageRuntimeError):
+    """Raised when probability calibration cannot complete safely."""
+
+
+class CalibrationArtifactError(CalibrationError):
+    """Raised when a calibrator artifact fails integrity or path checks."""
+
+
+class RankingError(LinkageRuntimeError):
+    """Raised when candidate-ranking training or scoring cannot complete safely."""
+
+
+class AssignmentError(LinkageRuntimeError):
+    """Raised when constrained assignment cannot complete safely."""
+
+
+class DecisionPolicyError(LinkageRuntimeError):
+    """Raised when relationship decision evidence violates its contract."""
+
+
+class AdjudicationError(LinkageRuntimeError):
+    """Raised when a restricted review artifact cannot be created safely."""
+
+
+class ValidationReportError(LinkageRuntimeError):
+    """Raised when aggregate validation reporting cannot complete safely."""
+
+
+class PipelineError(LinkageRuntimeError):
+    """Raised when a pipeline stage cannot complete safely."""

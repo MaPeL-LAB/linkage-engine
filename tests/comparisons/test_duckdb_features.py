@@ -223,6 +223,34 @@ def test_comparison_features_materialise_metrics_levels_and_missingness() -> Non
     assert "right-1" not in repr(result)
 
 
+def test_same_schema_candidate_batches_do_not_overwrite_feature_tables() -> None:
+    comparisons = _comparison_configs()
+    with DuckDBStore() as store:
+        left, right = _prepared_datasets(store)
+        first_candidates = _candidate_table(store)
+        first = DuckDBComparisonFeatureBuilder(store).build(
+            candidates=first_candidates,
+            left=left,
+            right=right,
+            comparisons=comparisons,
+        )
+        second_candidates = store.create_table_from_rows(
+            "comparison_candidates_second",
+            _CANDIDATE_COLUMNS,
+            (("left-1", "right-1", "rule_a", 1),),
+        )
+        second = DuckDBComparisonFeatureBuilder(store).build(
+            candidates=second_candidates,
+            left=left,
+            right=right,
+            comparisons=comparisons,
+        )
+
+        assert first.table.table_name != second.table.table_name
+        assert store.table_ref(first.table.table_name).row_count == 4
+        assert store.table_ref(second.table.table_name).row_count == 1
+
+
 def test_missing_comparison_without_missing_level_is_ignored() -> None:
     comparison = ComparisonConfig.model_validate(
         {
