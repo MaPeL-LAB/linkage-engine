@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import hashlib
+import importlib
 import json
+import types
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Annotated, Any, ClassVar, Final, Literal
@@ -27,9 +29,11 @@ from mapel_linkage.models.boosted.training import BoostedFeatureMatrix, BoostedL
 from mapel_linkage.models.boosted.xgboost_classifier import BoostedTreeScoreResult
 from mapel_linkage.validation import PairValidationReport, evaluate_binary_scores
 
+_torch: types.ModuleType | None
+_nn: types.ModuleType | None
 try:
-    import torch as _torch  # type: ignore[import-not-found]
-    import torch.nn as _nn  # type: ignore[import-not-found]
+    _torch = importlib.import_module("torch")
+    _nn = importlib.import_module("torch.nn")
 except ModuleNotFoundError:  # pragma: no cover - optional dependency boundary
     _torch = None
     _nn = None

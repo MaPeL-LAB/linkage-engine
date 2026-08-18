@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import hashlib
+import importlib
 import json
+import types
 from typing import Any
 
 import numpy as np
@@ -23,9 +25,10 @@ from mapel_linkage.models.ranking.contracts import (
     ranking_artifact_digest,
 )
 
+_lightgbm: types.ModuleType | None
 try:
-    import lightgbm as _lightgbm  # type: ignore[import-not-found]
-except ImportError:  # pragma: no cover - optional dependency boundary
+    _lightgbm = importlib.import_module("lightgbm")
+except ModuleNotFoundError:  # pragma: no cover - optional dependency boundary
     _lightgbm = None
 
 

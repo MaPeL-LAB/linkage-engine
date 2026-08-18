@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import hashlib
+import importlib
 import json
+import types
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Annotated, Any, ClassVar, Final, Literal
@@ -27,8 +29,9 @@ from mapel_linkage.models.boosted.training import BoostedFeatureMatrix, BoostedL
 from mapel_linkage.models.boosted.xgboost_classifier import BoostedTreeScoreResult
 from mapel_linkage.validation import PairValidationReport, evaluate_binary_scores
 
+_lightgbm: types.ModuleType | None
 try:
-    import lightgbm as _lightgbm  # type: ignore[import-not-found]
+    _lightgbm = importlib.import_module("lightgbm")
 except ModuleNotFoundError:  # pragma: no cover - exercised by optional-dependency tests.
     _lightgbm = None
 

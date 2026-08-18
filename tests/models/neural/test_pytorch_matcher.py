@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import importlib
 import json
+import types
 from pathlib import Path
 from unittest import mock
 
@@ -25,9 +27,10 @@ from tests.models.boosted.helpers import (
     validation_rows,
 )
 
+_torch_installed: types.ModuleType | None
 try:
-    import torch as _torch_installed  # type: ignore[import-not-found]
-except ImportError:
+    _torch_installed = importlib.import_module("torch")
+except ModuleNotFoundError:
     _torch_installed = None
 
 _requires_torch = pytest.mark.skipif(
