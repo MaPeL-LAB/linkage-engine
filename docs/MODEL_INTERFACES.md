@@ -148,3 +148,53 @@ returns aggregate diagnostics. Its fixed threshold is diagnostic only.
 
 The interface never returns a relationship status and cannot invoke assignment,
 calibration, or record merging.
+
+
+## Complete M2 calibration, ranking, assignment, and decision contracts
+
+### ChampionSelection
+
+Champion selection consumes aggregate validation evidence for at least two model candidates. All candidates must share one validation label-authority digest, partition-manifest digest, and pair count. Selection uses the configured primary metric, a deterministic secondary metric, and stable model identity. The artifact fixes:
+
+```text
+test_partition_used = false
+calibration_partition_used = false
+decision_authority = evidence_only
+```
+
+### PairScoreBatch and CalibratorArtifact
+
+A protected score batch aligns private surrogate pairs, pair digests, base-model scores, verified binary labels, source-model identity, feature schema, label authority, and partition manifest. A calibrator may fit only on the calibration partition and only after champion selection.
+
+Sigmoid and isotonic calibrators persist package-defined JSON payloads plus manifests containing source-model, selection, validation-label, calibration-label, partition, dependency-version, and integrity digests. Calibrated scores remain evidence only and have no threshold or assignment authority.
+
+### RankingMatrix and RankingScoreBatch
+
+The ranking adapter groups candidates by one query-side surrogate. Training queries must contain at least two candidates and, by default, verified positive and negative relevance. Outputs contain score, rank, top-K membership, model identity, and artifact digests. Their fixed authorities are:
+
+```text
+decision_authority = ranking_only
+relationship_authority = none
+merge_authority = none
+```
+
+### AssignmentEdgeBatch and AssignmentResult
+
+The one-to-one assignment solver receives calibrated candidate edges plus one private no-match option per required source record. It produces selected real/no-match edges, objective and capacity diagnostics, and deterministic solver provenance. Assignment has global selection authority but no relationship-classification or merge authority.
+
+### RelationshipDecision
+
+The explicit policy combines assignment, calibrated probability, margin, rank, retrieval completeness, truncation, calibration state, data quality, model disagreement, and anchor conflict. It emits exactly one status:
+
+```text
+confirmed
+review_required
+unresolved
+no_match
+```
+
+Incomplete retrieval, truncation, invalid calibration, or insufficient data quality cannot produce `no_match`; they produce `unresolved`. No public interface contains `merge()` or master-record construction.
+
+### SyntheticVerticalSliceRunner
+
+The orchestrator calls existing package-owned stages in order and writes native model/calibrator/ranker artifacts, restricted relationship and review files, aggregate evaluation, and a row-free run manifest. Stage commands and `run` call the same orchestrator rather than maintaining separate implementations.

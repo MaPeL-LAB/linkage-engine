@@ -1,0 +1,16 @@
+{
+  "schema_version": "0.1",
+  "benchmark_id": "synthetic_mvp_v1",
+  "minimum_candidate_recall": 0.5,
+  "minimum_assignment_accuracy": 0.3,
+  "minimum_test_pair_count": 10,
+  "maximum_constraint_violation_count": 0,
+  "required_relationship_statuses": [
+    "confirmed",
+    "review_required",
+    "unresolved",
+    "no_match"
+  ],
+  "authority": "mechanical_regression_guard_only",
+  "real_data_validation_status": "not_established"
+}

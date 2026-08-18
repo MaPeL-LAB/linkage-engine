@@ -416,6 +416,12 @@ class RankingModelConfig(ConfigNode):
     query_side: Literal["source", "target"]
     top_k: Annotated[PositiveInt, Field(le=1000)]
     require_verified_labels: Literal[True] = True
+    n_estimators: Annotated[PositiveInt, Field(le=5000)] = 200
+    max_depth: Annotated[PositiveInt, Field(le=32)] = 4
+    learning_rate: Annotated[StrictFloat, Field(gt=0.0, le=1.0)] = 0.05
+    maximum_training_pairs: Annotated[PositiveInt, Field(le=10_000_000)] = 1_000_000
+    n_jobs: Literal[1] = 1
+    deterministic_mode: Literal[True] = True
 
 
 class NeuralModelConfig(ConfigNode):
@@ -553,6 +559,7 @@ type OutputField = Literal[
     "assignment_constraint",
     "anchor_rule_ids",
     "candidate_rule_ids",
+    "review_reason_codes",
     "run_id",
     "configuration_digest",
     "feature_schema_digest",
@@ -616,6 +623,13 @@ class LinkageConfig(ConfigNode):
             and boosted.maximum_training_pairs > self.runtime.maximum_candidate_pairs
         ):
             raise ValueError("Boosted-tree training cannot exceed the runtime pair budget.")
+        ranking = self.models.ranking
+        if (
+            ranking is not None
+            and ranking.enabled
+            and ranking.maximum_training_pairs > self.runtime.maximum_candidate_pairs
+        ):
+            raise ValueError("Ranking training cannot exceed the runtime pair budget.")
         self._validate_outputs(set(variable_by_id))
         if self.assignment.constraint != self.project.assignment_constraint:
             raise ValueError("Project and assignment constraints must agree.")
@@ -783,8 +797,15 @@ class LinkageConfig(ConfigNode):
                 score_model_ids.add(model.model_id)
         if not score_model_ids:
             raise ValueError("At least one pair-scoring model must be enabled.")
-        if self.calibration.source_model not in score_model_ids:
-            raise ValueError("Calibration source_model must identify an enabled pair model.")
+        if self.calibration.source_model == "selected_champion" and len(score_model_ids) < 2:
+            raise ValueError("Champion selection requires at least two enabled pair models.")
+        if (
+            self.calibration.source_model != "selected_champion"
+            and self.calibration.source_model not in score_model_ids
+        ):
+            raise ValueError(
+                "Calibration source_model must identify an enabled pair model or selected_champion."
+            )
 
     def _validate_outputs(self, variable_ids: set[str]) -> None:
         if not set(self.outputs.permitted_variable_values).issubset(variable_ids):

@@ -11,6 +11,13 @@ from mapel_linkage.models.fellegi_sunter import (
     SplinkSettingsPlan,
     SplinkSettingsPlanCompiler,
 )
+from mapel_linkage.models.ranking import (
+    RankingMatrix,
+    RankingScoreBatch,
+    XGBoostCandidateRanker,
+    XGBoostRankingArtifact,
+    build_ranking_matrix,
+)
 
 __all__ = [
     "DuckDBFellegiSunterMatcher",
@@ -20,6 +27,11 @@ __all__ = [
     "FellegiSunterModelArtifact",
     "FellegiSunterScoreResult",
     "RandomPairSampleResult",
+    "RankingMatrix",
+    "RankingScoreBatch",
     "SplinkSettingsPlan",
     "SplinkSettingsPlanCompiler",
+    "XGBoostCandidateRanker",
+    "XGBoostRankingArtifact",
+    "build_ranking_matrix",
 ]

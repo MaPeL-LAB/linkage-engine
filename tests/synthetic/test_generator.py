@@ -112,3 +112,22 @@ def test_bundle_writer_translates_filesystem_error_without_path(tmp_path: Path) 
         write_synthetic_bundle(destination, bundle)
     assert caught.value.code == SafeErrorCode.SYNTHETIC_GENERATION
     assert str(destination) not in caught.value.render()
+
+
+def test_bundle_writer_preserves_existing_fixtures_when_staging_fails(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    existing = tmp_path / "source_a.jsonl"
+    existing.write_text("existing-synthetic-fixture\n", encoding="utf-8")
+    bundle = generate_synthetic_bundle(SyntheticGenerationConfig(entity_count=10))
+
+    def fail_replace(self: Path, target: Path) -> Path:
+        del self, target
+        raise OSError
+
+    monkeypatch.setattr(Path, "replace", fail_replace)
+    with pytest.raises(SafeError):
+        write_synthetic_bundle(tmp_path, bundle)
+
+    assert existing.read_text(encoding="utf-8") == "existing-synthetic-fixture\n"

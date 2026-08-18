@@ -1,0 +1,255 @@
+# Generic local-only worksheet. Copy under private/config/ and replace placeholders.
+# Do not commit the completed configuration or source-system details.
+schema_version: "0.1"
+
+project:
+  project_id: local_project_identifier
+  entity_type: generic_entity
+  linkage_mode: link_only
+  assignment_constraint: one_to_one
+  random_seed: 20260817
+
+runtime:
+  backend: duckdb
+  maximum_candidate_pairs: 1000000
+  deterministic_mode: true
+
+privacy:
+  allowed_input_roots: [data, private]
+  allowed_output_roots: [private, artifacts]
+  allow_remote_uris: false
+  allow_network_access: false
+  log_policy: aggregate_only
+  include_tracebacks: false
+
+# Replace paths and source-column names only inside the authorised local environment.
+datasets:
+  - id: source_dataset
+    role: source
+    path: data/raw/REPLACE_SOURCE_FILE_LOCALLY.parquet
+    format: parquet
+    record_id_column: REPLACE_SOURCE_RECORD_ID_LOCALLY
+  - id: target_dataset
+    role: target
+    path: data/raw/REPLACE_TARGET_FILE_LOCALLY.parquet
+    format: parquet
+    record_id_column: REPLACE_TARGET_RECORD_ID_LOCALLY
+
+variables:
+  - id: text_attribute
+    data_type: string
+    source_columns:
+      source_dataset: REPLACE_SOURCE_TEXT_COLUMN_LOCALLY
+      target_dataset: REPLACE_TARGET_TEXT_COLUMN_LOCALLY
+    normalisation:
+      - {kind: unicode_normalize, form: NFKC}
+      - {kind: casefold}
+      - {kind: strip}
+      - {kind: collapse_whitespace}
+    missingness:
+      blank_is_missing: true
+      comparison_policy: explicit_missing_level
+
+  - id: date_attribute
+    data_type: date
+    source_columns:
+      source_dataset: REPLACE_SOURCE_DATE_COLUMN_LOCALLY
+      target_dataset: REPLACE_TARGET_DATE_COLUMN_LOCALLY
+    normalisation:
+      - kind: parse_date
+        formats: ["%Y-%m-%d"]
+    missingness:
+      blank_is_missing: true
+      comparison_policy: explicit_missing_level
+
+  - id: group_attribute
+    data_type: categorical
+    source_columns:
+      source_dataset: REPLACE_SOURCE_GROUP_COLUMN_LOCALLY
+      target_dataset: REPLACE_TARGET_GROUP_COLUMN_LOCALLY
+    normalisation:
+      - {kind: casefold}
+      - {kind: strip}
+    missingness:
+      blank_is_missing: true
+      comparison_policy: explicit_missing_level
+
+deterministic_anchors:
+  - id: exact_text_date_evidence
+    predicate:
+      kind: all
+      terms:
+        - {kind: exact, variable: text_attribute}
+        - {kind: exact, variable: date_attribute}
+    require_unique_left: true
+    require_unique_right: true
+    action: evidence_only
+    allow_as_training_truth: false
+
+blocking:
+  rules:
+    - id: group_exact
+      predicate: {kind: exact, variable: group_attribute}
+    - id: date_text_prefix
+      predicate:
+        kind: all
+        terms:
+          - {kind: exact, variable: date_attribute}
+          - {kind: prefix_equal, variable: text_attribute, length: 1}
+
+comparisons:
+  - id: text_similarity
+    variable: text_attribute
+    function: {kind: jaro_winkler}
+    levels:
+      - {kind: missing}
+      - {kind: exact}
+      - {kind: threshold, minimum: 0.92}
+      - {kind: threshold, minimum: 0.85}
+      - {kind: else}
+  - id: date_difference
+    variable: date_attribute
+    function: {kind: date_difference, unit: day}
+    levels:
+      - {kind: missing}
+      - {kind: exact}
+      - {kind: maximum_difference, value: 2}
+      - {kind: maximum_difference, value: 31}
+      - {kind: else}
+  - id: group_agreement
+    variable: group_attribute
+    function: {kind: categorical}
+    levels:
+      - {kind: missing}
+      - {kind: exact}
+      - {kind: else}
+
+# Replace with an approved local verified source. Never promote an unverified crosswalk.
+labels:
+  source:
+    kind: verified_human_adjudication
+    path: private/labels/REPLACE_VERIFIED_ADJUDICATION_FILE_LOCALLY.jsonl
+    protocol_version: REPLACE_VERIFICATION_PROTOCOL_LOCALLY
+  permit_weak_labels_for_training: false
+  permit_unverified_crosswalk: false
+
+models:
+  fellegi_sunter:
+    enabled: true
+    implementation: splink_duckdb
+    model_id: fs_baseline
+    probability_two_random_records_match: 0.0001
+    u_max_pairs: 1000000
+    em_max_iterations: 25
+    em_convergence: 0.0001
+    probability_smoothing: 0.5
+    estimate_u_by_random_sampling: true
+    estimate_m_by_em: true
+    term_frequency_adjustments: false
+  boosted_tree:
+    enabled: true
+    implementation: xgboost_classifier
+    model_id: xgb_pair_classifier
+    require_verified_labels: true
+    n_estimators: 300
+    max_depth: 5
+    learning_rate: 0.05
+    subsample: 1.0
+    column_sample: 1.0
+    maximum_training_pairs: 1000000
+    hard_negative_fraction: 0.75
+    n_jobs: 1
+    deterministic_mode: true
+  ranking:
+    enabled: true
+    implementation: xgboost_ranker
+    model_id: xgb_candidate_ranker
+    query_side: source
+    top_k: 5
+    require_verified_labels: true
+    n_estimators: 200
+    max_depth: 4
+    learning_rate: 0.05
+    maximum_training_pairs: 1000000
+    n_jobs: 1
+    deterministic_mode: true
+  neural:
+    enabled: false
+    implementation: pytorch_pair_mlp
+    model_id: neural_pair_matcher
+    require_verified_labels: true
+
+calibration:
+  method: sigmoid
+  source_model: selected_champion
+  partition: calibration
+  require_independent_partition: true
+
+model_selection:
+  mode: champion_challenger
+  selection_partition: validation
+  primary_metric: average_precision
+  test_partition_may_select_model: false
+
+assignment:
+  solver: ortools_min_cost_flow
+  constraint: one_to_one
+  deterministic_tie_breaking: true
+  no_match:
+    enabled: true
+    utility: 0.0
+
+# Values below are placeholders, not operational recommendations.
+decision_policy:
+  confirmed:
+    minimum_probability: 0.97
+    minimum_probability_margin: 0.15
+    require_assignment: true
+    require_valid_calibration: true
+  review_required:
+    minimum_probability: 0.60
+  no_match:
+    maximum_top_probability: 0.20
+    require_complete_candidate_search: true
+  unresolved:
+    fallback: true
+
+validation:
+  split:
+    method: entity_household_connected_components
+    training_fraction: 0.55
+    validation_fraction: 0.15
+    calibration_fraction: 0.10
+    decision_fraction: 0.10
+    test_fraction: 0.10
+  hard_negative_sampling:
+    enabled: true
+    verified_nonmatches_only: true
+  candidate_recall_k: [1, 5, 10]
+
+outputs:
+  restricted_directory: private/outputs
+  permitted_fields:
+    - relationship_id
+    - source_dataset_id
+    - target_dataset_id
+    - source_record_ref
+    - target_record_ref
+    - relationship_status
+    - model_family
+    - model_version
+    - calibrated_probability
+    - candidate_rank
+    - probability_margin
+    - decision_rule_id
+    - assignment_method
+    - assignment_constraint
+    - anchor_rule_ids
+    - candidate_rule_ids
+    - review_reason_codes
+    - run_id
+    - configuration_digest
+    - feature_schema_digest
+    - non_sensitive_provenance
+    - created_at
+  permitted_variable_values: []

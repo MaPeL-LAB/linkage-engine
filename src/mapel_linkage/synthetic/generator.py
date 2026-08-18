@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import random
+import tempfile
 from collections.abc import Iterable, Mapping
 from contextlib import suppress
 from dataclasses import asdict, dataclass, field
@@ -268,15 +269,8 @@ def generate_synthetic_bundle(
     return SyntheticBundle(tuple(source_a), tuple(source_b), tuple(truth), provenance)
 
 
-def _atomic_write_text(path: Path, text: str) -> None:
-    temporary = path.with_name(path.name + ".tmp")
-    temporary.write_text(text, encoding="utf-8")
-    temporary.replace(path)
-
-
-def _write_json_lines(path: Path, records: Iterable[Mapping[str, object]]) -> None:
-    text = "".join(json.dumps(record, sort_keys=True) + "\n" for record in records)
-    _atomic_write_text(path, text)
+def _json_lines(records: Iterable[Mapping[str, object]]) -> str:
+    return "".join(json.dumps(record, sort_keys=True) + "\n" for record in records)
 
 
 def write_synthetic_bundle(directory: Path, bundle: SyntheticBundle) -> tuple[Path, ...]:
@@ -286,26 +280,39 @@ def write_synthetic_bundle(directory: Path, bundle: SyntheticBundle) -> tuple[Pa
     source_b_path = directory / "source_b.jsonl"
     truth_path = directory / "truth.jsonl"
     provenance_path = directory / "provenance.json"
+    temporary_paths: list[Path] = []
     try:
-        directory.mkdir(parents=True, exist_ok=True)
-        _write_json_lines(source_a_path, (record.as_mapping() for record in bundle.source_a))
-        _write_json_lines(source_b_path, (record.as_mapping() for record in bundle.source_b))
-        _write_json_lines(truth_path, (record.as_mapping() for record in bundle.truth))
-        _atomic_write_text(
-            provenance_path,
-            json.dumps(asdict(bundle.provenance), indent=2, sort_keys=True) + "\n",
+        payloads = (
+            (source_a_path, _json_lines(record.as_mapping() for record in bundle.source_a)),
+            (source_b_path, _json_lines(record.as_mapping() for record in bundle.source_b)),
+            (truth_path, _json_lines(record.as_mapping() for record in bundle.truth)),
+            (
+                provenance_path,
+                json.dumps(asdict(bundle.provenance), indent=2, sort_keys=True) + "\n",
+            ),
         )
+        directory.mkdir(parents=True, exist_ok=True)
+        staged: list[tuple[Path, Path]] = []
+        for destination, text in payloads:
+            with tempfile.NamedTemporaryFile(
+                mode="w",
+                encoding="utf-8",
+                prefix=f".{destination.name}.",
+                suffix=".tmp",
+                dir=directory,
+                delete=False,
+            ) as handle:
+                handle.write(text)
+                temporary = Path(handle.name)
+            temporary_paths.append(temporary)
+            staged.append((temporary, destination))
+        for temporary, destination in staged:
+            temporary.replace(destination)
+            temporary_paths.remove(temporary)
     except (OSError, TypeError, ValueError):
-        for path in (
-            source_a_path,
-            source_b_path,
-            truth_path,
-            provenance_path,
-        ):
-            temporary = path.with_name(path.name + ".tmp")
-            for candidate in (path, temporary):
-                with suppress(OSError):
-                    candidate.unlink(missing_ok=True)
+        for temporary in temporary_paths:
+            with suppress(OSError):
+                temporary.unlink(missing_ok=True)
         raise SafeError(
             SafeErrorCode.SYNTHETIC_GENERATION,
             "Synthetic fixtures could not be written.",

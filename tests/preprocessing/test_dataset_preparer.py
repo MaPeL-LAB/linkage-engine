@@ -21,11 +21,13 @@ def _source_headers(renamed: bool) -> dict[str, dict[str, str]]:
                 "record": "Record Key A Renamed",
                 "label": "Display Label A Renamed",
                 "date": "Observed Date A Renamed",
+                "group": "Group A Renamed",
             },
             "source_b": {
                 "record": "record-key-b-renamed",
                 "label": "Display Label B Renamed",
                 "date": "Observed Date B Renamed",
+                "group": "Group B Renamed",
             },
         }
     return {
@@ -33,11 +35,13 @@ def _source_headers(renamed: bool) -> dict[str, dict[str, str]]:
             "record": "Record Key A",
             "label": "Display Label A",
             "date": "Observed Date A",
+            "group": "Group A",
         },
         "source_b": {
             "record": "record-key-b",
             "label": "Display Label B",
             "date": "Observed Date B",
+            "group": "Group B",
         },
     }
 
@@ -56,6 +60,7 @@ def _build_project(root: Path, *, renamed: bool = False) -> LinkageConfig:
                 headers["source_a"]["record"]: "source-a-1",
                 headers["source_a"]["label"]: "  \uff21LPHA   Beta ",
                 headers["source_a"]["date"]: "2025-12-31",
+                headers["source_a"]["group"]: "group-1",
             }
         )
         writer.writerow(
@@ -63,6 +68,7 @@ def _build_project(root: Path, *, renamed: bool = False) -> LinkageConfig:
                 headers["source_a"]["record"]: "source-a-2",
                 headers["source_a"]["label"]: "   ",
                 headers["source_a"]["date"]: "2026-01-01",
+                headers["source_a"]["group"]: "group-2",
             }
         )
 
@@ -72,11 +78,13 @@ def _build_project(root: Path, *, renamed: bool = False) -> LinkageConfig:
             headers["source_b"]["record"]: "source-b-1",
             headers["source_b"]["label"]: "alpha beta",
             headers["source_b"]["date"]: "2025-12-31",
+            headers["source_b"]["group"]: "group-1",
         },
         {
             headers["source_b"]["record"]: "source-b-2",
             headers["source_b"]["label"]: "gamma",
             headers["source_b"]["date"]: "2026-01-02",
+            headers["source_b"]["group"]: "group-2",
         },
     )
     source_b_path.write_text(
@@ -108,6 +116,10 @@ def _build_project(root: Path, *, renamed: bool = False) -> LinkageConfig:
     variables[1]["source_columns"] = {
         "source_a": headers["source_a"]["date"],
         "source_b": headers["source_b"]["date"],
+    }
+    variables[2]["source_columns"] = {
+        "source_a": headers["source_a"]["group"],
+        "source_b": headers["source_b"]["group"],
     }
     return LinkageConfig.model_validate(payload)
 

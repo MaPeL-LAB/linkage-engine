@@ -9,6 +9,8 @@ from mapel_linkage.candidate_generation.predicates import (
     AllOf,
     AnyOf,
     BlockingRule,
+    CandidatePredicate,
+    DateWindow,
     Exact,
     PrefixEqual,
 )
@@ -19,6 +21,8 @@ __all__ = [
     "BlockingRule",
     "CandidateDiagnostics",
     "CandidateGenerationResult",
+    "CandidatePredicate",
+    "DateWindow",
     "DuckDBCandidateGenerator",
     "Exact",
     "PrefixEqual",

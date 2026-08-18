@@ -7,7 +7,6 @@ import os
 import platform
 import sys
 import uuid
-from contextlib import suppress
 from datetime import UTC, datetime
 from importlib import metadata
 from pathlib import Path
@@ -16,6 +15,7 @@ from typing import Annotated, ClassVar
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr
 
 from mapel_linkage import __version__
+from mapel_linkage.governance.atomic import atomic_write_text
 from mapel_linkage.governance.errors import SafeError, SafeErrorCode
 from mapel_linkage.governance.paths import PathPolicy
 
@@ -94,21 +94,17 @@ def create_run_manifest(
 def write_manifest(path: str, manifest: RunManifest, policy: PathPolicy) -> Path:
     destination = policy.resolve_output(path)
     destination.parent.mkdir(parents=True, exist_ok=True)
-    temporary = destination.with_suffix(destination.suffix + ".tmp")
     try:
-        temporary.write_text(
+        atomic_write_text(
+            destination,
             json.dumps(
                 manifest.model_dump(mode="json"),
                 indent=2,
                 sort_keys=True,
             )
             + "\n",
-            encoding="utf-8",
         )
-        temporary.replace(destination)
     except OSError:
-        with suppress(OSError):
-            temporary.unlink(missing_ok=True)
         raise SafeError(
             SafeErrorCode.MANIFEST_WRITE,
             "The run manifest could not be written.",

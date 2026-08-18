@@ -31,6 +31,20 @@ class PrefixEqual:
 
 
 @dataclass(frozen=True, slots=True)
+class DateWindow:
+    variable_id: str
+    maximum_days: int
+
+    def __post_init__(self) -> None:
+        validate_identifier(self.variable_id)
+        if not 1 <= self.maximum_days <= 36525:
+            raise CandidateGenerationError(
+                "ML-CANDIDATE-010",
+                "A date-window bound must be between 1 and 36525 days.",
+            )
+
+
+@dataclass(frozen=True, slots=True)
 class AllOf:
     clauses: tuple[CandidatePredicate, ...]
 
@@ -52,7 +66,7 @@ class AnyOf:
             )
 
 
-type CandidatePredicate = Exact | PrefixEqual | AllOf | AnyOf
+type CandidatePredicate = Exact | PrefixEqual | DateWindow | AllOf | AnyOf
 
 
 @dataclass(frozen=True, slots=True)
@@ -101,6 +115,12 @@ def compile_predicate(
         return (
             f"({left} IS NOT NULL AND {right} IS NOT NULL AND "
             f"SUBSTR({left}, 1, {length}) = SUBSTR({right}, 1, {length}))"
+        )
+    if isinstance(predicate, DateWindow):
+        left, right = column_pair(predicate.variable_id)
+        return (
+            f"({left} IS NOT NULL AND {right} IS NOT NULL AND "
+            f"ABS(date_diff('day', {left}, {right})) <= {predicate.maximum_days})"
         )
     if isinstance(predicate, AllOf):
         return (

@@ -53,13 +53,14 @@ def test_prepared_dataset_representation_is_structural_only(tmp_path: Path) -> N
     data_root.mkdir()
     source_path = data_root / "privacy.csv"
     with source_path.open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=("record", "label", "date"))
+        writer = csv.DictWriter(handle, fieldnames=("record", "label", "date", "group"))
         writer.writeheader()
         writer.writerow(
             {
                 "record": "SYNTHETIC-ORIGINAL-ID",
                 "label": "SYNTHETIC-PRIVATE-LABEL",
                 "date": "2025-01-01",
+                "group": "synthetic-group",
             }
         )
 
@@ -75,6 +76,7 @@ def test_prepared_dataset_representation_is_structural_only(tmp_path: Path) -> N
     variables = cast(list[dict[str, Any]], payload["variables"])
     variables[0]["source_columns"]["source_a"] = "label"
     variables[1]["source_columns"]["source_a"] = "date"
+    variables[2]["source_columns"]["source_a"] = "group"
     config = LinkageConfig.model_validate(payload)
     plan = compile_config(config, project_root=tmp_path)
 

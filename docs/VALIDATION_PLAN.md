@@ -134,3 +134,22 @@ threshold_authority = diagnostic_only
 decision_authority = evidence_only
 real_data_validation_status = not_established
 ```
+
+
+## Complete M2 synthetic evaluation contract
+
+The complete synthetic run reports candidate retrieval before pair-model results, compares Fellegi–Sunter and XGBoost on validation data only, fits calibration on the independent calibration partition, evaluates configured example thresholds on the decision partition, and evaluates the frozen calibrated champion on the locked test partition.
+
+The aggregate report contains:
+
+- candidate recall@K, zero-candidate rate, Cartesian reduction, candidate-set distribution, and retrieval-rule contribution;
+- pair sensitivity, PPV, false-link and missed-link rates, average precision, ROC AUC, Brier score, and precision–recall points;
+- reliability bins, calibration intercept/slope, expected calibration error, and maximum calibration error;
+- ranking recall@K, top-1 rate, mean reciprocal rank, and true-match rank;
+- assignment accuracy, no-match accuracy, change from independent top-1, and capacity violations;
+- decision-status counts and restricted-review burden;
+- pair performance by missingness pattern and candidate-set-size band.
+
+A conservative versioned synthetic regression guard detects catastrophic mechanical regressions. It must not be interpreted as a target for real populations or an estimate of operational validity.
+
+The exact synthetic end-to-end acceptance test reruns the same configuration, seed, generator, and dependency envelope and requires identical run ID, stage summaries, relationship output, review output, aggregate report, ranks, assignment, and decisions. Numeric tolerances are documented only where a dependency cannot guarantee universal bitwise equality.

@@ -66,3 +66,14 @@ Its output is `model_score_uncalibrated`, `not_calibrated`, and
 `evidence_only`. Aggregate validation on a nontraining partition may support
 champion–challenger review, but cannot itself authorise an operational threshold
 or relationship decision.
+
+
+## Complete M2 selection and calibration boundary
+
+Fellegi–Sunter and XGBoost are candidate pair-evidence models. Their validation evidence must share the same protected validation label authority and partition manifest. Champion selection records every candidate and cannot access calibration, decision, or test evidence.
+
+The selected champion is calibrated only on the protected calibration partition. Sigmoid and isotonic artifacts are monotone, native/package JSON, bound to the selected source model, and checked for payload and manifest tampering before use.
+
+The learned ranker is separately trained from eligible verified training labels and has ranking-only authority. Assignment receives calibrated probabilities and performs constrained edge selection, but only the decision policy may emit relationship status. No artifact or adapter receives merge authority.
+
+Operational promotion requires a locally approved model card, candidate-retrieval evidence, calibration evidence, threshold rationale, locked-test results, review burden, subgroup/missingness analysis, intended-use statement, and rollback plan. Synthetic CI cannot promote an operational model.

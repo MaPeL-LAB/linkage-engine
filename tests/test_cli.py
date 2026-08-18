@@ -11,7 +11,8 @@ from tests.helpers import EXAMPLE_CONFIG, ROOT
 def test_status(capsys: pytest.CaptureFixture[str]) -> None:
     assert main(["status"]) == 0
     output = capsys.readouterr().out
-    assert "M2D" in output
+    assert "M2E" in output
+    assert "development candidate" in output
     assert "record-level" not in output
 
 
@@ -66,9 +67,32 @@ def test_target_command_fails_without_echoing_config(
 ) -> None:
     assert main(["run", "--config", "private/project.yaml"]) == 2
     captured = capsys.readouterr()
-    assert "ML-PREALPHA-001" in captured.err
+    assert "ML-CLI-002" in captured.err
     assert captured.out == ""
     assert "private/project.yaml" not in captured.err
+
+
+def test_synthetic_entity_count_upper_bound_is_safe(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert (
+        main(
+            [
+                "run",
+                "--config",
+                str(EXAMPLE_CONFIG),
+                "--project-root",
+                str(ROOT),
+                "--synthetic-demo",
+                "--entity-count",
+                "100001",
+            ]
+        )
+        == 2
+    )
+    captured = capsys.readouterr()
+    assert "ML-CLI-003" in captured.err
+    assert captured.out == ""
 
 
 def test_emit_config_schema(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
