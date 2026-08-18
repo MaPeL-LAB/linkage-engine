@@ -1,0 +1,113 @@
+name: finalize audit integration foundation
+
+on:
+  push:
+    branches:
+      - agent/audit-integration-foundation
+    paths:
+      - .github/workflows/finalize-audit-integration.yml
+
+permissions:
+  contents: write
+
+env:
+  PYTHONHASHSEED: "0"
+  MAPEL_TEST_DATA_POLICY: synthetic_only
+  MAPEL_TEST_SEED: "20260816"
+  OMP_NUM_THREADS: "1"
+  MKL_NUM_THREADS: "1"
+  OPENBLAS_NUM_THREADS: "1"
+
+concurrency:
+  group: finalize-audit-integration-foundation
+  cancel-in-progress: false
+
+jobs:
+  finalize:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout staged branch
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Verify and apply staged patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/chunks.sha256 <<'EOF'
+          5c190744d9e91fee9dff08071f9287f2aacea7da771e22f664e361ce9876633f  .audit_integration/chunk00.b64
+          c37374a2ec0b2a9b6f4449152f241b53bf807d7d7f4e63432007819c9b2d863c  .audit_integration/chunk01.b64
+          743ec1c2a3afca679986bccded04ac6842a695935a2c2526d6859aba49719374  .audit_integration/chunk02.b64
+          e2c09b82be23396b6c9ec4ddfe0e40b8b5bc6d9ecc8c127ff4be89c2c7526eb4  .audit_integration/chunk0304.b64
+          cec9c727413ba19dcb7c401b4bac9cf1b0385ad0bfa137e48d771ce31ca1a677  .audit_integration/chunk0506.b64
+          6ce494928a3d1f9cc5bc4ad71c37c83983c30718fd20543ce00071b0d1b25bc4  .audit_integration/chunk0708.b64
+          d667f8f9e5f3496a4c9c0a03fc586755b13baa0bc3581ef0f828393bc023a55d  .audit_integration/chunk09.b64
+          EOF
+          sha256sum --check /tmp/chunks.sha256
+          cat \
+            .audit_integration/chunk00.b64 \
+            .audit_integration/chunk01.b64 \
+            .audit_integration/chunk02.b64 \
+            .audit_integration/chunk0304.b64 \
+            .audit_integration/chunk0506.b64 \
+            .audit_integration/chunk0708.b64 \
+            .audit_integration/chunk09.b64 \
+            > /tmp/audit-integration-patch.tar.gz.b64
+          echo "4272f759cfe0251a42244c5c0fd92b5ec8995daf3508ce65e0c492aabe0a16f9  /tmp/audit-integration-patch.tar.gz.b64" | sha256sum --check -
+          base64 --decode /tmp/audit-integration-patch.tar.gz.b64 > /tmp/audit-integration-patch.tar.gz
+          echo "eca267170e00ee08636283f22ce45ebddda831131c624f7fd0e705b8eaa68a28  /tmp/audit-integration-patch.tar.gz" | sha256sum --check -
+          tar -xzf /tmp/audit-integration-patch.tar.gz -C .
+          rm -rf .audit_integration
+          rm -f .github/workflows/finalize-audit-integration.yml
+
+      - name: Install core development environment
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -c constraints/ci-py312.txt -e ".[core,dev]"
+
+      - name: Format and regenerate governed files
+        run: |
+          ruff format .
+          python scripts/generate_config_schema.py
+          python scripts/generate_capability_matrix.py
+          python scripts/generate_repository_manifest.py
+
+      - name: Verify repository and quality gates
+        run: |
+          python scripts/verify_repository.py
+          ruff format --check .
+          ruff check .
+          mypy src tests
+          pre-commit run --all-files
+          pytest
+          python -m build
+          python scripts/verify_repository.py --distribution dist
+          python -m mapel_linkage capabilities --json
+          git diff --check
+
+      - name: Commit verified integration foundation
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e .audit_integration
+          test ! -e .github/workflows/finalize-audit-integration.yml
+          git config user.name "MaPeL-LAB automation"
+          git config user.email "noreply@github.com"
+          git add --all
+          if git diff --cached --quiet; then
+            echo "No verified changes were produced."
+            exit 1
+          fi
+          if git diff --cached --name-only | grep -E '^(\.audit_integration/|\.github/workflows/finalize-audit-integration\.yml$)'; then
+            echo "Temporary transfer files remained staged."
+            exit 1
+          fi
+          git commit -m "Add audit and integration foundation"
+          git push origin HEAD:agent/audit-integration-foundation
