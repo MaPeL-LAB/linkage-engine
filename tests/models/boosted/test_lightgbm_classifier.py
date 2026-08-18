@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import importlib
 import json
+import types
 from pathlib import Path
 from unittest import mock
 
@@ -27,10 +29,11 @@ from tests.models.boosted.helpers import (
     validation_rows,
 )
 
+_lgb_installed: types.ModuleType | None
 try:
-    import lightgbm as _lgb_installed
+    _lgb_installed = importlib.import_module("lightgbm")
 except ModuleNotFoundError:
-    _lgb_installed = None  # type: ignore[assignment]
+    _lgb_installed = None
 
 _requires_lightgbm = pytest.mark.skipif(
     _lgb_installed is None, reason="LightGBM is not installed in the current environment"
