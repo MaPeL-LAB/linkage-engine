@@ -182,7 +182,7 @@ e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855         0  test
 a42630085c465a40eae91c1d91c368b4dc890ffe111db710c637ebfe2fcef348       586  tests/helpers.py
 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855         0  tests/models/__init__.py
 407c7491b06ebc308e2e8acb4b33a9d5cfe316e41819b2a78c2a0bec3089d00e      5469  tests/models/boosted/helpers.py
-9932eee0cd94a95a29ff3f61a542137e9610b608f21db443b9a3458d4129f37e      9343  tests/models/boosted/test_lightgbm_classifier.py
+58e4e32520feab83c57c6a312762877fdcfb1e66b7b6e44336335d499f37a136      9721  tests/models/boosted/test_lightgbm_classifier.py
 abb46fb235e6889ca10e71dcc47992a8fc22fe5142ae35e6d14567d9028a5fd3      3559  tests/models/boosted/test_training.py
 1c2424436e946a18bbbf914b94957520d3a20e8f466b70a6d3e519a24e03652c     10956  tests/models/boosted/test_xgboost_classifier.py
 3b6b6a9a27642d28bd1523b7d3c1970e6853f44d548f6f220957e42117f0bfdd      6226  tests/models/ensembles/test_stacking.py
@@ -190,8 +190,8 @@ e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855         0  test
 6729890b2c224f36cbbe209f52c31c2c5694bab3edca8aeca8ec21607f694757     10028  tests/models/fellegi_sunter/test_reference.py
 05e22772482bb0b78289fb4d3f94c741b16394b1c9c42c4e0d82276e69979b92      3432  tests/models/fellegi_sunter/test_splink_adapter.py
 d9050ccd2d5243ba27e1dfe6af9ce2a2dc5678a9b1514376cb559f4145661ecd      5462  tests/models/fellegi_sunter/test_splink_candidate_parity.py
-25e7ec12b6230ebc3427fba39aacf09c8f1d543f345b522b673b055271e32bb9      6152  tests/models/neural/test_pytorch_matcher.py
-bd9d1f47615d6d643e21903494412951389c6d65de46c1f795306d3a09918870      6452  tests/models/ranking/test_lightgbm_ranker.py
+e4690e4986b9229a49c4f1a63e840d7c02f6af3baaaa9e9ba8e0d84f59aeb920      6494  tests/models/neural/test_pytorch_matcher.py
+6fc9b85d8dc1f81a521370a76f4afe21e5b14f7e7b1756acc00089c504c4c468      6771  tests/models/ranking/test_lightgbm_ranker.py
 310030ea60fc89f435df3dc9f17bde779c9a7e0826fb356304cdb57ba1552fd3      7139  tests/models/ranking/test_xgboost_ranker.py
 a3c344e0c06bd93aabd6976829a2c18e4f8feeeb7a82986e3619bf2daf55610a      2107  tests/pipeline/test_local_workspace.py
 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855         0  tests/preprocessing/__init__.py

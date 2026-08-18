@@ -25,6 +25,15 @@ from tests.models.boosted.helpers import (
     validation_rows,
 )
 
+try:
+    import torch as _torch_installed  # type: ignore[import-not-found]
+except ImportError:
+    _torch_installed = None
+
+_requires_torch = pytest.mark.skipif(
+    _torch_installed is None, reason="PyTorch is not installed in the current environment"
+)
+
 
 def _fit(
     store: DuckDBStore,
@@ -45,6 +54,7 @@ def _fit(
     return matcher, artifact, builder
 
 
+@_requires_torch
 def test_pytorch_matcher_is_deterministic_and_evidence_only() -> None:
     with DuckDBStore() as store:
         matcher, first, _ = _fit(store)
@@ -59,6 +69,7 @@ def test_pytorch_matcher_is_deterministic_and_evidence_only() -> None:
     assert "train-l1" not in repr(first)
 
 
+@_requires_torch
 def test_pytorch_scoring_and_materialization() -> None:
     with DuckDBStore() as store:
         matcher, artifact, builder = _fit(store)
@@ -78,6 +89,7 @@ def test_pytorch_scoring_and_materialization() -> None:
     assert 0.0 <= mismatch <= exact <= 1.0
 
 
+@_requires_torch
 def test_pytorch_validation_uses_nontraining_partition() -> None:
     with DuckDBStore() as store:
         matcher, artifact, builder = _fit(store)
@@ -98,6 +110,7 @@ def test_pytorch_validation_uses_nontraining_partition() -> None:
     assert report.calibration_status == "not_calibrated"
 
 
+@_requires_torch
 def test_pytorch_artifact_write_and_read(tmp_path: Path) -> None:
     with DuckDBStore() as store:
         _, artifact, _ = _fit(store)
@@ -133,6 +146,7 @@ def test_pytorch_artifact_write_and_read(tmp_path: Path) -> None:
         )
 
 
+@_requires_torch
 def test_pytorch_scoring_rejects_feature_schema_mismatch() -> None:
     with DuckDBStore() as store:
         matcher, artifact, builder = _fit(store)

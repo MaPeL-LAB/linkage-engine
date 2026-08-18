@@ -27,6 +27,15 @@ from tests.models.boosted.helpers import (
     validation_rows,
 )
 
+try:
+    import lightgbm as _lgb_installed  # type: ignore[import-not-found]
+except ImportError:
+    _lgb_installed = None
+
+_requires_lightgbm = pytest.mark.skipif(
+    _lgb_installed is None, reason="LightGBM is not installed in the current environment"
+)
+
 
 def _lgb_config(**overrides: object) -> object:
     return model_config(
@@ -57,6 +66,7 @@ def _fit(
     return classifier, artifact, builder
 
 
+@_requires_lightgbm
 def test_lightgbm_artifact_is_deterministic_uncalibrated_and_evidence_only() -> None:
     with DuckDBStore() as store:
         classifier, first, _ = _fit(store)
@@ -72,6 +82,7 @@ def test_lightgbm_artifact_is_deterministic_uncalibrated_and_evidence_only() -> 
     assert "train-l1" not in repr(first)
 
 
+@_requires_lightgbm
 def test_lightgbm_scoring_preserves_pairs_and_stronger_evidence_scores_higher() -> None:
     with DuckDBStore() as store:
         classifier, artifact, builder = _fit(store)
@@ -96,6 +107,7 @@ def test_lightgbm_scoring_preserves_pairs_and_stronger_evidence_scores_higher() 
     assert statuses == [("model_score_uncalibrated", "not_calibrated", "evidence_only")]
 
 
+@_requires_lightgbm
 def test_lightgbm_validation_uses_nontraining_partition() -> None:
     with DuckDBStore() as store:
         classifier, artifact, builder = _fit(store)
@@ -118,6 +130,7 @@ def test_lightgbm_validation_uses_nontraining_partition() -> None:
     assert report.real_data_validation_status == "not_established"
 
 
+@_requires_lightgbm
 def test_lightgbm_native_model_write_and_read(tmp_path: Path) -> None:
     with DuckDBStore() as store:
         _, artifact, _ = _fit(store)
@@ -148,6 +161,7 @@ def test_lightgbm_native_model_write_and_read(tmp_path: Path) -> None:
     assert reloaded.random_seed == artifact.random_seed
 
 
+@_requires_lightgbm
 def test_lightgbm_scoring_rejects_feature_schema_mismatch() -> None:
     with DuckDBStore() as store:
         classifier, artifact, builder = _fit(store)
@@ -197,6 +211,7 @@ def test_lightgbm_fit_rejects_matrix_over_budget() -> None:
             )
 
 
+@_requires_lightgbm
 def test_lightgbm_reader_rejects_tampered_model(tmp_path: Path) -> None:
     with DuckDBStore() as store:
         _, artifact, _ = _fit(store)

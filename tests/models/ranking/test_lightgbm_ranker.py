@@ -60,6 +60,16 @@ def labelled_matrix(partition: LabelPartition = "training") -> BoostedLabelledMa
     )
 
 
+try:
+    import lightgbm as _lgb_installed  # type: ignore[import-not-found]
+except ImportError:
+    _lgb_installed = None
+
+_requires_lightgbm = pytest.mark.skipif(
+    _lgb_installed is None, reason="LightGBM is not installed in the current environment"
+)
+
+
 def config() -> RankingModelConfig:
     return RankingModelConfig.model_validate(
         {
@@ -79,6 +89,7 @@ def config() -> RankingModelConfig:
     )
 
 
+@_requires_lightgbm
 def test_lightgbm_ranker_is_deterministic_and_ranking_only() -> None:
     matrix = build_ranking_matrix(labelled_matrix(), query_side="source")
     first = LightGBMRanker.fit(
@@ -102,6 +113,7 @@ def test_lightgbm_ranker_is_deterministic_and_ranking_only() -> None:
     assert "left-0" not in repr(result)
 
 
+@_requires_lightgbm
 def test_true_candidates_rank_first_on_fixture() -> None:
     matrix = build_ranking_matrix(labelled_matrix(), query_side="source")
     artifact = LightGBMRanker.fit(
@@ -127,6 +139,7 @@ def test_lightgbm_ranker_rejects_nontraining_fit() -> None:
         )
 
 
+@_requires_lightgbm
 def test_lightgbm_ranking_artifact_round_trip_and_tamper(tmp_path: Path) -> None:
     matrix = build_ranking_matrix(labelled_matrix(), query_side="source")
     artifact = LightGBMRanker.fit(
