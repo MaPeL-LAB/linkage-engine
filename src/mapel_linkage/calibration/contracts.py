@@ -9,7 +9,7 @@ import re
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from types import MappingProxyType
-from typing import Literal
+from typing import Any, Literal, Protocol
 
 import numpy as np
 from numpy.typing import NDArray
@@ -17,7 +17,7 @@ from numpy.typing import NDArray
 from mapel_linkage.domain.errors import CalibrationError, ModelSelectionError
 from mapel_linkage.governance.labels import LabelPartition
 
-CalibrationMethod = Literal["sigmoid", "isotonic"]
+CalibrationMethod = Literal["sigmoid", "isotonic", "beta"]
 ProbabilityStatus = Literal["calibrated_probability"]
 DecisionAuthority = Literal["evidence_only"]
 ThresholdAuthority = Literal["none"]
@@ -491,3 +491,20 @@ class CalibratedScoreBatch:
             "probability_status": self.probability_status,
             "decision_authority": self.decision_authority,
         }
+
+
+class ProbabilityCalibrator(Protocol):
+    """Protocol for probability calibrators fitting on protected calibration batches."""
+
+    @staticmethod
+    def fit(
+        batch: PairScoreBatch,
+        selection: ChampionSelection,
+        **kwargs: Any,
+    ) -> CalibratorArtifact: ...
+
+    @staticmethod
+    def apply(
+        scores: NDArray[np.float64],
+        artifact: CalibratorArtifact,
+    ) -> NDArray[np.float64]: ...

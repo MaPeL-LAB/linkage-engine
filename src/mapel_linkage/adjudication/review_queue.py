@@ -6,12 +6,15 @@ import hashlib
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-from mapel_linkage.configuration.models import OutputConfig
-from mapel_linkage.decisions import RelationshipDecision
 from mapel_linkage.domain.errors import AdjudicationError
 from mapel_linkage.governance.atomic import atomic_write_text
 from mapel_linkage.governance.paths import PathPolicy
+
+if TYPE_CHECKING:
+    from mapel_linkage.configuration.models import OutputConfig
+    from mapel_linkage.decisions import RelationshipDecision
 
 
 def _digest(payload: object) -> str:

@@ -117,14 +117,24 @@ class AssignmentEdgeBatch:
 
 @dataclass(frozen=True, slots=True)
 class AssignmentPlan:
-    constraint: Literal["one_to_one"] = "one_to_one"
-    solver: Literal["ortools_min_cost_flow", "scipy_linear_sum_assignment", "unconstrained"] = (
-        "ortools_min_cost_flow"
-    )
+    constraint: Literal["one_to_one", "many_to_one", "one_to_many", "unconstrained"] = "one_to_one"
+    solver: (
+        Literal[
+            "ortools_min_cost_flow",
+            "scipy_linear_sum_assignment",
+            "unconstrained",
+            "many_to_one",
+            "one_to_many",
+            "greedy",
+        ]
+        | str
+    ) = "ortools_min_cost_flow"
     no_match_utility: float = 0.0
     utility_scale: int = 1_000_000
     maximum_candidate_edges: int = 10_000_000
     deterministic_tie_breaking: Literal[True] = True
+    max_matches_per_source: int = 10_000_000
+    max_matches_per_target: int = 10_000_000
 
     def __post_init__(self) -> None:
         if not math.isfinite(self.no_match_utility):
@@ -133,6 +143,10 @@ class AssignmentPlan:
             raise AssignmentError("ML-ASSIGN-010", "The assignment utility scale is invalid.")
         if self.maximum_candidate_edges <= 0:
             raise AssignmentError("ML-ASSIGN-011", "The assignment edge budget is invalid.")
+        if self.max_matches_per_source <= 0:
+            raise AssignmentError("ML-ASSIGN-030", "The source capacity limit is invalid.")
+        if self.max_matches_per_target <= 0:
+            raise AssignmentError("ML-ASSIGN-031", "The target capacity limit is invalid.")
 
 
 @dataclass(frozen=True, slots=True, repr=False)
@@ -179,7 +193,7 @@ class AssignedEdge:
 class AssignmentResult:
     assignments: tuple[AssignedEdge, ...] = field(repr=False)
     solver: str
-    constraint: Literal["one_to_one"]
+    constraint: Literal["one_to_one", "many_to_one", "one_to_many", "unconstrained"]
     source_record_count: int
     candidate_pair_count: int
     real_assignment_count: int
@@ -192,21 +206,48 @@ class AssignmentResult:
     decision_authority: Literal["none"] = "none"
 
     def __post_init__(self) -> None:
-        if len(self.assignments) != self.source_record_count:
+        if len({item.source_record_key for item in self.assignments}) != self.source_record_count:
             raise AssignmentError("ML-ASSIGN-014", "Assignment coverage is incomplete.")
-        if self.real_assignment_count + self.no_match_count != self.source_record_count:
-            raise AssignmentError("ML-ASSIGN-015", "Assignment aggregate counts are inconsistent.")
+        if self.constraint in ("one_to_one", "many_to_one"):
+            if len(self.assignments) != self.source_record_count:
+                raise AssignmentError("ML-ASSIGN-014", "Assignment coverage is incomplete.")
+            if self.real_assignment_count + self.no_match_count != self.source_record_count:
+                raise AssignmentError(
+                    "ML-ASSIGN-015", "Assignment aggregate counts are inconsistent."
+                )
+            if len({item.source_record_key for item in self.assignments}) != len(self.assignments):
+                raise AssignmentError(
+                    "ML-ASSIGN-018", "A source record was assigned more than once."
+                )
+        else:
+            sources_with_real = {
+                item.source_record_key for item in self.assignments if not item.selected_no_match
+            }
+            sources_with_no_match = {
+                item.source_record_key for item in self.assignments if item.selected_no_match
+            }
+            if sources_with_real & sources_with_no_match:
+                raise AssignmentError(
+                    "ML-ASSIGN-018",
+                    "A source record has conflicting match and no-match assignments.",
+                )
+            if len(sources_with_real) + len(sources_with_no_match) != self.source_record_count:
+                raise AssignmentError(
+                    "ML-ASSIGN-015", "Assignment aggregate counts are inconsistent."
+                )
         if self.constraint_violation_count != 0:
             raise AssignmentError(
                 "ML-ASSIGN-016", "A successful assignment cannot retain violations."
             )
         if _DIGEST_PATTERN.fullmatch(self.assignment_digest) is None:
             raise AssignmentError("ML-ASSIGN-017", "The assignment digest is invalid.")
-        if len({item.source_record_key for item in self.assignments}) != len(self.assignments):
-            raise AssignmentError("ML-ASSIGN-018", "A source record was assigned more than once.")
         real = tuple(item for item in self.assignments if not item.selected_no_match)
-        if len({item.target_record_key for item in real}) != len(real):
-            raise AssignmentError("ML-ASSIGN-016", "One-to-one assignment contains a conflict.")
+        if self.constraint in ("one_to_one", "one_to_many") and len(
+            {item.target_record_key for item in real}
+        ) != len(real):
+            raise AssignmentError(
+                "ML-ASSIGN-016", f"{self.constraint} assignment contains a conflict."
+            )
         if (
             sum(not item.selected_no_match for item in self.assignments)
             != self.real_assignment_count

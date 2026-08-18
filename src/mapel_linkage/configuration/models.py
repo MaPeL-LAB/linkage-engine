@@ -439,7 +439,7 @@ class ModelsConfig(ConfigNode):
 
 
 class CalibrationConfig(ConfigNode):
-    method: Literal["sigmoid", "isotonic"]
+    method: Literal["sigmoid", "isotonic", "beta"]
     source_model: Identifier
     partition: Literal["calibration"] = "calibration"
     require_independent_partition: Literal[True] = True

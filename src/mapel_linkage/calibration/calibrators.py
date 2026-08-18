@@ -337,6 +337,130 @@ class IsotonicCalibrator:
         return immutable_float_vector(probabilities[indices])
 
 
+class BetaCalibrator:
+    """Fit a 3-parameter Beta calibration map on the protected calibration partition."""
+
+    @staticmethod
+    def fit(
+        batch: PairScoreBatch,
+        selection: ChampionSelection,
+        *,
+        max_iterations: int = 100,
+        tolerance: float = 1e-10,
+    ) -> CalibratorArtifact:
+        _validate_fit_contract(batch, selection)
+        if max_iterations < 1 or max_iterations > 10_000:
+            raise CalibrationError("ML-CAL-040", "Beta calibration iteration limits are invalid.")
+        if not math.isfinite(tolerance) or tolerance <= 0.0:
+            raise CalibrationError("ML-CAL-041", "Beta calibration tolerance is invalid.")
+        scores_clipped = np.clip(batch.scores, _EPSILON, 1.0 - _EPSILON)
+        z1 = np.log(scores_clipped)
+        z2 = -np.log(1.0 - scores_clipped)
+        design = np.column_stack((z1, z2, np.ones_like(z1)))
+        labels = batch.labels.astype(np.float64)
+        parameters = np.asarray([1.0, 1.0, 0.0], dtype=np.float64)
+        ridge = np.asarray([1e-8, 1e-8, 1e-8], dtype=np.float64)
+
+        def _nll(params: NDArray[np.float64]) -> float:
+            prob = np.clip(_sigmoid(design @ params), _EPSILON, 1.0 - _EPSILON)
+            return float(-np.sum(labels * np.log(prob) + (1.0 - labels) * np.log(1.0 - prob)))
+
+        current_loss = _nll(parameters)
+        converged = False
+        _iteration_count = 0
+        for _iteration_count in range(1, max_iterations + 1):
+            prob = _sigmoid(design @ parameters)
+            residual = labels - prob
+            weight = np.clip(prob * (1.0 - prob), 1e-8, None)
+            gradient = design.T @ residual - ridge * parameters
+            information = design.T @ (weight[:, None] * design) + np.diag(ridge)
+            try:
+                step = np.linalg.solve(information, gradient)
+            except np.linalg.LinAlgError:
+                raise CalibrationError(
+                    "ML-CAL-027", "Beta calibration did not have a stable fit."
+                ) from None
+            scale = 1.0
+            accepted = False
+            while scale >= 1e-6:
+                candidate = parameters + scale * step
+                if candidate[0] <= 0.0 or candidate[1] <= 0.0 or not np.all(np.isfinite(candidate)):
+                    scale *= 0.5
+                    continue
+                candidate_loss = _nll(candidate)
+                if candidate_loss <= current_loss:
+                    parameters = candidate
+                    current_loss = candidate_loss
+                    accepted = True
+                    break
+                scale *= 0.5
+            if not accepted:
+                break
+            if float(np.max(np.abs(scale * step))) < tolerance:
+                converged = True
+                break
+
+        if parameters[0] <= 0.0 or parameters[1] <= 0.0 or not np.all(np.isfinite(parameters)):
+            raise CalibrationError("ML-CAL-028", "Beta calibration violated monotonicity.")
+        probabilities = immutable_float_vector(_sigmoid(design @ parameters))
+        payload: dict[str, object] = {
+            "method": "beta",
+            "alpha": float(parameters[0]),
+            "beta": float(parameters[1]),
+            "gamma": float(parameters[2]),
+            "score_clip": _EPSILON,
+            "iterations": _iteration_count,
+            "converged": converged,
+        }
+        return _artifact(
+            method="beta",
+            payload=payload,
+            batch=batch,
+            selection=selection,
+            probabilities=probabilities,
+        )
+
+    @staticmethod
+    def apply(scores: NDArray[np.float64], artifact: CalibratorArtifact) -> NDArray[np.float64]:
+        if artifact.method != "beta":
+            raise CalibrationError("ML-CAL-029", "A non-beta artifact was rejected.")
+        try:
+            raw_alpha = artifact.payload.get("alpha", artifact.payload.get("a"))
+            raw_beta = artifact.payload.get("beta", artifact.payload.get("b"))
+            raw_gamma = artifact.payload.get(
+                "gamma", artifact.payload.get("c", artifact.payload.get("intercept", 0.0))
+            )
+            if (
+                isinstance(raw_alpha, bool)
+                or not isinstance(raw_alpha, (int, float))
+                or isinstance(raw_beta, bool)
+                or not isinstance(raw_beta, (int, float))
+                or isinstance(raw_gamma, bool)
+                or not isinstance(raw_gamma, (int, float))
+            ):
+                raise TypeError
+            alpha = float(raw_alpha)
+            beta = float(raw_beta)
+            gamma = float(raw_gamma)
+        except (KeyError, TypeError, ValueError):
+            raise CalibrationError("ML-CAL-030", "A beta calibrator payload is invalid.") from None
+        if (
+            alpha <= 0.0
+            or beta <= 0.0
+            or not math.isfinite(alpha)
+            or not math.isfinite(beta)
+            or not math.isfinite(gamma)
+        ):
+            raise CalibrationError("ML-CAL-031", "A beta calibrator payload is invalid.")
+        values = np.asarray(scores, dtype=np.float64)
+        if not np.all(np.isfinite(values)) or np.any(values < 0.0) or np.any(values > 1.0):
+            raise CalibrationError("ML-CAL-032", "Scores for beta calibration are invalid.")
+        clipped = np.clip(values, _EPSILON, 1.0 - _EPSILON)
+        z1 = np.log(clipped)
+        z2 = -np.log(1.0 - clipped)
+        return immutable_float_vector(_sigmoid(alpha * z1 + beta * z2 + gamma))
+
+
 def apply_calibrator(batch: PairScoreBatch, artifact: CalibratorArtifact) -> CalibratedScoreBatch:
     if (
         batch.source_model_family != artifact.source_model_family
@@ -356,8 +480,12 @@ def apply_calibrator(batch: PairScoreBatch, artifact: CalibratorArtifact) -> Cal
         raise CalibrationError("ML-CAL-054", "Scores violate calibrator provenance boundaries.")
     if artifact.method == "sigmoid":
         probabilities = SigmoidCalibrator.apply(batch.scores, artifact)
-    else:
+    elif artifact.method == "isotonic":
         probabilities = IsotonicCalibrator.apply(batch.scores, artifact)
+    elif artifact.method == "beta":
+        probabilities = BetaCalibrator.apply(batch.scores, artifact)
+    else:
+        raise CalibrationError("ML-CAL-029", f"Unknown calibrator method: {artifact.method}")
     return CalibratedScoreBatch(
         pair_references=batch.pair_references,
         pair_digests=batch.pair_digests,

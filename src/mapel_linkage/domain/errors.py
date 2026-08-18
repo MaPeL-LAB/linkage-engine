@@ -62,6 +62,14 @@ class BoostedTreeBudgetExceeded(BoostedTreeError):
     """Raised before fitting when a boosted-model pair budget is exceeded."""
 
 
+class EnsembleError(LinkageRuntimeError):
+    """Raised when ensemble model training, scoring, or stacking fails."""
+
+
+class NeuralModelError(LinkageRuntimeError):
+    """Raised when neural pair-model training or scoring cannot complete safely."""
+
+
 class ModelSelectionError(LinkageRuntimeError):
     """Raised when champion-challenger selection violates its trust boundary."""
 

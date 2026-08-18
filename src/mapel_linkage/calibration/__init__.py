@@ -6,6 +6,7 @@ from mapel_linkage.calibration.artifacts import (
     write_calibrator_artifact,
 )
 from mapel_linkage.calibration.calibrators import (
+    BetaCalibrator,
     IsotonicCalibrator,
     SigmoidCalibrator,
     apply_calibrator,
@@ -17,20 +18,27 @@ from mapel_linkage.calibration.contracts import (
     ChampionSelection,
     ModelEvaluationCandidate,
     PairScoreBatch,
+    ProbabilityCalibrator,
     ReliabilityBin,
 )
 from mapel_linkage.calibration.metrics import calibration_diagnostics
-from mapel_linkage.calibration.selection import ChampionChallengerSelector
+from mapel_linkage.calibration.selection import (
+    ChampionCalibratorSelector,
+    ChampionChallengerSelector,
+)
 
 __all__ = [
+    "BetaCalibrator",
     "CalibratedScoreBatch",
     "CalibrationDiagnostics",
     "CalibratorArtifact",
+    "ChampionCalibratorSelector",
     "ChampionChallengerSelector",
     "ChampionSelection",
     "IsotonicCalibrator",
     "ModelEvaluationCandidate",
     "PairScoreBatch",
+    "ProbabilityCalibrator",
     "ReliabilityBin",
     "SigmoidCalibrator",
     "WrittenCalibratorArtifact",
