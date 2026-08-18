@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
 from unittest import mock
 
 import pytest
@@ -26,11 +25,10 @@ from tests.models.boosted.helpers import (
     validation_rows,
 )
 
-_torch_installed: Any
 try:
     import torch as _torch_installed
 except ModuleNotFoundError:
-    _torch_installed = None
+    _torch_installed = None  # type: ignore[assignment]
 
 _requires_torch = pytest.mark.skipif(
     _torch_installed is None, reason="PyTorch is not installed in the current environment"

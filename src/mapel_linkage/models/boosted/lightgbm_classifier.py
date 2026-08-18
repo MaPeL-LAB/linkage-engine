@@ -27,11 +27,10 @@ from mapel_linkage.models.boosted.training import BoostedFeatureMatrix, BoostedL
 from mapel_linkage.models.boosted.xgboost_classifier import BoostedTreeScoreResult
 from mapel_linkage.validation import PairValidationReport, evaluate_binary_scores
 
-_lightgbm: Any
 try:
     import lightgbm as _lightgbm
 except ModuleNotFoundError:  # pragma: no cover - exercised by optional-dependency tests.
-    _lightgbm = None
+    _lightgbm = None  # type: ignore[assignment]
 
 _PROBABILITY_STATUS: Final[Literal["model_score_uncalibrated"]] = "model_score_uncalibrated"
 _CALIBRATION_STATUS: Final[Literal["not_calibrated"]] = "not_calibrated"

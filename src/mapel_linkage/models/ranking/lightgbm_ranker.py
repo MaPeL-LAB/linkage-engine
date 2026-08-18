@@ -23,11 +23,10 @@ from mapel_linkage.models.ranking.contracts import (
     ranking_artifact_digest,
 )
 
-_lightgbm: Any
 try:
     import lightgbm as _lightgbm
 except ModuleNotFoundError:  # pragma: no cover - optional dependency boundary
-    _lightgbm = None
+    _lightgbm = None  # type: ignore[assignment]
 
 
 def _require_lightgbm() -> Any:

@@ -27,14 +27,12 @@ from mapel_linkage.models.boosted.training import BoostedFeatureMatrix, BoostedL
 from mapel_linkage.models.boosted.xgboost_classifier import BoostedTreeScoreResult
 from mapel_linkage.validation import PairValidationReport, evaluate_binary_scores
 
-_torch: Any
-_nn: Any
 try:
     import torch as _torch
     import torch.nn as _nn
 except ModuleNotFoundError:  # pragma: no cover - optional dependency boundary
-    _torch = None
-    _nn = None
+    _torch = None  # type: ignore[assignment]
+    _nn = None  # type: ignore[assignment]
 
 _PROBABILITY_STATUS: Final[Literal["model_score_uncalibrated"]] = "model_score_uncalibrated"
 _CALIBRATION_STATUS: Final[Literal["not_calibrated"]] = "not_calibrated"
