@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
+from typing import Any
 from unittest import mock
 
 import numpy as np
@@ -60,9 +61,10 @@ def labelled_matrix(partition: LabelPartition = "training") -> BoostedLabelledMa
     )
 
 
+_lgb_installed: Any
 try:
-    import lightgbm as _lgb_installed  # type: ignore[import-not-found]
-except ImportError:
+    import lightgbm as _lgb_installed
+except ModuleNotFoundError:
     _lgb_installed = None
 
 _requires_lightgbm = pytest.mark.skipif(

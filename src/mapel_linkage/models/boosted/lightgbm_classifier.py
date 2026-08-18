@@ -27,8 +27,9 @@ from mapel_linkage.models.boosted.training import BoostedFeatureMatrix, BoostedL
 from mapel_linkage.models.boosted.xgboost_classifier import BoostedTreeScoreResult
 from mapel_linkage.validation import PairValidationReport, evaluate_binary_scores
 
+_lightgbm: Any
 try:
-    import lightgbm as _lightgbm  # type: ignore[import-not-found]
+    import lightgbm as _lightgbm
 except ModuleNotFoundError:  # pragma: no cover - exercised by optional-dependency tests.
     _lightgbm = None
 

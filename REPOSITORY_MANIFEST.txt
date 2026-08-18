@@ -88,6 +88,11 @@ add203d101fd1db4d7ab143b2919fa43cc211aaa4e14c37a91c598935890a666      6170  src/
 eead05c82c9c7a791bc8ff68f23d3f3fc22e8da94e1e3a0d60ab31feea52895c      4752  src/mapel_linkage/candidate_generation/predicates.py
 d28bb3e79049150b43cae3ac30021a23e448d2f096a997e8b3a385d650dcfe3b        38  src/mapel_linkage/cli/__init__.py
 9b40941e03b410a26ffce6ba98f88e315663ced3a36fe8f6c3090e6e2d01d571      8406  src/mapel_linkage/cli/main.py
+973632cc81a2ea85dabb4366b8beabfe62d924c98fd153f4bf432493cfc4550c      1707  src/mapel_linkage/clustering/__init__.py
+dd24c58d4dafc751c28720b52ac3eaff683c4eaf9094b3e2acfba1178d7c544e     22400  src/mapel_linkage/clustering/contracts.py
+5a815968cfb2348b0ecd3740bcf608dcadeaf71431903cec84eda1e405c4e1b2     24639  src/mapel_linkage/clustering/metrics.py
+c30d5bcc577e3f49de6bdec910314353db8e304e1390f6785a764bf5fc09bb5e      7604  src/mapel_linkage/clustering/resolver.py
+fb3434e26c95a8332a8727dafa694e946fd1c4884ef4f3facbd58daf6e132411     13073  src/mapel_linkage/clustering/solvers.py
 32d88eb171cf44d47ff086aa4975c85b1fddbc2715c62755073756f6995267b8       319  src/mapel_linkage/comparisons/__init__.py
 57decfbadece3dd2f919a1bd9f9d6822500ee10416140e845867cb64fcde4222     15276  src/mapel_linkage/comparisons/duckdb_features.py
 4d7eeeb89b3287090c502d9aba7297116e4722ae503193edda8a5917cdaf45c4       698  src/mapel_linkage/configuration/__init__.py
@@ -98,8 +103,8 @@ c836d7663717a33024352345baeb87e47bfd7838b6b402e9432e7480479561a6      3682  src/
 e02ab3dba5a722ae7cbf3ce943ee1ce94965f513b863e4c8b524327fdfb3739d       646  src/mapel_linkage/configuration/schema.py
 746af94435cd7aab236528e6f4e21c0e9d0a3f588860acbe325fe0397bb4116e       388  src/mapel_linkage/decisions/__init__.py
 6d338745457e348a86c26374846f1ee2e6fcfc522870aaea2f362f03cf88d92c     23568  src/mapel_linkage/decisions/policy.py
-7cdf1a76894e4e3f92e934f011db5251e7bd3a89240f7966c2f53f5e7ac39f13      1327  src/mapel_linkage/domain/__init__.py
-8e686a1a262bb2aa5ea5250d1d642f35fcd4465e1d122a08aa511b5b45a7fb9e      3382  src/mapel_linkage/domain/errors.py
+aee0b61d44fcdfd06a322cb73ca9ab0cbe367f6bdc6ac662eba77ab86105b826      1371  src/mapel_linkage/domain/__init__.py
+24430a10b3cbb6658cb2d18bcce0a55db92a87b10bcc18da39541cdd301d13d9      3502  src/mapel_linkage/domain/errors.py
 64afece082f46b75f408e46eecd1e6006e0847e83b9307e2c5616c9eca2b0fef      1281  src/mapel_linkage/domain/sql_identifiers.py
 80ecb98c0505a15992b02de732dfd8fb7e3beda3078d19db0fdb8ce1aa6ca810      1034  src/mapel_linkage/domain/table_refs.py
 d148e228aa4fe4ba7a6a20bcdadd437fa761c776dfa8f3918d6442bb60a7690a       927  src/mapel_linkage/governance/__init__.py
@@ -113,7 +118,7 @@ b745927bb99cee8fa3bf61149060d484219c63a8ad52be187754dd1d5ad33255      2123  src/
 2783704520750043fcd34db9b99fb18902c771dcfe6974aa04a9b9997d8afd70     10020  src/mapel_linkage/io/duckdb_store.py
 ddfccca3acc252082b5b0de6568ef6d5016644fd22d8ead1dff86352c80a1f1e      3182  src/mapel_linkage/models/__init__.py
 77c54230213751f879e5667feea15c6e6417eeacba1e5dc5e6a477f98c95c65e      1065  src/mapel_linkage/models/boosted/__init__.py
-e14f9c08f2df6260be5f85fa3499a82d70229f37a14af3bf900cbca9e4f5a276     23133  src/mapel_linkage/models/boosted/lightgbm_classifier.py
+8d45a807ad4f0f36d5c98edfb172dc4eceab5263b678935ffff1d1c992ed3ac0     23114  src/mapel_linkage/models/boosted/lightgbm_classifier.py
 e9b80a50bf0d2c70b7df58ecf88fe05e726877771ed7b4136fb737238453d8b4     19292  src/mapel_linkage/models/boosted/training.py
 1d0e105864c4600ae83e25fbeb6d213e88e2db41c9cc91c3e2b9883eae53493b     23949  src/mapel_linkage/models/boosted/xgboost_classifier.py
 4bfcaca1fc3bb08570c3af0c960445d206fcfffee3b846be73f5a7e316dd3db0       424  src/mapel_linkage/models/ensembles/__init__.py
@@ -122,11 +127,11 @@ e9b80a50bf0d2c70b7df58ecf88fe05e726877771ed7b4136fb737238453d8b4     19292  src/
 a55a79dd5cfef03b4d9d407f587fefbb91f423babacf49a9c3e0d8a1a6d1d03d     26964  src/mapel_linkage/models/fellegi_sunter/reference.py
 5ec64419862f80ef4c8690c619efbeae9d224d25d54400d17ab9b56b067e13c2     18870  src/mapel_linkage/models/fellegi_sunter/splink_adapter.py
 ef239cc8552812ea75384fd6d19afd8f0125dbf52a56349d963f38d45c4b7b53       418  src/mapel_linkage/models/neural/__init__.py
-8d78ab8d2e1a92c52b01e577d9db11bbde498d5e909fca559a5c8f5130ef102b     20663  src/mapel_linkage/models/neural/pytorch_matcher.py
+0e7c2b4c425fddfb2b0c974aace6429b74da40f58d71c701801b1c4716e1e193     20616  src/mapel_linkage/models/neural/pytorch_matcher.py
 67144e1073a5dd702f9135895394a318cda827688ab6d062f5cdf713b38363ad      1237  src/mapel_linkage/models/ranking/__init__.py
 27ff65f8f6453f58397910b96ebde446011fa1dd5efd9ab5a498ff56e5bd46b0      5680  src/mapel_linkage/models/ranking/artifacts.py
 65605440df001c1ce2770ac61da385e24bf2c9ba8fc80e1ab25f33095aee7865     22167  src/mapel_linkage/models/ranking/contracts.py
-6be16855a5eab9d306781c1a5c6c782fcc9009f8422e2c0392e8f31df402fc1e     11782  src/mapel_linkage/models/ranking/lightgbm_ranker.py
+f13e1aaec8efd14862b178a05da9857f2ddf177b41ae2c19439343443c1ae2f9     11771  src/mapel_linkage/models/ranking/lightgbm_ranker.py
 b023e760fb4d40cd3cda40ee5d23961bf45d3fe59795e2baeed9ace7c175d58c      4981  src/mapel_linkage/models/ranking/training.py
 c0162e1591e511dc19f6b7bf5c4201b94a003df5b69db85a02fd4d32af479f7d      7098  src/mapel_linkage/models/ranking/xgboost_ranker.py
 d80d5787547d36180de1132becb651aaf3246529c9177f0f67ec98dfd4b7597d       347  src/mapel_linkage/pipeline/__init__.py
@@ -166,6 +171,11 @@ b01f8ce77516bcdfa1cd815ac3eea289ff00f432f7dec8ee75eb791d97766c22      4808  test
 9e9fcd2fdf027febac8a7d02c8eb96214fc7651307937047da306c724a5b31ad      7585  tests/calibration/test_beta_calibration.py
 1c5e1b0c302ab7ca9f0f295da20cc3017b355dee2a49d34fee851e7c8f1aeebb      8398  tests/calibration/test_calibration_and_selection.py
 3b18f4b0188980cad5073a7f671d6de16fcae62e3f8b1813731be42c9d93ce2d      5438  tests/candidate_generation/test_duckdb_candidate_generator.py
+d5e4514070d8b6edf7e432f0b5d1a749e9b0847f2848ff02bc075bf7f068e141        31  tests/clustering/__init__.py
+86e4b2f07cb83ab0733e580aead06ecd0ca313ed93d1d0ea2a03f87c077cffee     10538  tests/clustering/test_bcubed_metrics.py
+6960cd198a3f5ce902310319da9ec889e6d3a51602724466a5cb2fd73071ee3a      8908  tests/clustering/test_cannot_link_constraints.py
+54ae8817af61407997c4aaf62046480ab5476f183408934a4e2502828182de38     10825  tests/clustering/test_graph_solvers.py
+4ef53e4a887e851233efbd3d5d1642084447056cbeba54d9f5b28be466ad2360     10515  tests/clustering/test_multisource_resolver.py
 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855         0  tests/comparisons/__init__.py
 5e09471b7ff70d3d94b7e1b7133e9e2285fedac9eea2742fa3b37ca1ea329419     10983  tests/comparisons/test_duckdb_features.py
 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855         0  tests/configuration/__init__.py
@@ -182,7 +192,7 @@ e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855         0  test
 a42630085c465a40eae91c1d91c368b4dc890ffe111db710c637ebfe2fcef348       586  tests/helpers.py
 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855         0  tests/models/__init__.py
 407c7491b06ebc308e2e8acb4b33a9d5cfe316e41819b2a78c2a0bec3089d00e      5469  tests/models/boosted/helpers.py
-58e4e32520feab83c57c6a312762877fdcfb1e66b7b6e44336335d499f37a136      9721  tests/models/boosted/test_lightgbm_classifier.py
+f2a3be2bfc24353f3cf515b2aa7fe8a1ae6b475717438923bf849175140e5d21      9738  tests/models/boosted/test_lightgbm_classifier.py
 abb46fb235e6889ca10e71dcc47992a8fc22fe5142ae35e6d14567d9028a5fd3      3559  tests/models/boosted/test_training.py
 1c2424436e946a18bbbf914b94957520d3a20e8f466b70a6d3e519a24e03652c     10956  tests/models/boosted/test_xgboost_classifier.py
 3b6b6a9a27642d28bd1523b7d3c1970e6853f44d548f6f220957e42117f0bfdd      6226  tests/models/ensembles/test_stacking.py
@@ -190,8 +200,8 @@ e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855         0  test
 6729890b2c224f36cbbe209f52c31c2c5694bab3edca8aeca8ec21607f694757     10028  tests/models/fellegi_sunter/test_reference.py
 05e22772482bb0b78289fb4d3f94c741b16394b1c9c42c4e0d82276e69979b92      3432  tests/models/fellegi_sunter/test_splink_adapter.py
 d9050ccd2d5243ba27e1dfe6af9ce2a2dc5678a9b1514376cb559f4145661ecd      5462  tests/models/fellegi_sunter/test_splink_candidate_parity.py
-e4690e4986b9229a49c4f1a63e840d7c02f6af3baaaa9e9ba8e0d84f59aeb920      6494  tests/models/neural/test_pytorch_matcher.py
-6fc9b85d8dc1f81a521370a76f4afe21e5b14f7e7b1756acc00089c504c4c468      6771  tests/models/ranking/test_lightgbm_ranker.py
+83897a68f8c46a0c935dc7ba2cd8f5a268ae3f31c7710e4eab6ac78d82f52aab      6513  tests/models/neural/test_pytorch_matcher.py
+48a9ddbada690eb2098d6199667b1643cd96163b726b7f0768b3bcd33fa86222      6788  tests/models/ranking/test_lightgbm_ranker.py
 310030ea60fc89f435df3dc9f17bde779c9a7e0826fb356304cdb57ba1552fd3      7139  tests/models/ranking/test_xgboost_ranker.py
 a3c344e0c06bd93aabd6976829a2c18e4f8feeeb7a82986e3619bf2daf55610a      2107  tests/pipeline/test_local_workspace.py
 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855         0  tests/preprocessing/__init__.py

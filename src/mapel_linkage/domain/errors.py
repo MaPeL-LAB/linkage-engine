@@ -90,6 +90,10 @@ class AssignmentError(LinkageRuntimeError):
     """Raised when constrained assignment cannot complete safely."""
 
 
+class ClusteringError(LinkageRuntimeError):
+    """Raised when multi-source clustering or resolution fails safely."""
+
+
 class DecisionPolicyError(LinkageRuntimeError):
     """Raised when relationship decision evidence violates its contract."""
 

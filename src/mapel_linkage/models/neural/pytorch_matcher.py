@@ -27,9 +27,11 @@ from mapel_linkage.models.boosted.training import BoostedFeatureMatrix, BoostedL
 from mapel_linkage.models.boosted.xgboost_classifier import BoostedTreeScoreResult
 from mapel_linkage.validation import PairValidationReport, evaluate_binary_scores
 
+_torch: Any
+_nn: Any
 try:
-    import torch as _torch  # type: ignore[import-not-found]
-    import torch.nn as _nn  # type: ignore[import-not-found]
+    import torch as _torch
+    import torch.nn as _nn
 except ModuleNotFoundError:  # pragma: no cover - optional dependency boundary
     _torch = None
     _nn = None
