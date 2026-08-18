@@ -173,6 +173,7 @@ def read_calibrator_artifact(
     expected_payload_keys = {
         "sigmoid": {"method", "slope", "intercept", "score_clip", "iterations", "converged"},
         "isotonic": {"method", "lower_bounds", "upper_bounds", "probabilities"},
+        "beta": {"method", "alpha", "beta", "gamma", "score_clip", "iterations", "converged"},
     }
     if (
         method not in expected_payload_keys

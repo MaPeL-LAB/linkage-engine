@@ -5,13 +5,21 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Literal
 
+from mapel_linkage.calibration.calibrators import (
+    BetaCalibrator,
+    IsotonicCalibrator,
+    SigmoidCalibrator,
+)
 from mapel_linkage.calibration.contracts import (
+    CalibrationMethod,
+    CalibratorArtifact,
     ChampionSelection,
     ModelEvaluationCandidate,
+    PairScoreBatch,
     canonical_digest,
 )
 from mapel_linkage.configuration.models import ModelSelectionConfig
-from mapel_linkage.domain.errors import ModelSelectionError
+from mapel_linkage.domain.errors import CalibrationError, ModelSelectionError
 
 
 class ChampionChallengerSelector:
@@ -103,3 +111,48 @@ class ChampionChallengerSelector:
             selection_digest=canonical_digest(payload),
             candidate_summaries=candidate_summaries,
         )
+
+
+class ChampionCalibratorSelector:
+    """Select the champion probability calibrator on the protected calibration partition."""
+
+    @staticmethod
+    def select(
+        batch: PairScoreBatch,
+        selection: ChampionSelection,
+        *,
+        methods: Sequence[CalibrationMethod] = ("sigmoid", "isotonic", "beta"),
+        primary_metric: Literal["brier_score", "expected_calibration_error"] = "brier_score",
+    ) -> CalibratorArtifact:
+        artifacts: list[CalibratorArtifact] = []
+        for method in methods:
+            if method == "sigmoid":
+                artifacts.append(SigmoidCalibrator.fit(batch, selection))
+            elif method == "isotonic":
+                artifacts.append(IsotonicCalibrator.fit(batch, selection))
+            elif method == "beta":
+                artifacts.append(BetaCalibrator.fit(batch, selection))
+            else:
+                raise CalibrationError("ML-CAL-029", f"Unknown calibration method: {method}")
+        if not artifacts:
+            raise CalibrationError("ML-CAL-044", "No calibrator candidates were provided.")
+
+        if primary_metric == "brier_score":
+            ordered = sorted(
+                artifacts,
+                key=lambda a: (
+                    a.diagnostics.brier_score,
+                    a.diagnostics.expected_calibration_error,
+                    a.method,
+                ),
+            )
+        else:
+            ordered = sorted(
+                artifacts,
+                key=lambda a: (
+                    a.diagnostics.expected_calibration_error,
+                    a.diagnostics.brier_score,
+                    a.method,
+                ),
+            )
+        return ordered[0]

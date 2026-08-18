@@ -1,5 +1,41 @@
-"""Restricted review queue and later adjudication lifecycle."""
+"""Restricted review queue and human adjudication lifecycle."""
 
+from mapel_linkage.adjudication.active_learning import (
+    ActiveLearningConfig,
+    ActiveLearningScore,
+    ActiveLearningStrategy,
+    PrioritizedReviewQueue,
+    calculate_committee_disagreement,
+    calculate_margin_score,
+    calculate_uncertainty_score,
+    prioritize_review_queue,
+    score_review_entry,
+)
+from mapel_linkage.adjudication.disagreement import (
+    ConsensusMethod,
+    ConsensusPolicy,
+    ConsensusResult,
+    DisagreementReport,
+    ReviewConflict,
+    evaluate_disagreements,
+    resolve_pair_consensus,
+)
+from mapel_linkage.adjudication.promotion import (
+    PromotionConfig,
+    PromotionEvaluation,
+    PromotionSummary,
+    evaluate_promotion_batch,
+    evaluate_promotion_eligibility,
+    promote_to_verified_batch,
+)
+from mapel_linkage.adjudication.review_import import (
+    AdjudicationOutcome,
+    AdjudicationRecord,
+    ImportedAdjudicationBatch,
+    import_adjudication_records,
+    import_adjudications_from_csv,
+    import_adjudications_from_jsonl,
+)
 from mapel_linkage.adjudication.review_queue import (
     ReviewQueue,
     ReviewQueueEntry,
@@ -9,9 +45,37 @@ from mapel_linkage.adjudication.review_queue import (
 )
 
 __all__ = [
+    "ActiveLearningConfig",
+    "ActiveLearningScore",
+    "ActiveLearningStrategy",
+    "AdjudicationOutcome",
+    "AdjudicationRecord",
+    "ConsensusMethod",
+    "ConsensusPolicy",
+    "ConsensusResult",
+    "DisagreementReport",
+    "ImportedAdjudicationBatch",
+    "PrioritizedReviewQueue",
+    "PromotionConfig",
+    "PromotionEvaluation",
+    "PromotionSummary",
+    "ReviewConflict",
     "ReviewQueue",
     "ReviewQueueEntry",
     "WrittenReviewQueue",
     "build_review_queue",
+    "calculate_committee_disagreement",
+    "calculate_margin_score",
+    "calculate_uncertainty_score",
+    "evaluate_disagreements",
+    "evaluate_promotion_batch",
+    "evaluate_promotion_eligibility",
+    "import_adjudication_records",
+    "import_adjudications_from_csv",
+    "import_adjudications_from_jsonl",
+    "prioritize_review_queue",
+    "promote_to_verified_batch",
+    "resolve_pair_consensus",
+    "score_review_entry",
     "write_review_queue",
 ]

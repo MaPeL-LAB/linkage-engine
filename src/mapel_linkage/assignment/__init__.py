@@ -1,4 +1,4 @@
-"""Explicit no-match assignment solvers."""
+"""Explicit no-match assignment solvers and deduplication."""
 
 from mapel_linkage.assignment.contracts import (
     AssignedEdge,
@@ -7,7 +7,17 @@ from mapel_linkage.assignment.contracts import (
     AssignmentResult,
     pair_digest,
 )
+from mapel_linkage.assignment.deduplication import (
+    DeduplicationPlan,
+    DeduplicationResult,
+    DuplicateCluster,
+    IntraSourceDeduplicator,
+    LinkAndDedupeResolver,
+    LinkAndDedupeResult,
+)
 from mapel_linkage.assignment.solvers import (
+    ManyToOneAssignmentSolver,
+    OneToManyAssignmentSolver,
     OrToolsOneToOneAssignmentSolver,
     ScipyOneToOneAssignmentSolver,
     UnconstrainedAssignmentSolver,
@@ -18,6 +28,14 @@ __all__ = [
     "AssignmentEdgeBatch",
     "AssignmentPlan",
     "AssignmentResult",
+    "DeduplicationPlan",
+    "DeduplicationResult",
+    "DuplicateCluster",
+    "IntraSourceDeduplicator",
+    "LinkAndDedupeResolver",
+    "LinkAndDedupeResult",
+    "ManyToOneAssignmentSolver",
+    "OneToManyAssignmentSolver",
     "OrToolsOneToOneAssignmentSolver",
     "ScipyOneToOneAssignmentSolver",
     "UnconstrainedAssignmentSolver",

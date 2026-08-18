@@ -253,7 +253,8 @@
         "method": {
           "enum": [
             "sigmoid",
-            "isotonic"
+            "isotonic",
+            "beta"
           ],
           "title": "Method",
           "type": "string"

@@ -25,6 +25,7 @@ from mapel_linkage.assignment import (
     pair_digest,
 )
 from mapel_linkage.calibration import (
+    BetaCalibrator,
     ChampionChallengerSelector,
     IsotonicCalibrator,
     ModelEvaluationCandidate,
@@ -516,6 +517,8 @@ def _calibrated_all_candidates(
         raise PipelineError("ML-PIPE-010", "Candidate score coverage is incomplete.") from None
     if artifact.method == "sigmoid":
         probabilities = SigmoidCalibrator.apply(raw, artifact)
+    elif artifact.method == "beta":
+        probabilities = BetaCalibrator.apply(raw, artifact)
     else:
         probabilities = IsotonicCalibrator.apply(raw, artifact)
     return CalibratedScoreBatch(
@@ -896,6 +899,8 @@ class SyntheticVerticalSliceRunner:
             )
             if plan.config.calibration.method == "sigmoid":
                 calibrator = SigmoidCalibrator.fit(calibration_batch, selection)
+            elif plan.config.calibration.method == "beta":
+                calibrator = BetaCalibrator.fit(calibration_batch, selection)
             else:
                 calibrator = IsotonicCalibrator.fit(calibration_batch, selection)
             decision_batch = _pair_score_batch(
@@ -911,6 +916,8 @@ class SyntheticVerticalSliceRunner:
             )
             if calibrator.method == "sigmoid":
                 decision_probabilities = SigmoidCalibrator.apply(decision_batch.scores, calibrator)
+            elif calibrator.method == "beta":
+                decision_probabilities = BetaCalibrator.apply(decision_batch.scores, calibrator)
             else:
                 decision_probabilities = IsotonicCalibrator.apply(decision_batch.scores, calibrator)
             decision_threshold_report = evaluate_configured_decision_thresholds(
@@ -1109,6 +1116,8 @@ class SyntheticVerticalSliceRunner:
             )
             if calibrator.method == "sigmoid":
                 test_probabilities = SigmoidCalibrator.apply(test_batch.scores, calibrator)
+            elif calibrator.method == "beta":
+                test_probabilities = BetaCalibrator.apply(test_batch.scores, calibrator)
             else:
                 test_probabilities = IsotonicCalibrator.apply(test_batch.scores, calibrator)
             test_pair_report = replace(
