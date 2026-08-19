@@ -37,31 +37,24 @@ jobs:
 
           path = Path("src/mapel_linkage/clustering/contracts.py")
           text = path.read_text(encoding="utf-8")
-          marker = '''    def to_crosswalk_records(self) -> list[dict[str, Any]]:
-              return [entry.to_dict() for entry in self.crosswalk_entries]
-
-              def safe_summary(self) -> dict[str, Any]:
-          '''.replace("              ", "")
-          replacement = '''    def to_crosswalk_records(self) -> list[dict[str, Any]]:
-              return [entry.to_dict() for entry in self.crosswalk_entries]
-
-              def __repr__(self) -> str:
-              return (
-                  f"MultiSourceResolutionResult(algorithm={self.algorithm!r}, "
-                  f"total_records={self.total_records}, "
-                  f"total_clusters={self.total_clusters}, "
-                  f"singleton_count={self.singleton_count}, "
-                  f"multi_record_cluster_count={self.multi_record_cluster_count}, "
-                  f"cannot_link_violations={self.cannot_link_violations}, "
-                  f"source_collision_count={self.source_collision_count}, "
-                  f"resolution_digest={self.resolution_digest!r})"
-              )
-
-              def safe_summary(self) -> dict[str, Any]:
-          '''.replace("              ", "")
-          if text.count(marker) != 1:
-              raise SystemExit("multi-source result representation marker was not found exactly once")
-          path.write_text(text.replace(marker, replacement, 1), encoding="utf-8")
+          class_start = text.index("class MultiSourceResolutionResult:\n")
+          insert_at = text.index("    def safe_summary(self) -> dict[str, Any]:\n", class_start)
+          representation = (
+              "    def __repr__(self) -> str:\n"
+              "        return (\n"
+              "            f\"MultiSourceResolutionResult(algorithm={self.algorithm!r}, \"\n"
+              "            f\"total_records={self.total_records}, \"\n"
+              "            f\"total_clusters={self.total_clusters}, \"\n"
+              "            f\"singleton_count={self.singleton_count}, \"\n"
+              "            f\"multi_record_cluster_count={self.multi_record_cluster_count}, \"\n"
+              "            f\"cannot_link_violations={self.cannot_link_violations}, \"\n"
+              "            f\"source_collision_count={self.source_collision_count}, \"\n"
+              "            f\"resolution_digest={self.resolution_digest!r})\"\n"
+              "        )\n\n"
+          )
+          if "    def __repr__(self) -> str:\n" in text[class_start:insert_at]:
+              raise SystemExit("multi-source result already defines an explicit representation")
+          path.write_text(text[:insert_at] + representation + text[insert_at:], encoding="utf-8")
           PY
           rm .github/workflows/fix-multisource-safe-repr-once.yml
       - name: Install core, LightGBM, CPU PyTorch, and development tools
