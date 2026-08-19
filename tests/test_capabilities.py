@@ -17,8 +17,7 @@ def test_capability_registry_is_unique_and_never_claims_operational_validation()
 
     assert len(identifiers) == len(set(identifiers))
     assert all(
-        item.safe_summary()["operational_validation"] == "not_established"
-        for item in registered
+        item.safe_summary()["operational_validation"] == "not_established" for item in registered
     )
     assert all(item.safe_summary()["merge_authority"] == "none" for item in registered)
 
@@ -41,10 +40,7 @@ def test_optional_model_capabilities_require_all_models_ci() -> None:
         "lightgbm_candidate_ranker",
         "pytorch_tabular_matcher",
     ):
-        assert (
-            by_id[capability_id].runtime_verification
-            is RuntimeVerificationStatus.ALL_MODELS_CI
-        )
+        assert by_id[capability_id].runtime_verification is RuntimeVerificationStatus.ALL_MODELS_CI
 
 
 def test_capability_summary_is_aggregate_only() -> None:

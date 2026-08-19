@@ -35,8 +35,7 @@ def test_status_json_is_machine_readable_and_safe(capsys: pytest.CaptureFixture[
         for item in payload["capabilities"]
     )
     assert all(
-        item["operational_validation"] == "not_established"
-        for item in payload["capabilities"]
+        item["operational_validation"] == "not_established" for item in payload["capabilities"]
     )
 
 

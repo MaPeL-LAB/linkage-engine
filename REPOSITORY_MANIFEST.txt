@@ -91,7 +91,7 @@ add203d101fd1db4d7ab143b2919fa43cc211aaa4e14c37a91c598935890a666      6170  src/
 eead05c82c9c7a791bc8ff68f23d3f3fc22e8da94e1e3a0d60ab31feea52895c      4752  src/mapel_linkage/candidate_generation/predicates.py
 8d38e75787424447ef7be8a35ca24e1d4f69405ea28f142579bb75451578c6c0     13665  src/mapel_linkage/capabilities.py
 d28bb3e79049150b43cae3ac30021a23e448d2f096a997e8b3a385d650dcfe3b        38  src/mapel_linkage/cli/__init__.py
-d8803804b2caae2c1407390a7d9a8bd7a0578bbebf8bf4778e42d69879347ccb     10110  src/mapel_linkage/cli/main.py
+c069cfeb58a197f2f05994d956d6e046735fb821112b383a6023ea2cd284b74e     10096  src/mapel_linkage/cli/main.py
 973632cc81a2ea85dabb4366b8beabfe62d924c98fd153f4bf432493cfc4550c      1707  src/mapel_linkage/clustering/__init__.py
 dd24c58d4dafc751c28720b52ac3eaff683c4eaf9094b3e2acfba1178d7c544e     22400  src/mapel_linkage/clustering/contracts.py
 5a815968cfb2348b0ecd3740bcf608dcadeaf71431903cec84eda1e405c4e1b2     24639  src/mapel_linkage/clustering/metrics.py
@@ -142,7 +142,7 @@ c0162e1591e511dc19f6b7bf5c4201b94a003df5b69db85a02fd4d32af479f7d      7098  src/
 2c1db2f2981fe245868265a273699f293d5ce3e421c4b393f3a6c089bdf319a5      3010  src/mapel_linkage/pipeline/contracts.py
 4911f368f43b6b5d70eed114845ffaeab29a000da6d501a76068f1ee7dfb9381      1796  src/mapel_linkage/pipeline/io.py
 4ffc154886560809708779b6a52e7e944dd7c655227a8cc35d9bd7fc3ce276c4      6554  src/mapel_linkage/pipeline/local_workspace.py
-0ca1d05bd8cbe4b47db141a6c34e3e0e300d794f55785c146f35fa0e0850f273      7047  src/mapel_linkage/pipeline/recipes.py
+93dbe6af4ac8c0f64b4c05939b64884b6c5925b919b8cc87cfe6dabd1ce5537b      6993  src/mapel_linkage/pipeline/recipes.py
 6be7bf1ed3311fc556a37d9dec4dd5ac58b724eedc66013919f0eee0cb752553     55286  src/mapel_linkage/pipeline/synthetic_vertical_slice.py
 1b69704b26fc80a044fd19cc54ee3e2bde70262bd2d4f5747c8a85735a777c66       618  src/mapel_linkage/preprocessing/__init__.py
 20f76beeb7007988ebcd2e356228038c952c0f409a5732246fd918146f49e653      8256  src/mapel_linkage/preprocessing/dataset_preparer.py
@@ -220,8 +220,8 @@ dac69565a6060e678eb74c1af2447976a551472b7cf792cf69371ceabb66c1f5      3264  test
 1e6c40bf65d188ae5555daea57fd35e18815a3eae57b8a3161f2eda3732894a5      2448  tests/privacy/test_m2e_privacy_boundary.py
 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855         0  tests/synthetic/__init__.py
 48b362b15aef71f9cc0f467ac319e32b3c896457b26646bac500dd1e2d6fa51c      5050  tests/synthetic/test_generator.py
-3010bead0d077a2f6f1146db8333285b174bff26cf2d3a3671d6468c169a3072      2329  tests/test_capabilities.py
-0b2c283c23ee07b0bf13d53876d87df6e3bf392c4798d82c5a310e9a2eec55fb      4588  tests/test_cli.py
+e575a2d0e49111212921b6ab6b3a39c83b01f9e7600567117944e6a2bf9ffc06      2285  tests/test_capabilities.py
+6d21d5f0089c5fcb953566392e98a448f2ae91f328b77d6be80fe4d4a0dc2f4e      4580  tests/test_cli.py
 86886348c9aec0346cfe274a79b309e0e85478b14faa7f8c75dd47eabbf430c2       138  tests/test_package_metadata.py
 a0bfbf53704b9fdfdbb8b7af883611dccec759c1de67277f6748a621c87215a4      1305  tests/test_repository_boundaries.py
 a9ef2757db7756db4cca6918903b052feae63cb3a2852afaadcb9abed1e99893      1918  tests/validation/test_pair_metrics.py

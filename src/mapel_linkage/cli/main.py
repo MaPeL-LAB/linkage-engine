@@ -138,9 +138,7 @@ def _status(namespace: argparse.Namespace) -> int:
             )
         return 0
 
-    integrated_count = sum(
-        item.workflow_status is WorkflowStatus.INTEGRATED for item in registered
-    )
+    integrated_count = sum(item.workflow_status is WorkflowStatus.INTEGRATED for item in registered)
     component_only_count = sum(
         item.workflow_status is WorkflowStatus.COMPONENT_ONLY for item in registered
     )

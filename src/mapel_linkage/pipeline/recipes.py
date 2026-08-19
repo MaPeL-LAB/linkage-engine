@@ -109,8 +109,7 @@ class PipelineRecipeArtifact:
             _require_digest(self.ranking_artifact_digest)
         if (
             self.approval_status is RecipeApprovalStatus.APPROVED_FOR_INFERENCE
-            and self.operational_validation
-            is not OperationalValidationStatus.LOCALLY_ESTABLISHED
+            and self.operational_validation is not OperationalValidationStatus.LOCALLY_ESTABLISHED
         ):
             raise PipelineError(
                 "ML-RECIPE-003",
@@ -156,8 +155,7 @@ class PipelineRecipeArtifact:
             return
         if (
             self.approval_status is not RecipeApprovalStatus.APPROVED_FOR_INFERENCE
-            or self.operational_validation
-            is not OperationalValidationStatus.LOCALLY_ESTABLISHED
+            or self.operational_validation is not OperationalValidationStatus.LOCALLY_ESTABLISHED
         ):
             raise PipelineError(
                 "ML-RECIPE-005",
@@ -178,9 +176,7 @@ class PipelineRecipeArtifact:
             "operational_validation": self.operational_validation.value,
             "decision_authority": self.decision_authority,
             "merge_authority": self.merge_authority,
-            "ranking_artifact": (
-                "present" if self.ranking_artifact_digest is not None else None
-            ),
+            "ranking_artifact": ("present" if self.ranking_artifact_digest is not None else None),
         }
 
 
