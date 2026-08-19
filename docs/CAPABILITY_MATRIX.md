@@ -18,7 +18,7 @@ No current capability has established operational validation.
 | `isotonic_calibration` | M2 | implemented | workflow_integrated | core_ci | Fits only on the protected calibration partition. |
 | `beta_calibration` | M5 | implemented | workflow_integrated | core_ci | Configurable alternative using the protected calibration partition. |
 | `one_to_one_assignment` | M2 | implemented | workflow_integrated | core_ci | OR-Tools is the primary solver; SciPy provides a small-problem reference. |
-| `adjudication_lifecycle` | M3 | implemented | component_only | core_ci | Implemented below the CLI boundary; no automatic retraining is permitted. |
+| `adjudication_audit_ledger` | M3 | implemented | workflow_integrated | core_ci | Immutable append-only audit ledger, multi-reviewer consensus, and label promotion workflow integrated. |
 | `active_learning_queue` | M3 | implemented | component_only | core_ci | Ordering authority only; unknown pairs are not silently relabelled. |
 | `many_to_one_assignment` | M4 | implemented | component_only | core_ci | Solver and invariant tests exist; general orchestration is pending. |
 | `one_to_many_assignment` | M4 | implemented | component_only | core_ci | Solver and invariant tests exist; general orchestration is pending. |
@@ -37,7 +37,8 @@ No current capability has established operational validation.
 | `approved_recipe_inference` | I1 | implemented | workflow_integrated | core_ci | The immutable recipe approval contract and approved recipe inference workflow integrated. |
 | `stage1_linkage_strategy_advisor` | I2A | implemented | workflow_integrated | core_ci | Configuration-only profiling, hard eligibility, structural Pareto shortlisting, transparent explanations, and explicit empirical abstention. |
 | `synthetic_benchmark_registry` | B1 | implemented | workflow_integrated | core_ci | Parametric scenario generator, benchmark portfolio runner, and file-backed registry persistence. |
-| `linkage_strategy_advisor` | I2B-I2D | planned | not_integrated | not_verified | Nearest-family retrieval, OOD detection, learned meta-ranking, and active benchmark planning remain evidence-gated future stages. |
+| `stage2_similarity_advisor` | I2B | implemented | workflow_integrated | core_ci | Nearest scenario family retrieval, weighted distance computation, out-of-distribution thresholding, empirical performance distribution aggregation, and strict advisory invariants. |
+| `linkage_strategy_advisor` | I2C-I2D | planned | not_integrated | not_verified | Learned meta-ranking and active benchmark planning remain evidence-gated future stages. |
 
 ## Current integrated workflow
 

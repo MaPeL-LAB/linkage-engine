@@ -10,10 +10,16 @@ from pathlib import Path
 from pydantic import ValidationError
 
 from mapel_linkage import __version__
+from mapel_linkage.adjudication import (
+    AdjudicationWorkflowRunner,
+    import_adjudications_from_csv,
+    import_adjudications_from_jsonl,
+)
 from mapel_linkage.benchmarking import (
     BenchmarkPortfolioRunner,
     BenchmarkRegistry,
     BenchmarkScenarioGenerator,
+    generate_and_run_seed_corpus,
 )
 from mapel_linkage.capabilities import WorkflowStatus, capabilities, capability_summary
 from mapel_linkage.configuration import (
@@ -31,6 +37,7 @@ from mapel_linkage.recommendation import (
     AdvisorContext,
     RecommendationIntent,
     RuntimeDependency,
+    SimilarityLinkageAdvisor,
     recommend_pipeline,
 )
 from mapel_linkage.synthetic import SyntheticGenerationConfig
@@ -111,7 +118,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     recommend = subparsers.add_parser(
         "recommend-pipeline",
-        help="Produce an advisory Stage-1 structural pipeline shortlist.",
+        help="Produce an advisory Stage-1 or Stage-2 structural pipeline shortlist.",
     )
     recommend.add_argument("--config", metavar="CONFIG", required=True)
     recommend.add_argument("--project-root", metavar="ROOT", default=".")
@@ -119,6 +126,18 @@ def build_parser() -> argparse.ArgumentParser:
         "--intent",
         choices=tuple(item.value for item in RecommendationIntent),
         default=RecommendationIntent.DEVELOP_NEW_RECIPE.value,
+    )
+    recommend.add_argument(
+        "--method",
+        choices=("structural", "similarity"),
+        default="structural",
+        help="Advisor recommendation method.",
+    )
+    recommend.add_argument(
+        "--registry-dir",
+        metavar="DIR",
+        default=None,
+        help="Path to BenchmarkRegistry directory for similarity advisor.",
     )
     recommend.set_defaults(handler=_recommend_pipeline)
 
@@ -141,6 +160,61 @@ def build_parser() -> argparse.ArgumentParser:
         help="Number of replicates per instance.",
     )
     benchmark.set_defaults(handler=_run_benchmark)
+
+    seed_bm = subparsers.add_parser(
+        "seed-benchmarks",
+        help="Generate standard benchmark scenario families and populate the registry.",
+    )
+    seed_bm.add_argument("--registry-dir", metavar="DIR", required=True)
+    seed_bm.add_argument(
+        "--replicates",
+        type=int,
+        default=2,
+        metavar="N",
+        help="Number of replicates per instance.",
+    )
+    seed_bm.set_defaults(handler=_seed_benchmarks)
+
+    import_rev = subparsers.add_parser(
+        "import-reviews",
+        help="Import reviewer decision batches into the append-only adjudication ledger.",
+    )
+    import_rev.add_argument("--reviews", metavar="FILE", required=True)
+    import_rev.add_argument("--ledger-path", metavar="LEDGER", default=None)
+    import_rev.add_argument("--ledger-id", metavar="ID", default="adjudication-ledger")
+    import_rev.set_defaults(handler=_import_reviews)
+
+    consensus = subparsers.add_parser(
+        "resolve-consensus",
+        help="Resolve multi-reviewer adjudication consensus and identify disagreements.",
+    )
+    consensus.add_argument("--reviews", metavar="FILE", required=True)
+    consensus.add_argument(
+        "--policy",
+        choices=(
+            "majority_vote",
+            "unanimous_only",
+            "senior_reviewer_override",
+            "strict_double_review",
+        ),
+        default="majority_vote",
+    )
+    consensus.add_argument("--threshold", type=float, default=0.5)
+    consensus.set_defaults(handler=_resolve_consensus)
+
+    promote = subparsers.add_parser(
+        "promote-labels",
+        help="Promote consensus decisions into an immutable verified label batch.",
+    )
+    promote.add_argument("--reviews", metavar="FILE", required=True)
+    promote.add_argument("--output", metavar="OUTPUT", required=True)
+    promote.add_argument("--label-source-kind", default="verified_human_adjudication")
+    promote.add_argument(
+        "--partition",
+        choices=("training", "validation", "calibration"),
+        default="training",
+    )
+    promote.set_defaults(handler=_promote_labels)
 
     for command in _PIPELINE_COMMANDS:
         subparser = subparsers.add_parser(
@@ -332,7 +406,21 @@ def _recommend_pipeline(namespace: argparse.Namespace) -> int:
             approved_artifact_model_ids=(),
             benchmark_family_count=0,
         )
-        recommendation = recommend_pipeline(plan, context=context, profile=profile)
+        method = getattr(namespace, "method", "structural")
+        if method == "similarity":
+            registry = (
+                BenchmarkRegistry(Path(namespace.registry_dir))
+                if getattr(namespace, "registry_dir", None)
+                else None
+            )
+            advisor = SimilarityLinkageAdvisor(registry=registry)
+            report = advisor.recommend(plan, context=context, profile=profile)
+            print(json.dumps(report.safe_summary(), sort_keys=True))
+            return 0
+        else:
+            recommendation = recommend_pipeline(plan, context=context, profile=profile)
+            print(json.dumps(recommendation.safe_summary(), sort_keys=True))
+            return 0
     except SafeError as error:
         print(error.render(), file=sys.stderr)
         return 2
@@ -345,7 +433,71 @@ def _recommend_pipeline(namespace: argparse.Namespace) -> int:
             file=sys.stderr,
         )
         return 2
-    print(json.dumps(recommendation.safe_summary(), sort_keys=True))
+
+
+def _seed_benchmarks(namespace: argparse.Namespace) -> int:
+    reg_dir = Path(namespace.registry_dir)
+    replicates = max(1, int(namespace.replicates))
+    registry = generate_and_run_seed_corpus(
+        registry_directory=reg_dir,
+        replicates=replicates,
+    )
+    report = registry.generate_coverage_report()
+    print(
+        json.dumps(
+            {
+                "seed_corpus_report": report.safe_summary(),
+                "registry_dir": str(reg_dir),
+            },
+            sort_keys=True,
+        )
+    )
+    return 0
+
+
+def _import_reviews(namespace: argparse.Namespace) -> int:
+    reviews_path = Path(namespace.reviews)
+    ledger_path = Path(namespace.ledger_path) if namespace.ledger_path else None
+    res = AdjudicationWorkflowRunner.import_reviews(
+        reviews_source=reviews_path,
+        ledger_path=ledger_path,
+        ledger_id=namespace.ledger_id,
+        strict_candidate_check=False,
+    )
+    print(json.dumps(res.safe_summary(), sort_keys=True))
+    return 0
+
+
+def _resolve_consensus(namespace: argparse.Namespace) -> int:
+    reviews_path = Path(namespace.reviews)
+    if reviews_path.suffix.lower() == ".csv":
+        imported = import_adjudications_from_csv(reviews_path)
+    else:
+        imported = import_adjudications_from_jsonl(reviews_path)
+
+    report = AdjudicationWorkflowRunner.resolve_consensus(
+        reviews=imported.records,
+        policy=namespace.policy,
+        agreement_threshold=float(namespace.threshold),
+    )
+    print(json.dumps(report.safe_summary(), sort_keys=True))
+    return 0
+
+
+def _promote_labels(namespace: argparse.Namespace) -> int:
+    reviews_path = Path(namespace.reviews)
+    output_path = Path(namespace.output)
+    if reviews_path.suffix.lower() == ".csv":
+        imported = import_adjudications_from_csv(reviews_path)
+    else:
+        imported = import_adjudications_from_jsonl(reviews_path)
+
+    res = AdjudicationWorkflowRunner.promote_to_verified_labels(
+        consensus_items=imported.records,
+        target_partition=namespace.partition,
+        output_manifest_path=output_path,
+    )
+    print(json.dumps(res.safe_summary(), sort_keys=True))
     return 0
 
 

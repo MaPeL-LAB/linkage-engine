@@ -1,4 +1,4 @@
-"""Public benchmarking tools, contracts, and registry helpers."""
+"""Public benchmarking tools, contracts, runner, and seed corpus generation."""
 
 from mapel_linkage.benchmarking.contracts import (
     BenchmarkAggregateMetrics,
@@ -25,6 +25,9 @@ from mapel_linkage.benchmarking.runner import (
     BenchmarkRecipe,
     BenchmarkRunResult,
 )
+from mapel_linkage.benchmarking.seed_corpus import (
+    generate_and_run_seed_corpus,
+)
 
 __all__ = [
     "BenchmarkAggregateMetrics",
@@ -44,4 +47,5 @@ __all__ = [
     "ScenarioInstanceManifest",
     "ScenarioLatentSpec",
     "build_registry_snapshot",
+    "generate_and_run_seed_corpus",
 ]

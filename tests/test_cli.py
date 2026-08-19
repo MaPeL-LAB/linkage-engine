@@ -153,3 +153,108 @@ def test_emit_config_schema_error_hides_destination(
     captured = capsys.readouterr()
     assert "ML-CONFIG-005" in captured.err
     assert str(destination) not in captured.err
+
+
+def test_cli_recommend_pipeline_similarity(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    assert (
+        main(
+            [
+                "recommend-pipeline",
+                "--config",
+                str(EXAMPLE_CONFIG),
+                "--project-root",
+                str(ROOT),
+                "--method",
+                "similarity",
+                "--registry-dir",
+                str(tmp_path / "empty_registry"),
+            ]
+        )
+        == 0
+    )
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["out_of_distribution"] is True
+    assert payload["synthetic_evidence_retrieved"] is False
+    assert payload["recommendation"]["coverage_status"] == "structural_only"
+    assert payload["recommendation"]["shortlist"][0]["pair_model_family"] == "fellegi_sunter"
+
+
+def test_cli_adjudication_lifecycle_workflow(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    reviews_file = tmp_path / "reviews.jsonl"
+    reviews_file.write_text(
+        json.dumps(
+            {
+                "event_id": "rev_1",
+                "pair_digest": "a" * 64,
+                "left_record_key": "s1",
+                "right_record_key": "t1",
+                "decision": "match",
+                "confidence": 0.95,
+                "reviewer_id": "rev_user_1",
+                "timestamp": "2026-08-19T10:00:00Z",
+                "protocol_version": "v1.0",
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    ledger_dest = tmp_path / "ledger.json"
+
+    # 1. Test import-reviews
+    assert (
+        main(
+            [
+                "import-reviews",
+                "--reviews",
+                str(reviews_file),
+                "--ledger-path",
+                str(ledger_dest),
+            ]
+        )
+        == 0
+    )
+    import_out = json.loads(capsys.readouterr().out)
+    assert import_out["total_imported"] == 1
+    assert ledger_dest.is_file()
+
+    # 2. Test resolve-consensus
+    assert (
+        main(
+            [
+                "resolve-consensus",
+                "--reviews",
+                str(reviews_file),
+                "--policy",
+                "majority_vote",
+            ]
+        )
+        == 0
+    )
+    cons_out = json.loads(capsys.readouterr().out)
+    assert cons_out["total_pairs"] == 1
+    assert cons_out["resolved_pairs"] == 1
+
+    # 3. Test promote-labels
+    labels_dest = tmp_path / "promoted_labels.json"
+    assert (
+        main(
+            [
+                "promote-labels",
+                "--reviews",
+                str(reviews_file),
+                "--output",
+                str(labels_dest),
+                "--partition",
+                "training",
+            ]
+        )
+        == 0
+    )
+    prom_out = json.loads(capsys.readouterr().out)
+    assert prom_out["retraining_triggered"] is False
+    assert labels_dest.is_file()
