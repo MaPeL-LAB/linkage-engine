@@ -46,6 +46,7 @@ dbad2af8108c5be3d2d12cc44ea8b736c886cc6f0e89627e54a3d88a106fde0c      4318  docs
 8c309a1fce6ca7c9b5cc1d9b451b5577728da60fab0252b0ecf020598eb1406b      6784  docs/implementation/M2E_VERIFIED_LABEL_XGBOOST_CHALLENGER.md
 24ae3b69589b6e91b5c087f8ef5ee969bb80199fd8aeda7c9361abbca8e244bc      7255  docs/implementation/M2_COMPLETE_SYNTHETIC_MVP.md
 ff3f3eb2f8041f84dfc472932020d271e623ec100a39a2c395403fb73ddbd0bb      3673  docs/implementation/MILESTONES.md
+b83e24c4e0da4a400fe01bbc46ffb2a5c41e8b5098a258dcd0f16ecacf425617      2888  docs/implementation/MODEL_PORTFOLIO_AND_RECIPE_FOUNDATION.md
 39a6536a7975c301b57b9d89b2ed48ea9ce0916eb1a0546d34c78dc32a3cef10       711  docs/local_templates/LABEL_PROVENANCE_DECLARATION.md
 a06f647d0d21761a4131f716e36887e83695747e783d9b027b12b067fca54aea       576  docs/local_templates/OUTPUT_ALLOWLIST_WORKSHEET.md
 102286941f6b0baf84c5f432a4e49038774e971cd8436b3647c9cda11bb34222       644  docs/local_templates/SOURCE_MAPPING_WORKSHEET.md
@@ -138,10 +139,12 @@ ef239cc8552812ea75384fd6d19afd8f0125dbf52a56349d963f38d45c4b7b53       418  src/
 ec5efdf6d5d4644c455ab74aacb40d2ae869732f6482105fffa15974301a2ac7     11840  src/mapel_linkage/models/ranking/lightgbm_ranker.py
 b023e760fb4d40cd3cda40ee5d23961bf45d3fe59795e2baeed9ace7c175d58c      4981  src/mapel_linkage/models/ranking/training.py
 c0162e1591e511dc19f6b7bf5c4201b94a003df5b69db85a02fd4d32af479f7d      7098  src/mapel_linkage/models/ranking/xgboost_ranker.py
-0e9fd7bc292bacae10a00847d7bf01a5433d3bd36856756233cc31ef18d559c2       641  src/mapel_linkage/pipeline/__init__.py
+c7cfa42d8383b166ee508e513659cff71d94ad18d0873d630f10d880df7fbabc      1201  src/mapel_linkage/pipeline/__init__.py
 2c1db2f2981fe245868265a273699f293d5ce3e421c4b393f3a6c089bdf319a5      3010  src/mapel_linkage/pipeline/contracts.py
 4911f368f43b6b5d70eed114845ffaeab29a000da6d501a76068f1ee7dfb9381      1796  src/mapel_linkage/pipeline/io.py
 4ffc154886560809708779b6a52e7e944dd7c655227a8cc35d9bd7fc3ce276c4      6554  src/mapel_linkage/pipeline/local_workspace.py
+e2a605cf4cf4d68ba8f7882b7c020a1db641e68d8b72104f671c6a472b4641e2     10518  src/mapel_linkage/pipeline/model_portfolio.py
+b99936ba5f6667794bb089f560de7641653395bfc35ae58b31a90bb066e68b18      5778  src/mapel_linkage/pipeline/recipe_io.py
 93dbe6af4ac8c0f64b4c05939b64884b6c5925b919b8cc87cfe6dabd1ce5537b      6993  src/mapel_linkage/pipeline/recipes.py
 6be7bf1ed3311fc556a37d9dec4dd5ac58b724eedc66013919f0eee0cb752553     55286  src/mapel_linkage/pipeline/synthetic_vertical_slice.py
 1b69704b26fc80a044fd19cc54ee3e2bde70262bd2d4f5747c8a85735a777c66       618  src/mapel_linkage/preprocessing/__init__.py
@@ -209,6 +212,8 @@ d9050ccd2d5243ba27e1dfe6af9ce2a2dc5678a9b1514376cb559f4145661ecd      5462  test
 12df7bcbde6a986bddafb109bcb08c3b94643bb20f9140582e0a040badc5c996      6834  tests/models/ranking/test_lightgbm_ranker.py
 310030ea60fc89f435df3dc9f17bde779c9a7e0826fb356304cdb57ba1552fd3      7139  tests/models/ranking/test_xgboost_ranker.py
 a3c344e0c06bd93aabd6976829a2c18e4f8feeeb7a82986e3619bf2daf55610a      2107  tests/pipeline/test_local_workspace.py
+d6f58bdf3ff7cb2c7f029e8fbe273d93fd553c583907afc8eb3aa387d3681e2a      4913  tests/pipeline/test_model_portfolio.py
+7b968adb288a6cbbf2fed8149e984c01205628de051a8d01e7d8d80f91bb18b2      3017  tests/pipeline/test_recipe_io.py
 f65121a748b5886641f711b01d04a6f108e69705f77192cca56c871d125fe7aa      3141  tests/pipeline/test_recipes.py
 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855         0  tests/preprocessing/__init__.py
 977787eac072693fe8283a6f07e79017ac0267e6d349bd34ada22b723986b325      7817  tests/preprocessing/test_dataset_preparer.py
