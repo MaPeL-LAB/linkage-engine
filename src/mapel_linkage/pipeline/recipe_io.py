@@ -103,8 +103,8 @@ def deserialize_pipeline_recipe(payload: str) -> PipelineRecipeArtifact:
         recipe = PipelineRecipeArtifact(
             recipe_id=str(raw["recipe_id"]),
             recipe_version=str(raw["recipe_version"]),
-            linkage_mode=raw["linkage_mode"],  # type: ignore[arg-type]
-            assignment_constraint=raw["assignment_constraint"],  # type: ignore[arg-type]
+            linkage_mode=raw["linkage_mode"],
+            assignment_constraint=raw["assignment_constraint"],
             configuration_digest=str(raw["configuration_digest"]),
             candidate_plan_digest=str(raw["candidate_plan_digest"]),
             feature_schema_digest=str(raw["feature_schema_digest"]),
@@ -123,8 +123,8 @@ def deserialize_pipeline_recipe(payload: str) -> PipelineRecipeArtifact:
             operational_validation=OperationalValidationStatus(
                 str(raw["operational_validation"])
             ),
-            decision_authority=raw["decision_authority"],  # type: ignore[arg-type]
-            merge_authority=raw["merge_authority"],  # type: ignore[arg-type]
+            decision_authority=raw["decision_authority"],
+            merge_authority=raw["merge_authority"],
         )
     except (KeyError, TypeError, ValueError, PipelineError):
         raise PipelineError("ML-RECIPE-010", "The pipeline recipe schema is invalid.") from None
