@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+### Added — plural model configuration and stage provenance
+
+- Backward-compatible plural boosted, ranking, neural, and stacking model declarations with a versioned bounded portfolio selection.
+- Validation of model IDs, stacking base-model availability, enabled portfolio members, challenger limits, and supervised-label eligibility.
+- Immutable stage-artifact references and ordered lineage ledgers with restricted row-level enforcement.
+- Aggregate-only out-of-fold prediction manifests that prohibit test, calibration, and decision partition use.
+- Synthetic-only configuration, lineage, privacy, and provenance tests.
+
+
 ### Added — capability audit and integration boundary
 
 - Package-owned capability registry separating component implementation, workflow

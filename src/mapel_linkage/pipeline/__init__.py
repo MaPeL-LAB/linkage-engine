@@ -18,16 +18,24 @@ from mapel_linkage.pipeline.recipes import (
     RecipeApprovalStatus,
     RecipeExecutionMode,
 )
+from mapel_linkage.pipeline.stage_artifacts import (
+    OutOfFoldPredictionManifest,
+    StageArtifactLedger,
+    StageArtifactRef,
+)
 from mapel_linkage.pipeline.synthetic_vertical_slice import SyntheticVerticalSliceRunner
 
 __all__ = [
     "ModelPortfolioDeclaration",
     "OperationalValidationStatus",
+    "OutOfFoldPredictionManifest",
     "PairModelCandidateDeclaration",
     "PipelineRecipeArtifact",
     "RankingCandidateDeclaration",
     "RecipeApprovalStatus",
     "RecipeExecutionMode",
+    "StageArtifactLedger",
+    "StageArtifactRef",
     "StageSummary",
     "SyntheticVerticalSliceResult",
     "SyntheticVerticalSliceRunner",

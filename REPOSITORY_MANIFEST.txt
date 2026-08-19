@@ -5,9 +5,9 @@ da297e94c17bf7684c9d31aaeb2b9b5f6610288169d3666236f56998e087f644      3885  .git
 4594554ebb5823a5d2282dcb9de64fa359dc54aaaeff69b53e31c20a0cb31f1c       393  .gitignore
 3936774c19c9d469cea32d5b5ef5daa458b8ba691a5e0ae0d2e35716c9ab2656       519  .pre-commit-config.yaml
 517081c2d888cb57a1d7c132e52567b52ce69fe6b8283e5a7ae2c44201192826      2997  AGENTS.md
-7f52e3913b7071a76f0df404c8bc8cefae1ab32474760d5f298ba38b39082d52      7863  CHANGELOG.md
+315fa025d3227698751c6cfb704c1d603acdfb5a900ab058707d10dc0d3c1d17      8490  CHANGELOG.md
 12069acaac5412e3cfd006351eb64fcd24c307ab9137c5e51e85c68db9a023fd       773  CONTRIBUTING.md
-115fa7d9646f34941b6ac41a2570261145f29856c8f209b37d3f7c0c9077f22c     10002  README.md
+d394febb5259aeebbc93b966485590b6dba4ab0a40c4d305bde83fadc5578231     10503  README.md
 fe0ff337c95e5ed48d8318dd89b35f49904bdb54015915561b979cc4cc5deeb1       612  SECURITY.md
 9c4b3b630316cb6802aaddcd61e9bb712184274aec06988981c9d5bb71f3eb06      5726  configs/examples/synthetic_link_only.yaml
 b858f29c11928a7d5a5b08bd0ffa8f206ae401cc81cf6ed26c388fc90e39382a       575  configs/templates/README.md
@@ -47,6 +47,7 @@ dbad2af8108c5be3d2d12cc44ea8b736c886cc6f0e89627e54a3d88a106fde0c      4318  docs
 24ae3b69589b6e91b5c087f8ef5ee969bb80199fd8aeda7c9361abbca8e244bc      7255  docs/implementation/M2_COMPLETE_SYNTHETIC_MVP.md
 ff3f3eb2f8041f84dfc472932020d271e623ec100a39a2c395403fb73ddbd0bb      3673  docs/implementation/MILESTONES.md
 b83e24c4e0da4a400fe01bbc46ffb2a5c41e8b5098a258dcd0f16ecacf425617      2888  docs/implementation/MODEL_PORTFOLIO_AND_RECIPE_FOUNDATION.md
+004beca20cde292a5af9dc2430167024bcef520b6b3f6725acfeea8a5bd105c2      2891  docs/implementation/PLURAL_CONFIGURATION_AND_STAGE_ARTIFACTS.md
 39a6536a7975c301b57b9d89b2ed48ea9ce0916eb1a0546d34c78dc32a3cef10       711  docs/local_templates/LABEL_PROVENANCE_DECLARATION.md
 a06f647d0d21761a4131f716e36887e83695747e783d9b027b12b067fca54aea       576  docs/local_templates/OUTPUT_ALLOWLIST_WORKSHEET.md
 102286941f6b0baf84c5f432a4e49038774e971cd8436b3647c9cda11bb34222       644  docs/local_templates/SOURCE_MAPPING_WORKSHEET.md
@@ -57,9 +58,9 @@ dab718bf7f15680d6b0b735297276a774a3f9c7a2dd7681742aeacb01793fd8b     14272  docs
 263bcc5b2625dbda641ebe47e1c774adbe659ab30e7ba2c5313a309b86ae6352      9690  docs/research/RESEARCH_SYNTHESIS.md
 750035d43667bdd379c78e2f85eb1e01a000041621e964e8b269d2779edabd0e      7397  docs/research/SOFTWARE_LANDSCAPE.md
 5ec5ea9d7ec70cd6d11c4b7b7244dd0e97299ff257b81ce0dbf7705137130361      1071  docs/research/SOURCE_PROVENANCE.md
-b06295c35b82332ce76b77d8daaacb4591bf258914194ab14a57308b2556914e      2226  pyproject.toml
+fcfd84730d2386b17310cee715c999a2b375408af33702ce64a39e1c34e7e258      2226  pyproject.toml
 e8d4dd5de5cd1ed12015d4e81cbdde895ea457d4d2b301d4b817d134c737e002       398  schemas/README.md
-09f407c9c434bd8cc6156d8124681d01d97be57cedb4cd826c7fbec04603d599     46585  schemas/linkage-config.schema.json
+a2737ca5457d7e2f10c7e9114a19da5e800d72bee92f95f0574a16fbd22e3143     50979  schemas/linkage-config.schema.json
 45b8748463cecfd085247b49c7f3a44573ea052184021ba31e07a1965a508626      1175  scripts/bootstrap_local.ps1
 d718afb1e4aefa7dcb1bbbe12548c34083e49cd96098314e95952600ef670abc      1130  scripts/bootstrap_local.sh
 cba5f55fa906946ba4c795f4b1f7cdaaa169bbc4ef1e10f54fa940e27d5c173d      4825  scripts/build_local_handoff.py
@@ -67,7 +68,7 @@ d3e5ddfe54132e9a6fc8dfaace718102eb979d8d65a17b50cc65a9c8ab79b084       582  scri
 1c8aa14d877c6d9898f171c74d099573778880d7eefb77cd8810dd3eabc4a651       505  scripts/generate_config_schema.py
 efb33e93024da52c02166e9c99f4a6179f52004fa5f70a8957c24242d6dfc873       858  scripts/generate_repository_manifest.py
 0215fa6bfe4184f83fdd8d3ffd2663198f7de093014efcc77e9bed8e01c2993d      6596  scripts/verify_repository.py
-9d4ac3ae5f1c789636c8a9c04aa617decbefb186598380cadb394b08a8e54d73       129  src/mapel_linkage/__init__.py
+ec157a68d4d544d59a2b993a692ed66607d0f8254272d4e42157c402e0137ba4       129  src/mapel_linkage/__init__.py
 5d5a4a1680e94f20a2c751f6d1598bd3115af5cae1dfae30405a809cf199def0        97  src/mapel_linkage/__main__.py
 1c61a7f7f523c9c7e8bb6d65a399fd2d8f9a247aa020d47f50e087b145957e39      2193  src/mapel_linkage/adjudication/__init__.py
 1a5e007ee2e721792655dc312d4ac12fcb66317c5f0e6732df6adadbe4f80738      9853  src/mapel_linkage/adjudication/active_learning.py
@@ -103,7 +104,7 @@ fb3434e26c95a8332a8727dafa694e946fd1c4884ef4f3facbd58daf6e132411     13073  src/
 4d7eeeb89b3287090c502d9aba7297116e4722ae503193edda8a5917cdaf45c4       698  src/mapel_linkage/configuration/__init__.py
 3fa7de893e7b90c70c9153efd4c9deeb85b650792ae9e6c7c9139d5298e74a70      4540  src/mapel_linkage/configuration/compiler.py
 c4af9b9ec0776c151bb68cf643cce60503295a53bd205277aaeb8ebd35163f58      7514  src/mapel_linkage/configuration/loader.py
-e6df0641119abf834e3e3778e1439df33f2b5adf45fa289a1a2a54cab9609d95     30551  src/mapel_linkage/configuration/models.py
+be156a521a258268fa26489f7c0561f4f5d6175cafbf9dd4582e3664e9b52f74     36866  src/mapel_linkage/configuration/models.py
 c836d7663717a33024352345baeb87e47bfd7838b6b402e9432e7480479561a6      3682  src/mapel_linkage/configuration/registries.py
 e02ab3dba5a722ae7cbf3ce943ee1ce94965f513b863e4c8b524327fdfb3739d       646  src/mapel_linkage/configuration/schema.py
 746af94435cd7aab236528e6f4e21c0e9d0a3f588860acbe325fe0397bb4116e       388  src/mapel_linkage/decisions/__init__.py
@@ -139,13 +140,14 @@ ef239cc8552812ea75384fd6d19afd8f0125dbf52a56349d963f38d45c4b7b53       418  src/
 ec5efdf6d5d4644c455ab74aacb40d2ae869732f6482105fffa15974301a2ac7     11840  src/mapel_linkage/models/ranking/lightgbm_ranker.py
 b023e760fb4d40cd3cda40ee5d23961bf45d3fe59795e2baeed9ace7c175d58c      4981  src/mapel_linkage/models/ranking/training.py
 c0162e1591e511dc19f6b7bf5c4201b94a003df5b69db85a02fd4d32af479f7d      7098  src/mapel_linkage/models/ranking/xgboost_ranker.py
-c7cfa42d8383b166ee508e513659cff71d94ad18d0873d630f10d880df7fbabc      1201  src/mapel_linkage/pipeline/__init__.py
+215f0cd89d2d89196010ce24d7d619049c140f596a01f620ee01db9a55eddd0f      1422  src/mapel_linkage/pipeline/__init__.py
 2c1db2f2981fe245868265a273699f293d5ce3e421c4b393f3a6c089bdf319a5      3010  src/mapel_linkage/pipeline/contracts.py
 4911f368f43b6b5d70eed114845ffaeab29a000da6d501a76068f1ee7dfb9381      1796  src/mapel_linkage/pipeline/io.py
 4ffc154886560809708779b6a52e7e944dd7c655227a8cc35d9bd7fc3ce276c4      6554  src/mapel_linkage/pipeline/local_workspace.py
-e2a605cf4cf4d68ba8f7882b7c020a1db641e68d8b72104f671c6a472b4641e2     10518  src/mapel_linkage/pipeline/model_portfolio.py
+7f4ecebd3aeaece6be6780f41301456dd40604cfd54a336dc20365d9072f6504     11479  src/mapel_linkage/pipeline/model_portfolio.py
 b99936ba5f6667794bb089f560de7641653395bfc35ae58b31a90bb066e68b18      5778  src/mapel_linkage/pipeline/recipe_io.py
 93dbe6af4ac8c0f64b4c05939b64884b6c5925b919b8cc87cfe6dabd1ce5537b      6993  src/mapel_linkage/pipeline/recipes.py
+6cd1fe432228aa30066a010c25a261520690b65211195e5a1bcb7612ff146523      8297  src/mapel_linkage/pipeline/stage_artifacts.py
 6be7bf1ed3311fc556a37d9dec4dd5ac58b724eedc66013919f0eee0cb752553     55286  src/mapel_linkage/pipeline/synthetic_vertical_slice.py
 1b69704b26fc80a044fd19cc54ee3e2bde70262bd2d4f5747c8a85735a777c66       618  src/mapel_linkage/preprocessing/__init__.py
 20f76beeb7007988ebcd2e356228038c952c0f409a5732246fd918146f49e653      8256  src/mapel_linkage/preprocessing/dataset_preparer.py
@@ -189,6 +191,7 @@ e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855         0  test
 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855         0  tests/configuration/__init__.py
 1c855c10c6ddd0b1b0e407d5eb034fc9a5843af836f5d8b31cd8d7c059f80c2a      4537  tests/configuration/test_compiler.py
 8abd9cf22511630b8e3563b9db858e6b172cda6debf0322204f4c38e91c6938d     11137  tests/configuration/test_loader_and_models.py
+e194b9aa27a67c9668b3f84dabbaf8aad6788d98c43fe14c521f5df326ce271e      3815  tests/configuration/test_plural_model_portfolio.py
 2ed163cfe311bfb4903979c52cc31a7881bca41df1a2cf26511b72845ea95400      1366  tests/configuration/test_registries.py
 4a2033675b55e036d73d2fcff3bc09b2ec3552e1b424c45672fb2e72c8ae642a       927  tests/configuration/test_schema.py
 454501d27e3c054baee93dd7ea8be8d46384a2a055aa7a94e00c347b6ac54a36      1925  tests/data_plane/test_duckdb_store.py
@@ -215,6 +218,7 @@ a3c344e0c06bd93aabd6976829a2c18e4f8feeeb7a82986e3619bf2daf55610a      2107  test
 d6f58bdf3ff7cb2c7f029e8fbe273d93fd553c583907afc8eb3aa387d3681e2a      4913  tests/pipeline/test_model_portfolio.py
 7b968adb288a6cbbf2fed8149e984c01205628de051a8d01e7d8d80f91bb18b2      3017  tests/pipeline/test_recipe_io.py
 f65121a748b5886641f711b01d04a6f108e69705f77192cca56c871d125fe7aa      3141  tests/pipeline/test_recipes.py
+5d8dbc727190688abdf4b9e71ad17f4c307b19cd7767f31c1ee14f48dda237b8      2976  tests/pipeline/test_stage_artifacts.py
 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855         0  tests/preprocessing/__init__.py
 977787eac072693fe8283a6f07e79017ac0267e6d349bd34ada22b723986b325      7817  tests/preprocessing/test_dataset_preparer.py
 66c07541e19482c88ca8a06079c8f0e0493a5f9b334f1481d84a1c987265cbaf      2286  tests/preprocessing/test_normalisation.py
@@ -227,7 +231,7 @@ e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855         0  test
 48b362b15aef71f9cc0f467ac319e32b3c896457b26646bac500dd1e2d6fa51c      5050  tests/synthetic/test_generator.py
 e575a2d0e49111212921b6ab6b3a39c83b01f9e7600567117944e6a2bf9ffc06      2285  tests/test_capabilities.py
 6d21d5f0089c5fcb953566392e98a448f2ae91f328b77d6be80fe4d4a0dc2f4e      4580  tests/test_cli.py
-86886348c9aec0346cfe274a79b309e0e85478b14faa7f8c75dd47eabbf430c2       138  tests/test_package_metadata.py
+4f132e7998a07e07527fd001c99dbe3ad5b132270639739715c595cbda0f4b8a       138  tests/test_package_metadata.py
 a0bfbf53704b9fdfdbb8b7af883611dccec759c1de67277f6748a621c87215a4      1305  tests/test_repository_boundaries.py
 a9ef2757db7756db4cca6918903b052feae63cb3a2852afaadcb9abed1e99893      1918  tests/validation/test_pair_metrics.py
 c8605fdef2062512064d2af1fe7b1460a17ec7c4680b7de3c4fa238534dc96ad      7254  tests/validation/test_pipeline_metrics.py

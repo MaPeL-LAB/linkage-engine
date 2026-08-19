@@ -232,20 +232,20 @@ def compile_model_portfolio(config: LinkageConfig) -> ModelPortfolioDeclaration:
 
     ranker_by_id: dict[str, RankingCandidateDeclaration] = {}
     for ranking in config.models.all_ranking_models():
-        family: Literal["xgboost", "lightgbm"] = (
+        ranker_family: Literal["xgboost", "lightgbm"] = (
             "xgboost" if ranking.implementation == "xgboost_ranker" else "lightgbm"
         )
-        artifact_format: Literal["xgboost_json", "lightgbm_text"] = (
-            "xgboost_json" if family == "xgboost" else "lightgbm_text"
+        ranker_artifact_format: Literal["xgboost_json", "lightgbm_text"] = (
+            "xgboost_json" if ranker_family == "xgboost" else "lightgbm_text"
         )
         ranker_by_id[ranking.model_id] = RankingCandidateDeclaration(
             model_id=ranking.model_id,
-            family=family,
+            family=ranker_family,
             implementation=ranking.implementation,
             enabled=ranking.enabled,
             query_side=ranking.query_side,
             top_k=ranking.top_k,
-            artifact_format=artifact_format,
+            artifact_format=ranker_artifact_format,
         )
 
     requested = config.models.portfolio
@@ -258,14 +258,12 @@ def compile_model_portfolio(config: LinkageConfig) -> ModelPortfolioDeclaration:
             item.enabled and item.role != "baseline" for item in pair_by_id.values()
         )
         maximum_challengers = min(3, enabled_challengers)
-        allow_shadow_scoring = True
     else:
         pair_ids = requested.pair_model_ids
         ranking_ids = requested.ranking_model_ids
         portfolio_id = requested.portfolio_id
         mandatory_baseline_id = requested.mandatory_baseline_id
         maximum_challengers = requested.maximum_challengers
-        allow_shadow_scoring = requested.allow_shadow_scoring
 
     return ModelPortfolioDeclaration(
         portfolio_id=portfolio_id,
@@ -273,7 +271,7 @@ def compile_model_portfolio(config: LinkageConfig) -> ModelPortfolioDeclaration:
         ranking_candidates=tuple(ranker_by_id[model_id] for model_id in ranking_ids),
         mandatory_baseline_id=mandatory_baseline_id,
         maximum_challengers=maximum_challengers,
-        allow_shadow_scoring=allow_shadow_scoring,
+        allow_shadow_scoring=True,
     )
 
 
