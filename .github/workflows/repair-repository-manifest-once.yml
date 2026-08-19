@@ -1,0 +1,33 @@
+name: repair-repository-manifest-once
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+env:
+  PYTHONHASHSEED: "0"
+
+jobs:
+  repair:
+    if: github.head_ref == 'agent/integration-capability-audit'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout pull-request head branch
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+      - name: Regenerate final-tree repository manifest
+        run: |
+          rm .github/workflows/repair-repository-manifest-once.yml
+          python3 scripts/generate_repository_manifest.py
+      - name: Commit repaired manifest and remove this workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A REPOSITORY_MANIFEST.txt .github/workflows/repair-repository-manifest-once.yml
+          git commit -m "Regenerate repository manifest"
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
