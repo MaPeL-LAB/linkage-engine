@@ -56,9 +56,10 @@ jobs:
           python -m pip install \
             -c constraints/ci-py312.txt \
             -e ".[core,dev,lightgbm]"
-      - name: Format and regenerate derived contracts
+      - name: Format, apply safe lint fixes, and regenerate derived contracts
         run: |
           ruff format .
+          ruff check --fix .
           python scripts/generate_config_schema.py
           python scripts/generate_capability_matrix.py
           python scripts/generate_repository_manifest.py
