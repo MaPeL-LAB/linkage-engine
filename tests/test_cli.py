@@ -46,7 +46,12 @@ def test_status_details_lists_component_and_workflow_state(
     output = capsys.readouterr().out
 
     assert "lightgbm_pair_classifier\tcomponent=implemented\tworkflow=component_only" in output
-    assert "approved_recipe_inference\tcomponent=partial\tworkflow=not_integrated" in output
+    assert (
+        "approved_recipe_inference\tcomponent=implemented\tworkflow=workflow_integrated" in output
+    )
+    assert (
+        "single_source_deduplication\tcomponent=implemented\tworkflow=workflow_integrated" in output
+    )
     assert "operational_validation=not_established" in output
 
 

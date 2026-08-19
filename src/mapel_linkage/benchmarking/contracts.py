@@ -216,11 +216,140 @@ class BenchmarkRegistrySnapshot(BenchmarkNode):
         }
 
 
+class BenchmarkAggregateMetrics(BenchmarkNode):
+    """Aggregate evaluation metrics for a single benchmark run."""
+
+    candidate_recall: float = Field(ge=0.0, le=1.0)
+    candidate_recall_at_k: dict[str, float] = Field(default_factory=dict)
+    sensitivity: float = Field(ge=0.0, le=1.0)
+    positive_predictive_value: float = Field(ge=0.0, le=1.0)
+    brier_score: float = Field(ge=0.0, le=1.0)
+    calibration_intercept: float
+    calibration_slope: float
+    mean_reciprocal_rank: float = Field(ge=0.0, le=1.0)
+    runtime_ms: Annotated[StrictInt, Field(ge=0)]
+    peak_memory_mb: Annotated[StrictInt, Field(ge=0)]
+    evaluation_scope: str = "synthetic_benchmark"
+    operational_validity: Literal["not_established"] = "not_established"
+
+    @property
+    def metrics_digest(self) -> str:
+        payload = self.model_dump(mode="json")
+        encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        return hashlib.sha256(encoded).hexdigest()
+
+    def safe_summary(self) -> dict[str, object]:
+        return {
+            "candidate_recall": self.candidate_recall,
+            "candidate_recall_at_k": self.candidate_recall_at_k,
+            "sensitivity": self.sensitivity,
+            "positive_predictive_value": self.positive_predictive_value,
+            "brier_score": self.brier_score,
+            "calibration_intercept": self.calibration_intercept,
+            "calibration_slope": self.calibration_slope,
+            "mean_reciprocal_rank": self.mean_reciprocal_rank,
+            "runtime_ms": self.runtime_ms,
+            "peak_memory_mb": self.peak_memory_mb,
+            "metrics_digest": self.metrics_digest,
+            "evaluation_scope": self.evaluation_scope,
+            "operational_validity": self.operational_validity,
+        }
+
+
+class BenchmarkFailureRecord(BenchmarkNode):
+    """Retained failure evidence for an unsuccessful benchmark run."""
+
+    run_id: Identifier
+    family_id: Identifier
+    instance_id: Identifier
+    replicate_id: Identifier
+    recipe_id: Identifier
+    status: BenchmarkRunStatus
+    failure_code: Identifier
+    error_message: StrictStr
+    evidence_scope: BenchmarkEvidenceScope = BenchmarkEvidenceScope.GLOBAL_SYNTHETIC
+    operational_validity: Literal["not_established"] = "not_established"
+
+    @property
+    def failure_digest(self) -> str:
+        payload = self.model_dump(mode="json")
+        encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        return hashlib.sha256(encoded).hexdigest()
+
+    def safe_summary(self) -> dict[str, object]:
+        return {
+            "run_id": self.run_id,
+            "family_id": self.family_id,
+            "instance_id": self.instance_id,
+            "replicate_id": self.replicate_id,
+            "recipe_id": self.recipe_id,
+            "status": self.status.value,
+            "failure_code": self.failure_code,
+            "error_message": self.error_message,
+            "failure_digest": self.failure_digest,
+            "evidence_scope": self.evidence_scope.value,
+            "operational_validity": self.operational_validity,
+        }
+
+
+class CoverageSummaryReport(BenchmarkNode):
+    """Aggregate benchmark coverage and evidence quality summary."""
+
+    report_schema_version: Literal["1"] = "1"
+    report_id: Identifier
+    snapshot_digest: Digest
+    family_count: Annotated[StrictInt, Field(ge=0)]
+    instance_count: Annotated[StrictInt, Field(ge=0)]
+    replicate_count: Annotated[StrictInt, Field(ge=0)]
+    run_count: Annotated[StrictInt, Field(ge=0)]
+    successful_run_count: Annotated[StrictInt, Field(ge=0)]
+    failed_run_count: Annotated[StrictInt, Field(ge=0)]
+    status_counts: dict[str, int]
+    recipe_by_family_coverage: dict[str, tuple[str, ...]]
+    pairwise_comparison_counts: dict[str, int]
+    held_out_mechanism_count: Annotated[StrictInt, Field(ge=0)]
+    failure_rates_by_recipe: dict[str, float]
+    evidence_scope: BenchmarkEvidenceScope = BenchmarkEvidenceScope.GLOBAL_SYNTHETIC
+    contains_record_values: Literal[False] = False
+    operational_validity: Literal["not_established"] = "not_established"
+
+    @property
+    def report_digest(self) -> str:
+        payload = self.model_dump(mode="json")
+        encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        return hashlib.sha256(encoded).hexdigest()
+
+    def safe_summary(self) -> dict[str, object]:
+        return {
+            "report_schema_version": self.report_schema_version,
+            "report_id": self.report_id,
+            "report_digest": self.report_digest,
+            "snapshot_digest": self.snapshot_digest,
+            "family_count": self.family_count,
+            "instance_count": self.instance_count,
+            "replicate_count": self.replicate_count,
+            "run_count": self.run_count,
+            "successful_run_count": self.successful_run_count,
+            "failed_run_count": self.failed_run_count,
+            "status_counts": self.status_counts,
+            "recipe_by_family_coverage": self.recipe_by_family_coverage,
+            "pairwise_comparison_counts": self.pairwise_comparison_counts,
+            "held_out_mechanism_count": self.held_out_mechanism_count,
+            "failure_rates_by_recipe": self.failure_rates_by_recipe,
+            "evidence_scope": self.evidence_scope.value,
+            "contains_record_values": self.contains_record_values,
+            "operational_validity": self.operational_validity,
+        }
+
+
 __all__ = [
+    "BenchmarkAggregateMetrics",
     "BenchmarkEvidenceScope",
+    "BenchmarkFailureRecord",
     "BenchmarkRegistrySnapshot",
     "BenchmarkRunRecord",
     "BenchmarkRunStatus",
+    "CoverageSummaryReport",
     "ScenarioFamilyManifest",
     "ScenarioInstanceManifest",
 ]

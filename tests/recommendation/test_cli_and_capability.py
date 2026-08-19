@@ -23,8 +23,8 @@ def test_stage1_advisor_capability_is_integrated_without_overstating_later_stage
     assert stage1.runtime_verification is RuntimeVerificationStatus.CORE_CI
 
     registry = by_id["synthetic_benchmark_registry"]
-    assert registry.component_status is ComponentStatus.PARTIAL
-    assert registry.workflow_status is WorkflowStatus.COMPONENT_ONLY
+    assert registry.component_status is ComponentStatus.IMPLEMENTED
+    assert registry.workflow_status is WorkflowStatus.INTEGRATED
 
     learned = by_id["linkage_strategy_advisor"]
     assert learned.component_status is ComponentStatus.PLANNED
