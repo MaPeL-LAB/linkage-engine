@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+### Added — I2A Stage-1 Linkage Strategy Advisor
+
+- Staged privacy-safe preflight, candidate-graph, and evidence task-profile contracts.
+- Lifecycle-aware hard eligibility rules that distinguish training, calibration, approved
+  inference, shadow scoring, and benchmark planning.
+- Structural Pareto shortlisting with mandatory-baseline retention, family diversity,
+  transparent applied-rule explanations, and explicit abstention from empirical ranking.
+- A separate immutable `PipelineRecommendation` contract with advisory-only authority and
+  prohibited automatic promotion.
+- Aggregate benchmark family, instance, replicate, run, failure, and registry-snapshot
+  contracts that retain unsuccessful executions as evidence.
+- Architecture, experimental-design, evidence-hierarchy, profile, registry, policy, and advisor
+  validation documentation.
+- `profile-job` and `recommend-pipeline` CLI commands that emit aggregate JSON only.
+
 ### Added — plural model configuration and stage provenance
 
 - Backward-compatible plural boosted, ranking, neural, and stacking model declarations with a versioned bounded portfolio selection.

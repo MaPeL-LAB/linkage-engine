@@ -166,6 +166,23 @@ No component has silent merge authority.
 
 Project configuration can declare multiple boosted, ranking, neural, and stacking candidates while retaining the existing singular fields for compatibility. Immutable stage-artifact and out-of-fold manifests provide digest-linked provenance without exposing rows, identifiers, candidate pairs, or local paths. See [`docs/implementation/PLURAL_CONFIGURATION_AND_STAGE_ARTIFACTS.md`](docs/implementation/PLURAL_CONFIGURATION_AND_STAGE_ARTIFACTS.md).
 
+## Stage-1 Linkage Strategy Advisor
+
+The advisory-only Stage-1 workflow can build a privacy-safe preflight task profile, apply hard
+lifecycle and runtime eligibility rules, retain the mandatory Fellegi-Sunter baseline, construct
+a structural Pareto shortlist, explain every applied rule, and abstain from empirical ranking
+while the benchmark registry is empty.
+
+```text
+mapel-linkage profile-job --config CONFIG --project-root ROOT
+mapel-linkage recommend-pipeline --config CONFIG --project-root ROOT
+```
+
+A recommendation is not a `PipelineRecipeArtifact`, cannot approve a model, cannot use the locked
+test partition, and has no identity, assignment, threshold, or merge authority. See
+[`docs/architecture/ADR-0005-LINKAGE-STRATEGY-ADVISOR.md`](
+docs/architecture/ADR-0005-LINKAGE-STRATEGY-ADVISOR.md).
+
 ## Command line
 
 Environment, configuration, and capability commands:

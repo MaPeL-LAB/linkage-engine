@@ -283,13 +283,34 @@ _CAPABILITIES: Final[tuple[Capability, ...]] = (
         "The immutable recipe approval contract exists; new-data inference is pending.",
     ),
     Capability(
+        "stage1_linkage_strategy_advisor",
+        "Stage-1 Linkage Strategy Advisor",
+        "I2A",
+        ComponentStatus.IMPLEMENTED,
+        WorkflowStatus.INTEGRATED,
+        RuntimeVerificationStatus.CORE_CI,
+        "Configuration-only profiling, hard eligibility, structural Pareto shortlisting, "
+        "transparent explanations, and explicit empirical abstention.",
+    ),
+    Capability(
+        "synthetic_benchmark_registry",
+        "Synthetic Benchmark Registry",
+        "B1",
+        ComponentStatus.PARTIAL,
+        WorkflowStatus.COMPONENT_ONLY,
+        RuntimeVerificationStatus.CORE_CI,
+        "Versioned aggregate family, instance, replicate, run, failure, and snapshot "
+        "contracts exist; corpus generation and portfolio execution remain pending.",
+    ),
+    Capability(
         "linkage_strategy_advisor",
-        "Linkage Strategy Advisor",
-        "I2",
+        "Evidence-Based Linkage Strategy Advisor",
+        "I2B-I2D",
         ComponentStatus.PLANNED,
         WorkflowStatus.NOT_INTEGRATED,
         RuntimeVerificationStatus.NOT_VERIFIED,
-        "Advisory-only pipeline recommendation with coverage checks and abstention.",
+        "Nearest-family retrieval, OOD detection, learned meta-ranking, and active "
+        "benchmark planning remain evidence-gated future stages.",
     ),
 )
 

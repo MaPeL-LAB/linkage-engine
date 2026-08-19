@@ -60,15 +60,15 @@ Remaining integration work:
 ### M5 — broader model portfolio
 
 Implemented components include LightGBM pair classification and ranking, Beta calibration,
-and a stacking meta-learner.
+and a stacking meta-learner. Plural configuration, bounded portfolio declarations, immutable
+stage artifacts, and protected out-of-fold manifests are integrated.
 
 Remaining integration work:
 
-- portfolio configuration rather than singular boosted/ranking fields;
-- protected out-of-fold base-model predictions for stacking;
+- general portfolio training and artifact-to-artifact stage execution;
 - model cards, promotion policy, and immutable selection rationale;
 - independent calibration-method selection without locked-test access;
-- workflow integration for LightGBM and stacking.
+- workflow integration for LightGBM, stacking, and PyTorch challengers.
 
 ### M6 — optional neural matcher
 
@@ -95,30 +95,77 @@ Remaining integration work:
 - cluster-level decisions and restricted conflict review;
 - end-to-end multi-source synthetic acceptance tests.
 
-## Current cross-cutting target: I1 audit and integration
+## Current cross-cutting target: I1 general orchestration
 
 I1 establishes:
 
-- a package-owned capability registry and generated capability matrix;
-- separate core and all-model runtime CI;
-- honest collected/passed/skipped test reporting;
-- train-versus-infer separation;
-- an immutable `PipelineRecipeArtifact`;
-- genuine stage boundaries rather than every CLI stage rerunning the complete pipeline;
-- general orchestration for M3 through M7;
-- shadow-challenger execution with no decision authority.
+- immutable artifact-to-artifact stage execution;
+- protected portfolio training and out-of-fold stacking evidence;
+- separate train, select, calibrate, approve, and infer commands;
+- approved-recipe new-data inference;
+- shadow challengers with no decision authority;
+- general orchestration for M3 through M7.
 
 See
 [`architecture/ADR-0004-CAPABILITY-STATUS-AND-PIPELINE-INTEGRATION.md`](architecture/ADR-0004-CAPABILITY-STATUS-AND-PIPELINE-INTEGRATION.md).
 
-## Next cross-cutting target: I2 Linkage Strategy Advisor
+## I2A — Stage-1 Linkage Strategy Advisor
 
-The advisor will use privacy-safe task profiles and aggregate benchmark evidence to recommend
-a small, explainable pipeline shortlist. It must support coverage checks, uncertainty,
-out-of-distribution detection, and abstention.
+I2A is implemented as an advisory structural workflow:
 
-Synthetic recommendations are priors only. A local bounded champion-challenger evaluation,
-independent calibration, threshold selection, locked testing, and approval remain mandatory.
+```text
+configuration-only preflight task profile
+→ lifecycle-aware hard eligibility rules
+→ mandatory Fellegi-Sunter baseline
+→ structural Pareto frontier
+→ family-diverse bounded shortlist
+→ transparent explanations
+→ explicit abstention from empirical ranking
+```
+
+The advisor fixes recommendation, decision, assignment, merge, and automatic-promotion
+authority in immutable contracts. It makes no sensitivity, PPV, calibration, or operational
+performance claim without benchmark evidence.
+
+## B1 — synthetic benchmark evidence library
+
+B1 is the next advisor evidence-generation milestone:
+
+- freeze scenario, profile, recipe-fingerprint, metric, failure, and registry schemas;
+- implement the designed experimental matrix and scenario-family taxonomy;
+- execute the bounded model portfolio across instances and replicates;
+- retain successes, failures, timeouts, ineligible recipes, and abstentions;
+- populate an aggregate synthetic registry;
+- pre-specify held-out scenario families and unseen corruption mechanisms;
+- produce a registry coverage and readiness report.
+
+The current repository contains the registry contracts but no populated benchmark corpus.
+
+## I2B — similarity and coverage advisor
+
+Deferred until B1 coverage is sufficient. Scope:
+
+```text
+observable feature standardisation
+nearest-family retrieval
+coverage scoring
+out-of-distribution detection
+uncertainty and abstention
+held-out-family regret and oracle-coverage evaluation
+```
+
+Family counts such as 50–100 are planning ranges, not automatic validity gates.
+
+## I2C — learned meta-ranking advisor
+
+Deferred until I2B is independently validated and the recipe-by-family evidence matrix has
+adequate overlap. Group-held-out learning-to-rank must outperform transparent retrieval without
+violating hard constraints.
+
+## I2D — active benchmark planning
+
+Deferred until learned-advisor uncertainty is calibrated. The planner must target genuine
+coverage gaps and demonstrate prospective reduction in uncertainty or recommendation regret.
 
 ## M8 — release hardening
 
