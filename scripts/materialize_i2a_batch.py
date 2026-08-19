@@ -68,6 +68,19 @@ def apply_repository_updates() -> None:
         '    assert summary["run_count"] == 1\n',
     )
     replace_once(
+        "tests/profiling/test_task_profiles.py",
+        '    assert "candidate_pairs" not in repr(evidence.safe_summary())\n',
+        '    evidence_summary = evidence.safe_summary()\n'
+        '    assert evidence_summary["contains_candidate_pairs"] is False\n'
+        '    assert "left_record_key" not in repr(evidence_summary)\n'
+        '    assert "right_record_key" not in repr(evidence_summary)\n',
+    )
+    replace_once(
+        "tests/test_package_metadata.py",
+        '    assert __version__ == "0.2.0.dev2"\n',
+        '    assert __version__ == "0.2.0.dev3"\n',
+    )
+    replace_once(
         "pyproject.toml",
         'version = "0.2.0.dev2"',
         'version = "0.2.0.dev3"',
