@@ -75,11 +75,14 @@ def pipeline_recipe_payload(recipe: PipelineRecipeArtifact) -> dict[str, object]
 
 def serialize_pipeline_recipe(recipe: PipelineRecipeArtifact) -> str:
     """Serialize without code objects, paths, rows, identifiers, or candidate pairs."""
-    return json.dumps(
-        pipeline_recipe_payload(recipe),
-        sort_keys=True,
-        separators=(",", ":"),
-    ) + "\n"
+    return (
+        json.dumps(
+            pipeline_recipe_payload(recipe),
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        + "\n"
+    )
 
 
 def deserialize_pipeline_recipe(payload: str) -> PipelineRecipeArtifact:
@@ -120,9 +123,7 @@ def deserialize_pipeline_recipe(payload: str) -> PipelineRecipeArtifact:
             decision_policy_digest=str(raw["decision_policy_digest"]),
             validation_evidence_digest=str(raw["validation_evidence_digest"]),
             approval_status=RecipeApprovalStatus(str(raw["approval_status"])),
-            operational_validation=OperationalValidationStatus(
-                str(raw["operational_validation"])
-            ),
+            operational_validation=OperationalValidationStatus(str(raw["operational_validation"])),
             decision_authority=raw["decision_authority"],
             merge_authority=raw["merge_authority"],
         )
