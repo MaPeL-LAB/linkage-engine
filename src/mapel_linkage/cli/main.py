@@ -7,6 +7,7 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from mapel_linkage import __version__
+from mapel_linkage.capabilities import WorkflowStatus, capabilities, capability_summary
 from mapel_linkage.configuration import (
     compile_config,
     load_config,
@@ -43,7 +44,19 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     subparsers = parser.add_subparsers(dest="command")
 
-    status = subparsers.add_parser("status", help="Show implementation status.")
+    status = subparsers.add_parser("status", help="Show auditable implementation status.")
+    status_format = status.add_mutually_exclusive_group()
+    status_format.add_argument(
+        "--json",
+        action="store_true",
+        dest="as_json",
+        help="Emit the complete machine-readable capability matrix.",
+    )
+    status_format.add_argument(
+        "--details",
+        action="store_true",
+        help="Emit one privacy-safe line per capability.",
+    )
     status.set_defaults(handler=_status)
 
     doctor = subparsers.add_parser("doctor", help="Check the local execution environment safely.")
@@ -99,12 +112,49 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _status(_: argparse.Namespace) -> int:
+def _status(namespace: argparse.Namespace) -> int:
+    registered = capabilities()
+    summary = capability_summary()
+    if namespace.as_json:
+        print(
+            json.dumps(
+                {
+                    "engine_version": __version__,
+                    "summary": summary,
+                    "capabilities": [item.safe_summary() for item in registered],
+                },
+                sort_keys=True,
+            )
+        )
+        return 0
+
+    if namespace.details:
+        for item in registered:
+            print(
+                f"{item.capability_id}\tcomponent={item.component_status.value}\t"
+                f"workflow={item.workflow_status.value}\t"
+                f"runtime={item.runtime_verification.value}\t"
+                "operational_validation=not_established"
+            )
+        return 0
+
+    integrated_count = sum(item.workflow_status is WorkflowStatus.INTEGRATED for item in registered)
+    component_only_count = sum(
+        item.workflow_status is WorkflowStatus.COMPONENT_ONLY for item in registered
+    )
     print(
-        "Linkage Engine M1 through M2E are merged; the complete synthetic MVP "
-        "development candidate adds calibration, ranking, one-to-one no-match assignment, "
-        "four-status decisions, restricted review export, aggregate evaluation, and "
-        "orchestration."
+        "Linkage Engine capability status: "
+        f"workflow_integrated={integrated_count} "
+        f"component_only={component_only_count} "
+        f"total={len(registered)}."
+    )
+    print(
+        "Complete orchestrated workflow: generated-synthetic two-source link_only "
+        "with one-to-one assignment."
+    )
+    print(
+        "M3 through M7 contain implemented components whose general configuration and "
+        "CLI orchestration is still pending."
     )
     print(
         "Synthetic testing establishes software behaviour only; real-data validation "

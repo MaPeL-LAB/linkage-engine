@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -8,12 +9,45 @@ from mapel_linkage.cli.main import main
 from tests.helpers import EXAMPLE_CONFIG, ROOT
 
 
-def test_status(capsys: pytest.CaptureFixture[str]) -> None:
+def test_status_is_current_and_distinguishes_integration(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
     assert main(["status"]) == 0
     output = capsys.readouterr().out
-    assert "M2E" in output
-    assert "development candidate" in output
+    assert "workflow_integrated=" in output
+    assert "component_only=" in output
+    assert "generated-synthetic two-source link_only" in output
+    assert "M3 through M7" in output
+    assert "development candidate" not in output
     assert "record-level" not in output
+
+
+def test_status_json_is_machine_readable_and_safe(capsys: pytest.CaptureFixture[str]) -> None:
+    assert main(["status", "--json"]) == 0
+    payload = json.loads(capsys.readouterr().out)
+
+    assert payload["engine_version"]
+    assert payload["summary"]["operational_validation"] == "not_established"
+    assert payload["summary"]["merge_authority"] == "none"
+    assert any(
+        item["capability_id"] == "beta_calibration"
+        and item["workflow_status"] == "workflow_integrated"
+        for item in payload["capabilities"]
+    )
+    assert all(
+        item["operational_validation"] == "not_established" for item in payload["capabilities"]
+    )
+
+
+def test_status_details_lists_component_and_workflow_state(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert main(["status", "--details"]) == 0
+    output = capsys.readouterr().out
+
+    assert "lightgbm_pair_classifier\tcomponent=implemented\tworkflow=component_only" in output
+    assert "approved_recipe_inference\tcomponent=partial\tworkflow=not_integrated" in output
+    assert "operational_validation=not_established" in output
 
 
 def test_validate_config_succeeds_without_printing_path(
