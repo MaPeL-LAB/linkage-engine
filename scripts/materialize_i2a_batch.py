@@ -58,6 +58,16 @@ def materialize_payload() -> None:
 
 def apply_repository_updates() -> None:
     replace_once(
+        "tests/benchmarking/test_contracts.py",
+        '    assert snapshot.safe_summary()["status_counts"]["candidate_budget_failure"] == 1\n'
+        '    assert snapshot.safe_summary()["run_count"] == 1\n',
+        '    summary = snapshot.safe_summary()\n'
+        '    status_counts = summary["status_counts"]\n'
+        '    assert isinstance(status_counts, dict)\n'
+        '    assert status_counts["candidate_budget_failure"] == 1\n'
+        '    assert summary["run_count"] == 1\n',
+    )
+    replace_once(
         "pyproject.toml",
         'version = "0.2.0.dev2"',
         'version = "0.2.0.dev3"',
