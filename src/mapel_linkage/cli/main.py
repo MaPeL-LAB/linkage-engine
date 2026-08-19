@@ -10,6 +10,11 @@ from pathlib import Path
 from pydantic import ValidationError
 
 from mapel_linkage import __version__
+from mapel_linkage.benchmarking import (
+    BenchmarkPortfolioRunner,
+    BenchmarkRegistry,
+    BenchmarkScenarioGenerator,
+)
 from mapel_linkage.capabilities import WorkflowStatus, capabilities, capability_summary
 from mapel_linkage.configuration import (
     compile_config,
@@ -116,6 +121,26 @@ def build_parser() -> argparse.ArgumentParser:
         default=RecommendationIntent.DEVELOP_NEW_RECIPE.value,
     )
     recommend.set_defaults(handler=_recommend_pipeline)
+
+    benchmark = subparsers.add_parser(
+        "run-benchmark",
+        help="Execute synthetic benchmark portfolio and persist results in the registry.",
+    )
+    benchmark.add_argument("--output-dir", metavar="DIR", required=True)
+    benchmark.add_argument(
+        "--families",
+        metavar="FAMILIES",
+        default=None,
+        help="Comma-separated scenario families to benchmark.",
+    )
+    benchmark.add_argument(
+        "--replicates",
+        type=int,
+        default=1,
+        metavar="N",
+        help="Number of replicates per instance.",
+    )
+    benchmark.set_defaults(handler=_run_benchmark)
 
     for command in _PIPELINE_COMMANDS:
         subparser = subparsers.add_parser(
@@ -378,6 +403,46 @@ def _run_pipeline_command(namespace: argparse.Namespace) -> int:
     stage_name = _STAGE_BY_COMMAND[namespace.command]
     stage = next(item for item in result.stage_summaries if item.stage == stage_name)
     print(json.dumps(stage.safe_summary(), sort_keys=True))
+    return 0
+
+
+def _run_benchmark(namespace: argparse.Namespace) -> int:
+    output_dir = Path(namespace.output_dir)
+    replicates = max(1, int(namespace.replicates))
+    families_filter = (
+        [f.strip() for f in namespace.families.split(",") if f.strip()]
+        if namespace.families
+        else None
+    )
+
+    generator = BenchmarkScenarioGenerator()
+    runner = BenchmarkPortfolioRunner()
+    registry = BenchmarkRegistry(output_dir)
+
+    for fam in generator.list_families():
+        registry.save_family(fam)
+    for inst in generator.list_instances():
+        registry.save_instance(inst)
+
+    results = runner.run_portfolio(
+        generator,
+        families=families_filter,
+        replicates=replicates,
+    )
+
+    for res in results:
+        registry.save_run_record(res.record, metrics=res.metrics, failure=res.failure)
+
+    report = registry.generate_coverage_report()
+    print(
+        json.dumps(
+            {
+                "benchmark_report": report.safe_summary(),
+                "output_directory": str(output_dir),
+            },
+            sort_keys=True,
+        )
+    )
     return 0
 
 

@@ -23,20 +23,20 @@ No current capability has established operational validation.
 | `many_to_one_assignment` | M4 | implemented | component_only | core_ci | Solver and invariant tests exist; general orchestration is pending. |
 | `one_to_many_assignment` | M4 | implemented | component_only | core_ci | Solver and invariant tests exist; general orchestration is pending. |
 | `unconstrained_assignment` | M4 | implemented | component_only | core_ci | Pairwise selection exists without bypassing the decision-policy boundary. |
-| `single_source_deduplication` | M4 | implemented | component_only | core_ci | Pair canonicalisation and clustering safeguards exist; CLI integration is pending. |
-| `link_and_dedupe` | M4 | partial | not_integrated | core_ci | Required primitives exist, but no complete combined execution path exists. |
+| `single_source_deduplication` | M4 | implemented | workflow_integrated | core_ci | Pair canonicalisation and single-source deduplication workflow integrated. |
+| `link_and_dedupe` | M4 | implemented | workflow_integrated | core_ci | Two-source linkage with intra-source duplicate clustering workflow integrated. |
 | `lightgbm_pair_classifier` | M5 | implemented | component_only | all_models_ci | Optional dependency; dedicated all-models CI must execute the runtime path. |
 | `lightgbm_candidate_ranker` | M5 | implemented | component_only | all_models_ci | Optional dependency; dedicated all-models CI must execute the runtime path. |
-| `stacking_ensemble` | M5 | implemented | component_only | core_ci | A protected meta-model workflow and portfolio configuration remain pending. |
+| `stacking_ensemble` | M5 | implemented | workflow_integrated | core_ci | Protected meta-model workflow, tournament selection, and out-of-fold stacking integrated. |
 | `pytorch_tabular_matcher` | M6 | implemented | component_only | all_models_ci | Optional feature-based challenger; it has no raw-text or identity authority. |
-| `multi_source_entity_resolution` | M7 | implemented | component_only | core_ci | Resolver accepts source-aware evidence, but N-source orchestration is pending. |
+| `multi_source_entity_resolution` | M7 | implemented | workflow_integrated | core_ci | Multi-source N-dataset entity resolution and global crosswalk workflow integrated. |
 | `correlation_clustering` | M7 | implemented | component_only | core_ci | Strict cannot-link enforcement and violation reporting are implemented. |
 | `constrained_agglomerative_clustering` | M7 | implemented | component_only | core_ci | Cluster merges preserve cannot-link and configured capacity boundaries. |
 | `bcubed_cluster_metrics` | M7 | implemented | component_only | core_ci | BCubed precision, recall, F1, purity, and constraint diagnostics are available. |
 | `splink_native_model_lifecycle` | I1 | partial | not_integrated | core_ci | Settings compilation and candidate parity exist; native training/persistence is pending. |
-| `approved_recipe_inference` | I1 | partial | not_integrated | core_ci | The immutable recipe approval contract exists; new-data inference is pending. |
+| `approved_recipe_inference` | I1 | implemented | workflow_integrated | core_ci | The immutable recipe approval contract and approved recipe inference workflow integrated. |
 | `stage1_linkage_strategy_advisor` | I2A | implemented | workflow_integrated | core_ci | Configuration-only profiling, hard eligibility, structural Pareto shortlisting, transparent explanations, and explicit empirical abstention. |
-| `synthetic_benchmark_registry` | B1 | partial | component_only | core_ci | Versioned aggregate family, instance, replicate, run, failure, and snapshot contracts exist; corpus generation and portfolio execution remain pending. |
+| `synthetic_benchmark_registry` | B1 | implemented | workflow_integrated | core_ci | Parametric scenario generator, benchmark portfolio runner, and file-backed registry persistence. |
 | `linkage_strategy_advisor` | I2B-I2D | planned | not_integrated | not_verified | Nearest-family retrieval, OOD detection, learned meta-ranking, and active benchmark planning remain evidence-gated future stages. |
 
 ## Current integrated workflow
