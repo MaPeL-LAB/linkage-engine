@@ -30,20 +30,135 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-      - name: Materialize source changes and remove one-use machinery
+      - name: Materialize typed source changes and remove one-use machinery
         run: |
           python - <<'PY'
           from pathlib import Path
 
-          path = Path("scripts/apply_plural_model_stage_patch.py")
-          text = path.read_text(encoding="utf-8")
-          old = '    new_models + "\\n\\nclass CalibrationConfig(ConfigNode):\\n",\n'
-          new = '    new_models + "\\n\\n",\n'
-          if text.count(old) != 1:
+          patch_path = Path("scripts/apply_plural_model_stage_patch.py")
+          patch_text = patch_path.read_text(encoding="utf-8")
+          old_marker = '    new_models + "\\n\\nclass CalibrationConfig(ConfigNode):\\n",\n'
+          new_marker = '    new_models + "\\n\\n",\n'
+          if patch_text.count(old_marker) != 1:
               raise SystemExit("plural-model patch repair marker was not found exactly once")
-          path.write_text(text.replace(old, new, 1), encoding="utf-8")
+          patch_path.write_text(patch_text.replace(old_marker, new_marker, 1), encoding="utf-8")
           PY
           python scripts/apply_plural_model_stage_patch.py
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(text: str, old: str, new: str, label: str) -> str:
+              if text.count(old) != 1:
+                  raise SystemExit(f"expected one {label} marker, found {text.count(old)}")
+              return text.replace(old, new, 1)
+
+          models_path = Path("src/mapel_linkage/configuration/models.py")
+          models_text = models_path.read_text(encoding="utf-8")
+          old_supervised = '''        supervised = [
+              *self.models.all_boosted_trees(),
+              *self.models.all_ranking_models(),
+              *self.models.all_neural_models(),
+              *self.models.ensembles,
+          ]
+          if any(
+              model.enabled and model.require_verified_labels and not eligible_truth
+              for model in supervised
+          ):
+              raise ValueError("Enabled supervised models require eligible verified labels.")
+          '''.replace("          ", "")
+          new_supervised = '''        supervised_requires_verified_labels = (
+              any(
+                  model.enabled and model.require_verified_labels
+                  for model in self.models.all_boosted_trees()
+              )
+              or any(
+                  model.enabled and model.require_verified_labels
+                  for model in self.models.all_ranking_models()
+              )
+              or any(
+                  model.enabled and model.require_verified_labels
+                  for model in self.models.all_neural_models()
+              )
+              or any(
+                  model.enabled and model.require_verified_labels
+                  for model in self.models.ensembles
+              )
+          )
+          if supervised_requires_verified_labels and not eligible_truth:
+              raise ValueError("Enabled supervised models require eligible verified labels.")
+          '''.replace("          ", "")
+          models_text = replace_once(
+              models_text,
+              old_supervised,
+              new_supervised,
+              "typed supervised-model validation",
+          )
+          models_path.write_text(models_text, encoding="utf-8")
+
+          portfolio_path = Path("src/mapel_linkage/pipeline/model_portfolio.py")
+          portfolio_text = portfolio_path.read_text(encoding="utf-8")
+          old_ranker = '''    ranker_by_id: dict[str, RankingCandidateDeclaration] = {}
+          for ranking in config.models.all_ranking_models():
+              family: Literal["xgboost", "lightgbm"] = (
+                  "xgboost" if ranking.implementation == "xgboost_ranker" else "lightgbm"
+              )
+              artifact_format: Literal["xgboost_json", "lightgbm_text"] = (
+                  "xgboost_json" if family == "xgboost" else "lightgbm_text"
+              )
+              ranker_by_id[ranking.model_id] = RankingCandidateDeclaration(
+                  model_id=ranking.model_id,
+                  family=family,
+                  implementation=ranking.implementation,
+                  enabled=ranking.enabled,
+                  query_side=ranking.query_side,
+                  top_k=ranking.top_k,
+                  artifact_format=artifact_format,
+              )
+          '''.replace("          ", "")
+          new_ranker = '''    ranker_by_id: dict[str, RankingCandidateDeclaration] = {}
+          for ranking in config.models.all_ranking_models():
+              ranker_family: Literal["xgboost", "lightgbm"] = (
+                  "xgboost" if ranking.implementation == "xgboost_ranker" else "lightgbm"
+              )
+              ranker_artifact_format: Literal["xgboost_json", "lightgbm_text"] = (
+                  "xgboost_json" if ranker_family == "xgboost" else "lightgbm_text"
+              )
+              ranker_by_id[ranking.model_id] = RankingCandidateDeclaration(
+                  model_id=ranking.model_id,
+                  family=ranker_family,
+                  implementation=ranking.implementation,
+                  enabled=ranking.enabled,
+                  query_side=ranking.query_side,
+                  top_k=ranking.top_k,
+                  artifact_format=ranker_artifact_format,
+              )
+          '''.replace("          ", "")
+          portfolio_text = replace_once(
+              portfolio_text,
+              old_ranker,
+              new_ranker,
+              "ranker local-variable typing",
+          )
+          portfolio_text = replace_once(
+              portfolio_text,
+              "        allow_shadow_scoring = True\n",
+              "",
+              "default shadow-scoring assignment",
+          )
+          portfolio_text = replace_once(
+              portfolio_text,
+              "        allow_shadow_scoring = requested.allow_shadow_scoring\n",
+              "",
+              "configured shadow-scoring assignment",
+          )
+          portfolio_text = replace_once(
+              portfolio_text,
+              "        allow_shadow_scoring=allow_shadow_scoring,\n",
+              "        allow_shadow_scoring=True,\n",
+              "literal shadow-scoring argument",
+          )
+          portfolio_path.write_text(portfolio_text, encoding="utf-8")
+          PY
           rm scripts/apply_plural_model_stage_patch.py
           rm .github/workflows/verify-plural-config-stage-artifacts-once.yml
           rm .github/workflows/finalize-plural-config-stage-artifacts-once.yml
