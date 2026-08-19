@@ -10,6 +10,7 @@ from pathlib import Path, PurePosixPath
 
 PAYLOAD_DIGEST = "b7b1f9c472d0dd2d49eceb638f850c7f848ffea00f383307e819a4f89705bd1e"
 PARTS_DIRECTORY = Path("scripts/i2a_payload_parts")
+ERRORS_PATH = Path("src/mapel_linkage/domain/errors.py")
 
 
 def replace_once(path: str, old: str, new: str) -> None:
@@ -32,6 +33,10 @@ def materialize_payload() -> None:
     if hashlib.sha256(payload).hexdigest() != PAYLOAD_DIGEST:
         raise SystemExit("The I2A transfer payload checksum does not match.")
 
+    live_errors = ERRORS_PATH.read_text(encoding="utf-8")
+    if "class AdvisorError(" in live_errors:
+        raise SystemExit("The live error registry already contains AdvisorError.")
+
     with tarfile.open(fileobj=io.BytesIO(payload), mode="r:gz") as archive:
         members = archive.getmembers()
         if not members:
@@ -43,6 +48,12 @@ def materialize_payload() -> None:
             if not member.isfile():
                 raise SystemExit("The I2A transfer payload may contain regular files only.")
         archive.extractall(path=Path.cwd(), filter="data")
+
+    advisor_error = (
+        "\n\nclass AdvisorError(LinkageRuntimeError):\n"
+        '    """Raised by advisory-only eligibility and recommendation boundaries."""\n'
+    )
+    ERRORS_PATH.write_text(live_errors.rstrip() + advisor_error + "\n", encoding="utf-8")
 
 
 def apply_repository_updates() -> None:
