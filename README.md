@@ -162,6 +162,10 @@ Assignment performs constrained selection but does not classify relationships. O
 explicit decision policy emits `confirmed`, `review_required`, `unresolved`, or `no_match`.
 No component has silent merge authority.
 
+## Plural model configuration and stage provenance
+
+Project configuration can declare multiple boosted, ranking, neural, and stacking candidates while retaining the existing singular fields for compatibility. Immutable stage-artifact and out-of-fold manifests provide digest-linked provenance without exposing rows, identifiers, candidate pairs, or local paths. See [`docs/implementation/PLURAL_CONFIGURATION_AND_STAGE_ARTIFACTS.md`](docs/implementation/PLURAL_CONFIGURATION_AND_STAGE_ARTIFACTS.md).
+
 ## Command line
 
 Environment, configuration, and capability commands:

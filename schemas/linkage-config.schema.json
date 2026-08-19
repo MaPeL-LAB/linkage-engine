@@ -1006,6 +1006,67 @@
       "title": "MissingnessConfig",
       "type": "object"
     },
+    "ModelPortfolioConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "allow_shadow_scoring": {
+          "const": true,
+          "default": true,
+          "title": "Allow Shadow Scoring",
+          "type": "boolean"
+        },
+        "mandatory_baseline_id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "maximum_challengers": {
+          "default": 3,
+          "maximum": 8,
+          "minimum": 0,
+          "title": "Maximum Challengers",
+          "type": "integer"
+        },
+        "pair_model_ids": {
+          "items": {
+            "$ref": "#/$defs/Identifier"
+          },
+          "maxItems": 16,
+          "minItems": 1,
+          "title": "Pair Model Ids",
+          "type": "array"
+        },
+        "portfolio_id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "portfolio_schema_version": {
+          "const": "1",
+          "default": "1",
+          "title": "Portfolio Schema Version",
+          "type": "string"
+        },
+        "ranking_model_ids": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Identifier"
+          },
+          "maxItems": 8,
+          "title": "Ranking Model Ids",
+          "type": "array"
+        },
+        "test_partition_may_select_portfolio": {
+          "const": false,
+          "default": false,
+          "title": "Test Partition May Select Portfolio",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "portfolio_id",
+        "pair_model_ids",
+        "mandatory_baseline_id"
+      ],
+      "title": "ModelPortfolioConfig",
+      "type": "object"
+    },
     "ModelSelectionConfig": {
       "additionalProperties": false,
       "properties": {
@@ -1054,6 +1115,24 @@
           ],
           "default": null
         },
+        "boosted_trees": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/BoostedTreeModelConfig"
+          },
+          "maxItems": 16,
+          "title": "Boosted Trees",
+          "type": "array"
+        },
+        "ensembles": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/StackingModelConfig"
+          },
+          "maxItems": 8,
+          "title": "Ensembles",
+          "type": "array"
+        },
         "fellegi_sunter": {
           "$ref": "#/$defs/FellegiSunterModelConfig"
         },
@@ -1061,6 +1140,26 @@
           "anyOf": [
             {
               "$ref": "#/$defs/NeuralModelConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "neural_models": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/NeuralModelConfig"
+          },
+          "maxItems": 8,
+          "title": "Neural Models",
+          "type": "array"
+        },
+        "portfolio": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ModelPortfolioConfig"
             },
             {
               "type": "null"
@@ -1078,6 +1177,15 @@
             }
           ],
           "default": null
+        },
+        "ranking_models": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/RankingModelConfig"
+          },
+          "maxItems": 8,
+          "title": "Ranking Models",
+          "type": "array"
         }
       },
       "required": [
@@ -1586,6 +1694,65 @@
         "test_fraction"
       ],
       "title": "SplitConfig",
+      "type": "object"
+    },
+    "StackingModelConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "base_model_ids": {
+          "items": {
+            "$ref": "#/$defs/Identifier"
+          },
+          "maxItems": 16,
+          "minItems": 2,
+          "title": "Base Model Ids",
+          "type": "array"
+        },
+        "deterministic_mode": {
+          "const": true,
+          "default": true,
+          "title": "Deterministic Mode",
+          "type": "boolean"
+        },
+        "enabled": {
+          "default": false,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "implementation": {
+          "const": "stacking_logistic",
+          "title": "Implementation",
+          "type": "string"
+        },
+        "maximum_training_pairs": {
+          "default": 1000000,
+          "exclusiveMinimum": 0,
+          "maximum": 10000000,
+          "title": "Maximum Training Pairs",
+          "type": "integer"
+        },
+        "meta_training_source": {
+          "const": "out_of_fold_training_predictions",
+          "default": "out_of_fold_training_predictions",
+          "title": "Meta Training Source",
+          "type": "string"
+        },
+        "model_id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "require_verified_labels": {
+          "const": true,
+          "default": true,
+          "title": "Require Verified Labels",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "implementation",
+        "model_id",
+        "base_model_ids"
+      ],
+      "title": "StackingModelConfig",
       "type": "object"
     },
     "StripTransform": {

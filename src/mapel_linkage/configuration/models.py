@@ -431,11 +431,120 @@ class NeuralModelConfig(ConfigNode):
     require_verified_labels: Literal[True] = True
 
 
+class StackingModelConfig(ConfigNode):
+    enabled: StrictBool = False
+    implementation: Literal["stacking_logistic"]
+    model_id: Identifier
+    base_model_ids: Annotated[tuple[Identifier, ...], Field(min_length=2, max_length=16)]
+    require_verified_labels: Literal[True] = True
+    meta_training_source: Literal["out_of_fold_training_predictions"] = (
+        "out_of_fold_training_predictions"
+    )
+    maximum_training_pairs: Annotated[PositiveInt, Field(le=10_000_000)] = 1_000_000
+    deterministic_mode: Literal[True] = True
+
+    @model_validator(mode="after")
+    def validate_base_model_ids(self) -> Self:
+        if len(self.base_model_ids) != len(set(self.base_model_ids)):
+            raise ValueError("Stacking base-model IDs must be unique.")
+        if self.model_id in self.base_model_ids:
+            raise ValueError("A stacking model cannot include itself as a base model.")
+        return self
+
+
+class ModelPortfolioConfig(ConfigNode):
+    portfolio_schema_version: Literal["1"] = "1"
+    portfolio_id: Identifier
+    pair_model_ids: Annotated[tuple[Identifier, ...], Field(min_length=1, max_length=16)]
+    ranking_model_ids: Annotated[tuple[Identifier, ...], Field(max_length=8)] = ()
+    mandatory_baseline_id: Identifier
+    maximum_challengers: Annotated[StrictInt, Field(ge=0, le=8)] = 3
+    allow_shadow_scoring: Literal[True] = True
+    test_partition_may_select_portfolio: Literal[False] = False
+
+    @model_validator(mode="after")
+    def validate_identifiers(self) -> Self:
+        if len(self.pair_model_ids) != len(set(self.pair_model_ids)):
+            raise ValueError("Portfolio pair-model IDs must be unique.")
+        if len(self.ranking_model_ids) != len(set(self.ranking_model_ids)):
+            raise ValueError("Portfolio ranking-model IDs must be unique.")
+        if self.mandatory_baseline_id not in self.pair_model_ids:
+            raise ValueError("The mandatory baseline must be selected by the portfolio.")
+        if self.maximum_challengers > len(self.pair_model_ids) - 1:
+            raise ValueError("Portfolio challenger budget exceeds selected challengers.")
+        return self
+
+
 class ModelsConfig(ConfigNode):
     fellegi_sunter: FellegiSunterModelConfig
     boosted_tree: BoostedTreeModelConfig | None = None
     ranking: RankingModelConfig | None = None
     neural: NeuralModelConfig | None = None
+    boosted_trees: Annotated[tuple[BoostedTreeModelConfig, ...], Field(max_length=16)] = ()
+    ranking_models: Annotated[tuple[RankingModelConfig, ...], Field(max_length=8)] = ()
+    neural_models: Annotated[tuple[NeuralModelConfig, ...], Field(max_length=8)] = ()
+    ensembles: Annotated[tuple[StackingModelConfig, ...], Field(max_length=8)] = ()
+    portfolio: ModelPortfolioConfig | None = None
+
+    @model_validator(mode="after")
+    def validate_portfolio_contract(self) -> Self:
+        model_ids = self.all_model_ids()
+        if len(model_ids) != len(set(model_ids)):
+            raise ValueError("Model IDs must be unique across the complete portfolio.")
+        base_pair_models = {
+            self.fellegi_sunter.model_id: self.fellegi_sunter.enabled,
+            **{model.model_id: model.enabled for model in self.all_boosted_trees()},
+            **{model.model_id: model.enabled for model in self.all_neural_models()},
+        }
+        for ensemble in self.ensembles:
+            if not set(ensemble.base_model_ids).issubset(base_pair_models):
+                raise ValueError("Stacking base models must exist in the same project.")
+            if ensemble.enabled and not all(
+                base_pair_models[model_id] for model_id in ensemble.base_model_ids
+            ):
+                raise ValueError("Enabled stacking requires enabled base models.")
+        if self.portfolio is None:
+            return self
+        if self.portfolio.mandatory_baseline_id != self.fellegi_sunter.model_id:
+            raise ValueError("The portfolio baseline must be the Fellegi-Sunter model.")
+        enabled_pair_ids = {model_id for model_id, enabled in base_pair_models.items() if enabled}
+        enabled_pair_ids.update(
+            ensemble.model_id for ensemble in self.ensembles if ensemble.enabled
+        )
+        enabled_ranker_ids = {
+            model.model_id for model in self.all_ranking_models() if model.enabled
+        }
+        if not set(self.portfolio.pair_model_ids).issubset(enabled_pair_ids):
+            raise ValueError("Portfolio pair models must be declared and enabled.")
+        if not set(self.portfolio.ranking_model_ids).issubset(enabled_ranker_ids):
+            raise ValueError("Portfolio rankers must be declared and enabled.")
+        return self
+
+    def all_boosted_trees(self) -> tuple[BoostedTreeModelConfig, ...]:
+        models = list(self.boosted_trees)
+        if self.boosted_tree is not None:
+            models.insert(0, self.boosted_tree)
+        return tuple(models)
+
+    def all_ranking_models(self) -> tuple[RankingModelConfig, ...]:
+        models = list(self.ranking_models)
+        if self.ranking is not None:
+            models.insert(0, self.ranking)
+        return tuple(models)
+
+    def all_neural_models(self) -> tuple[NeuralModelConfig, ...]:
+        models = list(self.neural_models)
+        if self.neural is not None:
+            models.insert(0, self.neural)
+        return tuple(models)
+
+    def all_model_ids(self) -> tuple[str, ...]:
+        identifiers = [self.fellegi_sunter.model_id]
+        identifiers.extend(model.model_id for model in self.all_boosted_trees())
+        identifiers.extend(model.model_id for model in self.all_ranking_models())
+        identifiers.extend(model.model_id for model in self.all_neural_models())
+        identifiers.extend(model.model_id for model in self.ensembles)
+        return tuple(identifiers)
 
 
 class CalibrationConfig(ConfigNode):
@@ -616,20 +725,21 @@ class LinkageConfig(ConfigNode):
             raise ValueError(
                 "Fellegi-Sunter random-pair sampling cannot exceed the runtime pair budget."
             )
-        boosted = self.models.boosted_tree
-        if (
-            boosted is not None
-            and boosted.enabled
-            and boosted.maximum_training_pairs > self.runtime.maximum_candidate_pairs
+        if any(
+            model.enabled and model.maximum_training_pairs > self.runtime.maximum_candidate_pairs
+            for model in self.models.all_boosted_trees()
         ):
             raise ValueError("Boosted-tree training cannot exceed the runtime pair budget.")
-        ranking = self.models.ranking
-        if (
-            ranking is not None
-            and ranking.enabled
-            and ranking.maximum_training_pairs > self.runtime.maximum_candidate_pairs
+        if any(
+            model.enabled and model.maximum_training_pairs > self.runtime.maximum_candidate_pairs
+            for model in self.models.all_ranking_models()
         ):
             raise ValueError("Ranking training cannot exceed the runtime pair budget.")
+        if any(
+            model.enabled and model.maximum_training_pairs > self.runtime.maximum_candidate_pairs
+            for model in self.models.ensembles
+        ):
+            raise ValueError("Ensemble training cannot exceed the runtime pair budget.")
         self._validate_outputs(set(variable_by_id))
         if self.assignment.constraint != self.project.assignment_constraint:
             raise ValueError("Project and assignment constraints must agree.")
@@ -658,11 +768,7 @@ class LinkageConfig(ConfigNode):
             "blocking rule": [item.id for item in self.blocking.rules],
             "comparison": [item.id for item in self.comparisons],
         }
-        model_ids = [self.models.fellegi_sunter.model_id]
-        for model in (self.models.boosted_tree, self.models.ranking, self.models.neural):
-            if model is not None:
-                model_ids.append(model.model_id)
-        groups["model"] = model_ids
+        groups["model"] = list(self.models.all_model_ids())
         for label, values in groups.items():
             duplicate = next((value for value, count in Counter(values).items() if count > 1), None)
             if duplicate is not None:
@@ -780,21 +886,37 @@ class LinkageConfig(ConfigNode):
             "verified_human_adjudication",
             "verified_gold_standard",
         }
-        supervised = [self.models.boosted_tree, self.models.ranking, self.models.neural]
-        if any(
-            model is not None
-            and model.enabled
-            and model.require_verified_labels
-            and not eligible_truth
-            for model in supervised
-        ):
+        supervised_requires_verified_labels = (
+            any(
+                model.enabled and model.require_verified_labels
+                for model in self.models.all_boosted_trees()
+            )
+            or any(
+                model.enabled and model.require_verified_labels
+                for model in self.models.all_ranking_models()
+            )
+            or any(
+                model.enabled and model.require_verified_labels
+                for model in self.models.all_neural_models()
+            )
+            or any(
+                model.enabled and model.require_verified_labels for model in self.models.ensembles
+            )
+        )
+        if supervised_requires_verified_labels and not eligible_truth:
             raise ValueError("Enabled supervised models require eligible verified labels.")
         score_model_ids: set[str] = set()
         if self.models.fellegi_sunter.enabled:
             score_model_ids.add(self.models.fellegi_sunter.model_id)
-        for model in (self.models.boosted_tree, self.models.neural):
-            if model is not None and model.enabled:
-                score_model_ids.add(model.model_id)
+        score_model_ids.update(
+            model.model_id for model in self.models.all_boosted_trees() if model.enabled
+        )
+        score_model_ids.update(
+            model.model_id for model in self.models.all_neural_models() if model.enabled
+        )
+        score_model_ids.update(model.model_id for model in self.models.ensembles if model.enabled)
+        if self.models.portfolio is not None:
+            score_model_ids.intersection_update(self.models.portfolio.pair_model_ids)
         if not score_model_ids:
             raise ValueError("At least one pair-scoring model must be enabled.")
         if self.calibration.source_model == "selected_champion" and len(score_model_ids) < 2:
