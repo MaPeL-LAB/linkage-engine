@@ -95,7 +95,7 @@ eead05c82c9c7a791bc8ff68f23d3f3fc22e8da94e1e3a0d60ab31feea52895c      4752  src/
 d28bb3e79049150b43cae3ac30021a23e448d2f096a997e8b3a385d650dcfe3b        38  src/mapel_linkage/cli/__init__.py
 c069cfeb58a197f2f05994d956d6e046735fb821112b383a6023ea2cd284b74e     10096  src/mapel_linkage/cli/main.py
 973632cc81a2ea85dabb4366b8beabfe62d924c98fd153f4bf432493cfc4550c      1707  src/mapel_linkage/clustering/__init__.py
-dd24c58d4dafc751c28720b52ac3eaff683c4eaf9094b3e2acfba1178d7c544e     22400  src/mapel_linkage/clustering/contracts.py
+6821e242012e7b67a18b5b10ad8dbf96f592e85d2f7a0476c3fa7c9ae28b2372     22974  src/mapel_linkage/clustering/contracts.py
 5a815968cfb2348b0ecd3740bcf608dcadeaf71431903cec84eda1e405c4e1b2     24639  src/mapel_linkage/clustering/metrics.py
 c30d5bcc577e3f49de6bdec910314353db8e304e1390f6785a764bf5fc09bb5e      7604  src/mapel_linkage/clustering/resolver.py
 fb3434e26c95a8332a8727dafa694e946fd1c4884ef4f3facbd58daf6e132411     13073  src/mapel_linkage/clustering/solvers.py

@@ -562,6 +562,18 @@ class MultiSourceResolutionResult:
     def to_crosswalk_records(self) -> list[dict[str, Any]]:
         return [entry.to_dict() for entry in self.crosswalk_entries]
 
+    def __repr__(self) -> str:
+        return (
+            f"MultiSourceResolutionResult(algorithm={self.algorithm!r}, "
+            f"total_records={self.total_records}, "
+            f"total_clusters={self.total_clusters}, "
+            f"singleton_count={self.singleton_count}, "
+            f"multi_record_cluster_count={self.multi_record_cluster_count}, "
+            f"cannot_link_violations={self.cannot_link_violations}, "
+            f"source_collision_count={self.source_collision_count}, "
+            f"resolution_digest={self.resolution_digest!r})"
+        )
+
     def safe_summary(self) -> dict[str, Any]:
         return {
             "algorithm": self.algorithm,
