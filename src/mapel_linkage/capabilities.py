@@ -130,13 +130,14 @@ _CAPABILITIES: Final[tuple[Capability, ...]] = (
         "OR-Tools is the primary solver; SciPy provides a small-problem reference.",
     ),
     Capability(
-        "adjudication_lifecycle",
-        "Adjudication import, disagreement, and label promotion",
+        "adjudication_audit_ledger",
+        "Adjudication audit ledger, consensus, and label promotion",
         "M3",
         ComponentStatus.IMPLEMENTED,
-        WorkflowStatus.COMPONENT_ONLY,
+        WorkflowStatus.INTEGRATED,
         RuntimeVerificationStatus.CORE_CI,
-        "Implemented below the CLI boundary; no automatic retraining is permitted.",
+        "Immutable append-only audit ledger, multi-reviewer consensus, and "
+        "label promotion workflow integrated.",
     ),
     Capability(
         "active_learning_queue",
@@ -303,14 +304,24 @@ _CAPABILITIES: Final[tuple[Capability, ...]] = (
         "file-backed registry persistence.",
     ),
     Capability(
+        "stage2_similarity_advisor",
+        "Stage-2 Similarity & Coverage Advisor",
+        "I2B",
+        ComponentStatus.IMPLEMENTED,
+        WorkflowStatus.INTEGRATED,
+        RuntimeVerificationStatus.CORE_CI,
+        "Nearest scenario family retrieval, weighted distance computation, "
+        "out-of-distribution thresholding, empirical performance distribution aggregation, "
+        "and strict advisory invariants.",
+    ),
+    Capability(
         "linkage_strategy_advisor",
         "Evidence-Based Linkage Strategy Advisor",
-        "I2B-I2D",
+        "I2C-I2D",
         ComponentStatus.PLANNED,
         WorkflowStatus.NOT_INTEGRATED,
         RuntimeVerificationStatus.NOT_VERIFIED,
-        "Nearest-family retrieval, OOD detection, learned meta-ranking, and active "
-        "benchmark planning remain evidence-gated future stages.",
+        "Learned meta-ranking and active benchmark planning remain evidence-gated future stages.",
     ),
 )
 

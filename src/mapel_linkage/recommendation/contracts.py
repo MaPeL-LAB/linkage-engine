@@ -335,17 +335,85 @@ class PipelineRecommendation(RecommendationNode):
         }
 
 
+class EmpiricalMetricDistribution(RecommendationNode):
+    """Aggregated empirical benchmark metrics across nearest scenario runs."""
+
+    sample_count: Annotated[StrictInt, Field(ge=0)]
+    mean_candidate_recall: float = Field(ge=0.0, le=1.0)
+    mean_recall_at_1: float = Field(ge=0.0, le=1.0)
+    mean_recall_at_5: float = Field(ge=0.0, le=1.0)
+    mean_positive_predictive_value: float = Field(ge=0.0, le=1.0)
+    mean_brier_score: float = Field(ge=0.0, le=1.0)
+    mean_runtime_ms: float = Field(ge=0.0)
+    mean_peak_memory_mb: float = Field(ge=0.0)
+    failure_rate: float = Field(ge=0.0, le=1.0)
+    operational_validity: Literal["not_established"] = "not_established"
+
+
+class SimilarityAdvisoryReport(RecommendationNode):
+    """Stage-2 similarity-based advisory report with benchmark evidence."""
+
+    report_schema_version: Literal["1"] = "1"
+    report_id: Identifier
+    recommendation: PipelineRecommendation
+    target_task_profile_digest: Digest
+    nearest_family_ids: Annotated[tuple[Identifier, ...], Field(max_length=16)] = ()
+    nearest_family_distances: dict[str, float] = Field(default_factory=dict)
+    synthetic_evidence_retrieved: StrictBool
+    out_of_distribution: StrictBool
+    out_of_distribution_score: Annotated[StrictFloat, Field(ge=0.0, le=1.0)]
+    empirical_metric_distributions: dict[str, EmpiricalMetricDistribution] = Field(
+        default_factory=dict
+    )
+    recommendation_authority: Literal["advisory_only"] = "advisory_only"
+    decision_authority: Literal["none"] = "none"
+    assignment_authority: Literal["none"] = "none"
+    merge_authority: Literal["none"] = "none"
+    automatic_promotion: Literal["prohibited"] = "prohibited"
+    operational_validity: Literal["not_established"] = "not_established"
+
+    @property
+    def report_digest(self) -> str:
+        payload = self.model_dump(mode="json")
+        encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        return hashlib.sha256(encoded).hexdigest()
+
+    def safe_summary(self) -> dict[str, object]:
+        return {
+            "report_schema_version": self.report_schema_version,
+            "report_id": self.report_id,
+            "report_digest": self.report_digest,
+            "recommendation_id": self.recommendation.recommendation_id,
+            "nearest_family_ids": list(self.nearest_family_ids),
+            "nearest_family_distances": self.nearest_family_distances,
+            "synthetic_evidence_retrieved": self.synthetic_evidence_retrieved,
+            "out_of_distribution": self.out_of_distribution,
+            "out_of_distribution_score": self.out_of_distribution_score,
+            "empirical_metric_distributions": {
+                k: v.model_dump(mode="json") for k, v in self.empirical_metric_distributions.items()
+            },
+            "recommendation": self.recommendation.safe_summary(),
+            "recommendation_authority": self.recommendation_authority,
+            "decision_authority": self.decision_authority,
+            "assignment_authority": self.assignment_authority,
+            "merge_authority": self.merge_authority,
+            "operational_validity": self.operational_validity,
+        }
+
+
 __all__ = [
     "AbstentionReason",
     "CandidateExplanation",
     "CandidateRetrievalStatus",
     "CoverageStatus",
     "DisqualifiedCandidate",
+    "EmpiricalMetricDistribution",
     "EvidenceContribution",
     "EvidenceScope",
     "PipelineRecommendation",
     "RankingStrategy",
     "RecommendationIntent",
     "RuntimeDependency",
+    "SimilarityAdvisoryReport",
     "StructuralPipelineCandidate",
 ]

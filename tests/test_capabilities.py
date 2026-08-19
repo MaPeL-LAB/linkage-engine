@@ -26,8 +26,8 @@ def test_capability_registry_distinguishes_components_from_workflows() -> None:
     by_id = {item.capability_id: item for item in capabilities()}
 
     assert by_id["xgboost_pair_classifier"].workflow_status is WorkflowStatus.INTEGRATED
-    assert by_id["adjudication_lifecycle"].component_status is ComponentStatus.IMPLEMENTED
-    assert by_id["adjudication_lifecycle"].workflow_status is WorkflowStatus.COMPONENT_ONLY
+    assert by_id["adjudication_audit_ledger"].component_status is ComponentStatus.IMPLEMENTED
+    assert by_id["adjudication_audit_ledger"].workflow_status is WorkflowStatus.INTEGRATED
     assert by_id["link_and_dedupe"].component_status is ComponentStatus.IMPLEMENTED
     assert by_id["approved_recipe_inference"].component_status is ComponentStatus.IMPLEMENTED
     assert by_id["approved_recipe_inference"].workflow_status is WorkflowStatus.INTEGRATED
