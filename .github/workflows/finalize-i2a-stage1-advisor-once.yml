@@ -47,76 +47,84 @@ jobs:
 
           replace_once(
               "src/mapel_linkage/recommendation/advisor.py",
-              '''    if context.intent is RecommendationIntent.INFER_WITH_APPROVED_RECIPE:
-                  if not context.approved_recipe_available:
-                      abstention_reasons.append(AbstentionReason.APPROVED_RECIPE_REQUIRED)
-              if context.intent is RecommendationIntent.SHADOW_SCORE_CHALLENGER:
-                  if not context.approved_artifact_model_ids:
-                      abstention_reasons.append(AbstentionReason.APPROVED_ARTIFACT_REQUIRED)
-              '''.replace("              ", ""),
-              '''    if (
-                  context.intent is RecommendationIntent.INFER_WITH_APPROVED_RECIPE
-                  and not context.approved_recipe_available
-              ):
-                  abstention_reasons.append(AbstentionReason.APPROVED_RECIPE_REQUIRED)
-              if (
-                  context.intent is RecommendationIntent.SHADOW_SCORE_CHALLENGER
-                  and not context.approved_artifact_model_ids
-              ):
-                  abstention_reasons.append(AbstentionReason.APPROVED_ARTIFACT_REQUIRED)
-              '''.replace("              ", ""),
+              (
+                  "    if context.intent is RecommendationIntent.INFER_WITH_APPROVED_RECIPE:\n"
+                  "        if not context.approved_recipe_available:\n"
+                  "            abstention_reasons.append(AbstentionReason.APPROVED_RECIPE_REQUIRED)\n"
+                  "    if context.intent is RecommendationIntent.SHADOW_SCORE_CHALLENGER:\n"
+                  "        if not context.approved_artifact_model_ids:\n"
+                  "            abstention_reasons.append(AbstentionReason.APPROVED_ARTIFACT_REQUIRED)\n"
+              ),
+              (
+                  "    if (\n"
+                  "        context.intent is RecommendationIntent.INFER_WITH_APPROVED_RECIPE\n"
+                  "        and not context.approved_recipe_available\n"
+                  "    ):\n"
+                  "        abstention_reasons.append(AbstentionReason.APPROVED_RECIPE_REQUIRED)\n"
+                  "    if (\n"
+                  "        context.intent is RecommendationIntent.SHADOW_SCORE_CHALLENGER\n"
+                  "        and not context.approved_artifact_model_ids\n"
+                  "    ):\n"
+                  "        abstention_reasons.append(AbstentionReason.APPROVED_ARTIFACT_REQUIRED)\n"
+              ),
           )
           replace_once(
               "src/mapel_linkage/recommendation/contracts.py",
-              '''        if self.mandatory_baseline_candidate_id is not None and self.shortlist:
-                          if self.mandatory_baseline_candidate_id not in shortlist_ids:
-                              raise ValueError("A non-empty shortlist must retain the mandatory baseline.")
-                      '''.replace("                      ", ""),
-              '''        if (
-                          self.mandatory_baseline_candidate_id is not None
-                          and self.shortlist
-                          and self.mandatory_baseline_candidate_id not in shortlist_ids
-                      ):
-                          raise ValueError("A non-empty shortlist must retain the mandatory baseline.")
-                      '''.replace("                      ", ""),
+              (
+                  "        if self.mandatory_baseline_candidate_id is not None and self.shortlist:\n"
+                  "            if self.mandatory_baseline_candidate_id not in shortlist_ids:\n"
+                  "                raise ValueError(\"A non-empty shortlist must retain the mandatory baseline.\")\n"
+              ),
+              (
+                  "        if (\n"
+                  "            self.mandatory_baseline_candidate_id is not None\n"
+                  "            and self.shortlist\n"
+                  "            and self.mandatory_baseline_candidate_id not in shortlist_ids\n"
+                  "        ):\n"
+                  "            raise ValueError(\"A non-empty shortlist must retain the mandatory baseline.\")\n"
+              ),
           )
           replace_once(
               "src/mapel_linkage/recommendation/contracts.py",
-              '''        if self.coverage_status is CoverageStatus.STRUCTURAL_ONLY:
-                          if AbstentionReason.NO_BENCHMARK_EVIDENCE not in self.abstention_reasons:
-                              raise ValueError("Structural-only advice must disclose missing benchmark evidence.")
-                      '''.replace("                      ", ""),
-              '''        if (
-                          self.coverage_status is CoverageStatus.STRUCTURAL_ONLY
-                          and AbstentionReason.NO_BENCHMARK_EVIDENCE not in self.abstention_reasons
-                      ):
-                          raise ValueError(
-                              "Structural-only advice must disclose missing benchmark evidence."
-                          )
-                      '''.replace("                      ", ""),
+              (
+                  "        if self.coverage_status is CoverageStatus.STRUCTURAL_ONLY:\n"
+                  "            if AbstentionReason.NO_BENCHMARK_EVIDENCE not in self.abstention_reasons:\n"
+                  "                raise ValueError(\"Structural-only advice must disclose missing benchmark evidence.\")\n"
+              ),
+              (
+                  "        if (\n"
+                  "            self.coverage_status is CoverageStatus.STRUCTURAL_ONLY\n"
+                  "            and AbstentionReason.NO_BENCHMARK_EVIDENCE not in self.abstention_reasons\n"
+                  "        ):\n"
+                  "            raise ValueError(\n"
+                  "                \"Structural-only advice must disclose missing benchmark evidence.\"\n"
+                  "            )\n"
+              ),
           )
           replace_once(
               "src/mapel_linkage/recommendation/eligibility.py",
-              '''    if context.intent is RecommendationIntent.INFER_WITH_APPROVED_RECIPE:
-                  if not context.approved_recipe_available:
-                      reasons.append(EligibilityReason.APPROVED_RECIPE_REQUIRED)
-                  if candidate.pair_model_id not in context.approved_artifact_model_ids:
-                      reasons.append(EligibilityReason.APPROVED_ARTIFACT_REQUIRED)
-              elif context.intent is RecommendationIntent.SHADOW_SCORE_CHALLENGER:
-                  if not context.approved_recipe_available:
-                      reasons.append(EligibilityReason.APPROVED_RECIPE_REQUIRED)
-                  if candidate.pair_model_id not in context.approved_artifact_model_ids:
-                      reasons.append(EligibilityReason.APPROVED_ARTIFACT_REQUIRED)
-              '''.replace("              ", ""),
-              '''    if context.intent in {
-                  RecommendationIntent.INFER_WITH_APPROVED_RECIPE,
-                  RecommendationIntent.SHADOW_SCORE_CHALLENGER,
-              }:
-                  if not context.approved_recipe_available:
-                      reasons.append(EligibilityReason.APPROVED_RECIPE_REQUIRED)
-                  if candidate.pair_model_id not in context.approved_artifact_model_ids:
-                      reasons.append(EligibilityReason.APPROVED_ARTIFACT_REQUIRED)
-              '''.replace("              ", ""),
+              (
+                  "    if context.intent is RecommendationIntent.INFER_WITH_APPROVED_RECIPE:\n"
+                  "        if not context.approved_recipe_available:\n"
+                  "            reasons.append(EligibilityReason.APPROVED_RECIPE_REQUIRED)\n"
+                  "        if candidate.pair_model_id not in context.approved_artifact_model_ids:\n"
+                  "            reasons.append(EligibilityReason.APPROVED_ARTIFACT_REQUIRED)\n"
+                  "    elif context.intent is RecommendationIntent.SHADOW_SCORE_CHALLENGER:\n"
+                  "        if not context.approved_recipe_available:\n"
+                  "            reasons.append(EligibilityReason.APPROVED_RECIPE_REQUIRED)\n"
+                  "        if candidate.pair_model_id not in context.approved_artifact_model_ids:\n"
+                  "            reasons.append(EligibilityReason.APPROVED_ARTIFACT_REQUIRED)\n"
+              ),
+              (
+                  "    if context.intent in {\n"
+                  "        RecommendationIntent.INFER_WITH_APPROVED_RECIPE,\n"
+                  "        RecommendationIntent.SHADOW_SCORE_CHALLENGER,\n"
+                  "    }:\n"
+                  "        if not context.approved_recipe_available:\n"
+                  "            reasons.append(EligibilityReason.APPROVED_RECIPE_REQUIRED)\n"
+                  "        if candidate.pair_model_id not in context.approved_artifact_model_ids:\n"
+                  "            reasons.append(EligibilityReason.APPROVED_ARTIFACT_REQUIRED)\n"
+              ),
           )
           PY
           rm scripts/materialize_i2a_batch.py
