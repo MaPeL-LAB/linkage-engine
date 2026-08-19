@@ -47,115 +47,90 @@ jobs:
           python - <<'PY'
           from pathlib import Path
 
-          def replace_once(text: str, old: str, new: str, label: str) -> str:
-              if text.count(old) != 1:
-                  raise SystemExit(f"expected one {label} marker, found {text.count(old)}")
-              return text.replace(old, new, 1)
-
           models_path = Path("src/mapel_linkage/configuration/models.py")
           models_text = models_path.read_text(encoding="utf-8")
-          old_supervised = '''        supervised = [
-              *self.models.all_boosted_trees(),
-              *self.models.all_ranking_models(),
-              *self.models.all_neural_models(),
-              *self.models.ensembles,
-          ]
-          if any(
-              model.enabled and model.require_verified_labels and not eligible_truth
-              for model in supervised
-          ):
-              raise ValueError("Enabled supervised models require eligible verified labels.")
-          '''.replace("          ", "")
-          new_supervised = '''        supervised_requires_verified_labels = (
-              any(
-                  model.enabled and model.require_verified_labels
-                  for model in self.models.all_boosted_trees()
-              )
-              or any(
-                  model.enabled and model.require_verified_labels
-                  for model in self.models.all_ranking_models()
-              )
-              or any(
-                  model.enabled and model.require_verified_labels
-                  for model in self.models.all_neural_models()
-              )
-              or any(
-                  model.enabled and model.require_verified_labels
-                  for model in self.models.ensembles
-              )
+          method_start = models_text.index("    def _validate_models(self) -> None:\n")
+          supervised_start = models_text.index("        supervised = [\n", method_start)
+          supervised_end_marker = (
+              '            raise ValueError("Enabled supervised models require eligible verified labels.")\n'
           )
-          if supervised_requires_verified_labels and not eligible_truth:
-              raise ValueError("Enabled supervised models require eligible verified labels.")
-          '''.replace("          ", "")
-          models_text = replace_once(
-              models_text,
-              old_supervised,
-              new_supervised,
-              "typed supervised-model validation",
+          supervised_end = models_text.index(supervised_end_marker, supervised_start) + len(
+              supervised_end_marker
+          )
+          typed_supervised = (
+              "        supervised_requires_verified_labels = (\n"
+              "            any(\n"
+              "                model.enabled and model.require_verified_labels\n"
+              "                for model in self.models.all_boosted_trees()\n"
+              "            )\n"
+              "            or any(\n"
+              "                model.enabled and model.require_verified_labels\n"
+              "                for model in self.models.all_ranking_models()\n"
+              "            )\n"
+              "            or any(\n"
+              "                model.enabled and model.require_verified_labels\n"
+              "                for model in self.models.all_neural_models()\n"
+              "            )\n"
+              "            or any(\n"
+              "                model.enabled and model.require_verified_labels\n"
+              "                for model in self.models.ensembles\n"
+              "            )\n"
+              "        )\n"
+              "        if supervised_requires_verified_labels and not eligible_truth:\n"
+              '            raise ValueError("Enabled supervised models require eligible verified labels.")\n'
+          )
+          models_text = (
+              models_text[:supervised_start]
+              + typed_supervised
+              + models_text[supervised_end:]
           )
           models_path.write_text(models_text, encoding="utf-8")
 
           portfolio_path = Path("src/mapel_linkage/pipeline/model_portfolio.py")
           portfolio_text = portfolio_path.read_text(encoding="utf-8")
-          old_ranker = '''    ranker_by_id: dict[str, RankingCandidateDeclaration] = {}
-          for ranking in config.models.all_ranking_models():
-              family: Literal["xgboost", "lightgbm"] = (
-                  "xgboost" if ranking.implementation == "xgboost_ranker" else "lightgbm"
-              )
-              artifact_format: Literal["xgboost_json", "lightgbm_text"] = (
-                  "xgboost_json" if family == "xgboost" else "lightgbm_text"
-              )
-              ranker_by_id[ranking.model_id] = RankingCandidateDeclaration(
-                  model_id=ranking.model_id,
-                  family=family,
-                  implementation=ranking.implementation,
-                  enabled=ranking.enabled,
-                  query_side=ranking.query_side,
-                  top_k=ranking.top_k,
-                  artifact_format=artifact_format,
-              )
-          '''.replace("          ", "")
-          new_ranker = '''    ranker_by_id: dict[str, RankingCandidateDeclaration] = {}
-          for ranking in config.models.all_ranking_models():
-              ranker_family: Literal["xgboost", "lightgbm"] = (
-                  "xgboost" if ranking.implementation == "xgboost_ranker" else "lightgbm"
-              )
-              ranker_artifact_format: Literal["xgboost_json", "lightgbm_text"] = (
-                  "xgboost_json" if ranker_family == "xgboost" else "lightgbm_text"
-              )
-              ranker_by_id[ranking.model_id] = RankingCandidateDeclaration(
-                  model_id=ranking.model_id,
-                  family=ranker_family,
-                  implementation=ranking.implementation,
-                  enabled=ranking.enabled,
-                  query_side=ranking.query_side,
-                  top_k=ranking.top_k,
-                  artifact_format=ranker_artifact_format,
-              )
-          '''.replace("          ", "")
-          portfolio_text = replace_once(
-              portfolio_text,
-              old_ranker,
-              new_ranker,
-              "ranker local-variable typing",
+          ranker_start = portfolio_text.index(
+              "    ranker_by_id: dict[str, RankingCandidateDeclaration] = {}\n"
           )
-          portfolio_text = replace_once(
-              portfolio_text,
-              "        allow_shadow_scoring = True\n",
-              "",
-              "default shadow-scoring assignment",
+          ranker_end = portfolio_text.index(
+              "\n    requested = config.models.portfolio\n", ranker_start
           )
-          portfolio_text = replace_once(
-              portfolio_text,
-              "        allow_shadow_scoring = requested.allow_shadow_scoring\n",
-              "",
-              "configured shadow-scoring assignment",
+          typed_ranker = (
+              "    ranker_by_id: dict[str, RankingCandidateDeclaration] = {}\n"
+              "    for ranking in config.models.all_ranking_models():\n"
+              '        ranker_family: Literal["xgboost", "lightgbm"] = (\n'
+              '            "xgboost" if ranking.implementation == "xgboost_ranker" else "lightgbm"\n'
+              "        )\n"
+              '        ranker_artifact_format: Literal["xgboost_json", "lightgbm_text"] = (\n'
+              '            "xgboost_json" if ranker_family == "xgboost" else "lightgbm_text"\n'
+              "        )\n"
+              "        ranker_by_id[ranking.model_id] = RankingCandidateDeclaration(\n"
+              "            model_id=ranking.model_id,\n"
+              "            family=ranker_family,\n"
+              "            implementation=ranking.implementation,\n"
+              "            enabled=ranking.enabled,\n"
+              "            query_side=ranking.query_side,\n"
+              "            top_k=ranking.top_k,\n"
+              "            artifact_format=ranker_artifact_format,\n"
+              "        )\n"
           )
-          portfolio_text = replace_once(
-              portfolio_text,
-              "        allow_shadow_scoring=allow_shadow_scoring,\n",
+          portfolio_text = portfolio_text[:ranker_start] + typed_ranker + portfolio_text[ranker_end:]
+          removed_assignments = {
+              "allow_shadow_scoring = True",
+              "allow_shadow_scoring = requested.allow_shadow_scoring",
+          }
+          portfolio_lines = [
+              line
+              for line in portfolio_text.splitlines()
+              if line.strip() not in removed_assignments
+          ]
+          portfolio_text = "\n".join(portfolio_lines) + "\n"
+          literal_argument = "        allow_shadow_scoring=allow_shadow_scoring,\n"
+          if portfolio_text.count(literal_argument) != 1:
+              raise SystemExit("literal shadow-scoring argument marker was not found exactly once")
+          portfolio_text = portfolio_text.replace(
+              literal_argument,
               "        allow_shadow_scoring=True,\n",
-              "literal shadow-scoring argument",
+              1,
           )
           portfolio_path.write_text(portfolio_text, encoding="utf-8")
           PY
