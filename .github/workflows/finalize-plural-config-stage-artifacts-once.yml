@@ -133,31 +133,6 @@ jobs:
               1,
           )
           portfolio_path.write_text(portfolio_text, encoding="utf-8")
-
-          test_path = Path("tests/configuration/test_plural_model_portfolio.py")
-          test_text = test_path.read_text(encoding="utf-8")
-          budget_insertions = (
-              (
-                  '                "model_id": "lgb_candidate",\n',
-                  '                "maximum_training_pairs": models["boosted_tree"]["maximum_training_pairs"],\n',
-                  "LightGBM classifier training budget",
-              ),
-              (
-                  '                "model_id": "lgb_ranker",\n',
-                  '                "maximum_training_pairs": models["ranking"]["maximum_training_pairs"],\n',
-                  "LightGBM ranker training budget",
-              ),
-              (
-                  '                "base_model_ids": [xgb_id, "lgb_candidate"],\n',
-                  '                "maximum_training_pairs": models["boosted_tree"]["maximum_training_pairs"],\n',
-                  "stacking training budget",
-              ),
-          )
-          for marker, insertion, label in budget_insertions:
-              if test_text.count(marker) != 1:
-                  raise SystemExit(f"expected one {label} marker, found {test_text.count(marker)}")
-              test_text = test_text.replace(marker, marker + insertion, 1)
-          test_path.write_text(test_text, encoding="utf-8")
           PY
           rm scripts/apply_plural_model_stage_patch.py
           rm .github/workflows/verify-plural-config-stage-artifacts-once.yml
