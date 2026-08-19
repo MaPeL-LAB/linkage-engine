@@ -29,6 +29,7 @@ def test_plural_configuration_compiles_lightgbm_neural_stacking_and_rankers() ->
             "enabled": True,
             "implementation": "lightgbm_classifier",
             "model_id": "lgb_candidate",
+            "maximum_training_pairs": models["boosted_tree"]["maximum_training_pairs"],
         }
     ]
     models["ranking_models"] = [
@@ -38,6 +39,7 @@ def test_plural_configuration_compiles_lightgbm_neural_stacking_and_rankers() ->
             "model_id": "lgb_ranker",
             "query_side": "source",
             "top_k": 5,
+            "maximum_training_pairs": models["ranking"]["maximum_training_pairs"],
         }
     ]
     models["neural_models"] = [
@@ -53,6 +55,7 @@ def test_plural_configuration_compiles_lightgbm_neural_stacking_and_rankers() ->
             "implementation": "stacking_logistic",
             "model_id": "stacked_candidate",
             "base_model_ids": [xgb_id, "lgb_candidate"],
+            "maximum_training_pairs": models["boosted_tree"]["maximum_training_pairs"],
         }
     ]
     models["portfolio"] = {
