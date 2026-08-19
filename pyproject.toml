@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mapel-linkage-engine"
-version = "0.2.0.dev0"
+version = "0.2.0.dev1"
 description = "Configuration-driven probabilistic record linkage and entity resolution engine."
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
@@ -95,6 +95,10 @@ python_version = "3.12"
 strict = true
 warn_unused_configs = true
 files = ["src", "tests"]
+
+[[tool.mypy.overrides]]
+module = ["lightgbm", "torch"]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
