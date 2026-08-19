@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 import sys
 from collections.abc import Sequence
 from pathlib import Path
+
+from pydantic import ValidationError
 
 from mapel_linkage import __version__
 from mapel_linkage.capabilities import WorkflowStatus, capabilities, capability_summary
@@ -13,10 +16,18 @@ from mapel_linkage.configuration import (
     load_config,
     write_configuration_json_schema,
 )
+from mapel_linkage.configuration.compiler import ExecutionPlan
 from mapel_linkage.domain.errors import LinkageRuntimeError
 from mapel_linkage.governance.errors import SafeError, SafeErrorCode
 from mapel_linkage.pipeline import SyntheticVerticalSliceRunner
 from mapel_linkage.pipeline.local_workspace import initialise_local_project, run_doctor
+from mapel_linkage.profiling import build_preflight_task_profile
+from mapel_linkage.recommendation import (
+    AdvisorContext,
+    RecommendationIntent,
+    RuntimeDependency,
+    recommend_pipeline,
+)
 from mapel_linkage.synthetic import SyntheticGenerationConfig
 
 _PIPELINE_COMMANDS = (
@@ -84,6 +95,27 @@ def build_parser() -> argparse.ArgumentParser:
     )
     schema.add_argument("--output", metavar="OUTPUT", required=True)
     schema.set_defaults(handler=_emit_schema)
+
+    profile = subparsers.add_parser(
+        "profile-job",
+        help="Emit a privacy-safe configuration-only preflight task profile.",
+    )
+    profile.add_argument("--config", metavar="CONFIG", required=True)
+    profile.add_argument("--project-root", metavar="ROOT", default=".")
+    profile.set_defaults(handler=_profile_job)
+
+    recommend = subparsers.add_parser(
+        "recommend-pipeline",
+        help="Produce an advisory Stage-1 structural pipeline shortlist.",
+    )
+    recommend.add_argument("--config", metavar="CONFIG", required=True)
+    recommend.add_argument("--project-root", metavar="ROOT", default=".")
+    recommend.add_argument(
+        "--intent",
+        choices=tuple(item.value for item in RecommendationIntent),
+        default=RecommendationIntent.DEVELOP_NEW_RECIPE.value,
+    )
+    recommend.set_defaults(handler=_recommend_pipeline)
 
     for command in _PIPELINE_COMMANDS:
         subparser = subparsers.add_parser(
@@ -153,6 +185,10 @@ def _status(namespace: argparse.Namespace) -> int:
         "with one-to-one assignment."
     )
     print(
+        "The Stage-1 Linkage Strategy Advisor performs structural eligibility, Pareto "
+        "shortlisting, and abstention without empirical performance claims."
+    )
+    print(
         "M3 through M7 contain implemented components whose general configuration and "
         "CLI orchestration is still pending."
     )
@@ -183,13 +219,17 @@ def _initialise_local_project(namespace: argparse.Namespace) -> int:
     return 0
 
 
+def _compile_plan(namespace: argparse.Namespace) -> ExecutionPlan:
+    loaded = load_config(Path(namespace.config))
+    return compile_config(
+        loaded.config,
+        project_root=Path(namespace.project_root),
+    )
+
+
 def _validate_config(namespace: argparse.Namespace) -> int:
     try:
-        loaded = load_config(Path(namespace.config))
-        plan = compile_config(
-            loaded.config,
-            project_root=Path(namespace.project_root),
-        )
+        plan = _compile_plan(namespace)
     except SafeError as error:
         print(error.render(), file=sys.stderr)
         return 2
@@ -214,6 +254,73 @@ def _emit_schema(namespace: argparse.Namespace) -> int:
         print(error.render(), file=sys.stderr)
         return 2
     print("Configuration JSON Schema written.")
+    return 0
+
+
+def _profile_job(namespace: argparse.Namespace) -> int:
+    try:
+        profile = build_preflight_task_profile(_compile_plan(namespace))
+    except SafeError as error:
+        print(error.render(), file=sys.stderr)
+        return 2
+    except LinkageRuntimeError as error:
+        print(f"ERROR {error.code}: {error.public_message}", file=sys.stderr)
+        return 2
+    except ValidationError:
+        print(
+            "ERROR ML-PROFILE-001: The preflight task profile could not be constructed.",
+            file=sys.stderr,
+        )
+        return 2
+    print(json.dumps(profile.safe_summary(), sort_keys=True))
+    return 0
+
+
+def _available_runtimes() -> tuple[RuntimeDependency, ...]:
+    runtimes = [RuntimeDependency.CORE]
+    if importlib.util.find_spec("lightgbm") is not None:
+        runtimes.append(RuntimeDependency.LIGHTGBM)
+    if importlib.util.find_spec("torch") is not None:
+        runtimes.append(RuntimeDependency.PYTORCH)
+    return tuple(runtimes)
+
+
+def _verified_labels_available(plan: ExecutionPlan) -> bool:
+    labels = plan.config.labels
+    return labels is not None and labels.source.kind in {
+        "synthetic_truth",
+        "verified_human_adjudication",
+        "verified_gold_standard",
+    }
+
+
+def _recommend_pipeline(namespace: argparse.Namespace) -> int:
+    try:
+        plan = _compile_plan(namespace)
+        profile = build_preflight_task_profile(plan)
+        context = AdvisorContext(
+            intent=RecommendationIntent(namespace.intent),
+            verified_labels_available=_verified_labels_available(plan),
+            approved_recipe_available=False,
+            protected_out_of_fold_predictions_available=False,
+            available_runtimes=_available_runtimes(),
+            approved_artifact_model_ids=(),
+            benchmark_family_count=0,
+        )
+        recommendation = recommend_pipeline(plan, context=context, profile=profile)
+    except SafeError as error:
+        print(error.render(), file=sys.stderr)
+        return 2
+    except LinkageRuntimeError as error:
+        print(f"ERROR {error.code}: {error.public_message}", file=sys.stderr)
+        return 2
+    except ValidationError:
+        print(
+            "ERROR ML-ADVISOR-002: The structural recommendation could not be constructed.",
+            file=sys.stderr,
+        )
+        return 2
+    print(json.dumps(recommendation.safe_summary(), sort_keys=True))
     return 0
 
 
@@ -252,11 +359,7 @@ def _run_pipeline_command(namespace: argparse.Namespace) -> int:
         )
         return 2
     try:
-        loaded = load_config(Path(namespace.config))
-        plan = compile_config(
-            loaded.config,
-            project_root=Path(namespace.project_root),
-        )
+        plan = _compile_plan(namespace)
         result = SyntheticVerticalSliceRunner.run(
             plan,
             generation=_generation_spec(namespace, plan.random_seed),

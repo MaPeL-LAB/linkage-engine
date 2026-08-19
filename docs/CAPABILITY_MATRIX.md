@@ -35,7 +35,9 @@ No current capability has established operational validation.
 | `bcubed_cluster_metrics` | M7 | implemented | component_only | core_ci | BCubed precision, recall, F1, purity, and constraint diagnostics are available. |
 | `splink_native_model_lifecycle` | I1 | partial | not_integrated | core_ci | Settings compilation and candidate parity exist; native training/persistence is pending. |
 | `approved_recipe_inference` | I1 | partial | not_integrated | core_ci | The immutable recipe approval contract exists; new-data inference is pending. |
-| `linkage_strategy_advisor` | I2 | planned | not_integrated | not_verified | Advisory-only pipeline recommendation with coverage checks and abstention. |
+| `stage1_linkage_strategy_advisor` | I2A | implemented | workflow_integrated | core_ci | Configuration-only profiling, hard eligibility, structural Pareto shortlisting, transparent explanations, and explicit empirical abstention. |
+| `synthetic_benchmark_registry` | B1 | partial | component_only | core_ci | Versioned aggregate family, instance, replicate, run, failure, and snapshot contracts exist; corpus generation and portfolio execution remain pending. |
+| `linkage_strategy_advisor` | I2B-I2D | planned | not_integrated | not_verified | Nearest-family retrieval, OOD detection, learned meta-ranking, and active benchmark planning remain evidence-gated future stages. |
 
 ## Current integrated workflow
 
