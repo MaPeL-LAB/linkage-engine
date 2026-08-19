@@ -179,82 +179,101 @@ class ModelPortfolioDeclaration(PortfolioNode):
 
 
 def compile_model_portfolio(config: LinkageConfig) -> ModelPortfolioDeclaration:
-    """Normalize the current configuration into a portfolio-ready contract."""
+    """Compile singular and plural project model declarations into one safe portfolio."""
 
-    pair_candidates: list[PairModelCandidateDeclaration] = []
+    pair_by_id: dict[str, PairModelCandidateDeclaration] = {}
     fs = config.models.fellegi_sunter
-    pair_candidates.append(
-        PairModelCandidateDeclaration(
-            model_id=fs.model_id,
-            family="fellegi_sunter",
-            implementation="mapel_reference_fellegi_sunter",
-            role="baseline",
-            enabled=fs.enabled,
-            require_verified_labels=False,
-            artifact_format="package_json",
-        )
+    pair_by_id[fs.model_id] = PairModelCandidateDeclaration(
+        model_id=fs.model_id,
+        family="fellegi_sunter",
+        implementation="mapel_reference_fellegi_sunter",
+        role="baseline",
+        enabled=fs.enabled,
+        require_verified_labels=False,
+        artifact_format="package_json",
     )
-    boosted = config.models.boosted_tree
-    if boosted is not None:
+    for boosted in config.models.all_boosted_trees():
         family: Literal["xgboost", "lightgbm"] = (
             "xgboost" if boosted.implementation == "xgboost_classifier" else "lightgbm"
         )
         artifact_format: Literal["xgboost_json", "lightgbm_text"] = (
             "xgboost_json" if family == "xgboost" else "lightgbm_text"
         )
-        pair_candidates.append(
-            PairModelCandidateDeclaration(
-                model_id=boosted.model_id,
-                family=family,
-                implementation=boosted.implementation,
-                role="challenger",
-                enabled=boosted.enabled,
-                require_verified_labels=boosted.require_verified_labels,
-                artifact_format=artifact_format,
-            )
+        pair_by_id[boosted.model_id] = PairModelCandidateDeclaration(
+            model_id=boosted.model_id,
+            family=family,
+            implementation=boosted.implementation,
+            role="challenger",
+            enabled=boosted.enabled,
+            require_verified_labels=boosted.require_verified_labels,
+            artifact_format=artifact_format,
         )
-    neural = config.models.neural
-    if neural is not None:
-        pair_candidates.append(
-            PairModelCandidateDeclaration(
-                model_id=neural.model_id,
-                family="pytorch",
-                implementation=neural.implementation,
-                role="challenger",
-                enabled=neural.enabled,
-                require_verified_labels=neural.require_verified_labels,
-                artifact_format="pytorch_state_dict",
-            )
+    for neural in config.models.all_neural_models():
+        pair_by_id[neural.model_id] = PairModelCandidateDeclaration(
+            model_id=neural.model_id,
+            family="pytorch",
+            implementation=neural.implementation,
+            role="challenger",
+            enabled=neural.enabled,
+            require_verified_labels=neural.require_verified_labels,
+            artifact_format="pytorch_state_dict",
         )
-    ranking_candidates: list[RankingCandidateDeclaration] = []
-    ranking = config.models.ranking
-    if ranking is not None:
-        rank_family: Literal["xgboost", "lightgbm"] = (
+    for ensemble in config.models.ensembles:
+        pair_by_id[ensemble.model_id] = PairModelCandidateDeclaration(
+            model_id=ensemble.model_id,
+            family="stacking",
+            implementation=ensemble.implementation,
+            role="ensemble",
+            enabled=ensemble.enabled,
+            require_verified_labels=ensemble.require_verified_labels,
+            artifact_format="package_json",
+            base_model_ids=ensemble.base_model_ids,
+        )
+
+    ranker_by_id: dict[str, RankingCandidateDeclaration] = {}
+    for ranking in config.models.all_ranking_models():
+        family: Literal["xgboost", "lightgbm"] = (
             "xgboost" if ranking.implementation == "xgboost_ranker" else "lightgbm"
         )
-        rank_format: Literal["xgboost_json", "lightgbm_text"] = (
-            "xgboost_json" if rank_family == "xgboost" else "lightgbm_text"
+        artifact_format: Literal["xgboost_json", "lightgbm_text"] = (
+            "xgboost_json" if family == "xgboost" else "lightgbm_text"
         )
-        ranking_candidates.append(
-            RankingCandidateDeclaration(
-                model_id=ranking.model_id,
-                family=rank_family,
-                implementation=ranking.implementation,
-                enabled=ranking.enabled,
-                query_side=ranking.query_side,
-                top_k=ranking.top_k,
-                artifact_format=rank_format,
-            )
+        ranker_by_id[ranking.model_id] = RankingCandidateDeclaration(
+            model_id=ranking.model_id,
+            family=family,
+            implementation=ranking.implementation,
+            enabled=ranking.enabled,
+            query_side=ranking.query_side,
+            top_k=ranking.top_k,
+            artifact_format=artifact_format,
         )
-    enabled_challengers = sum(
-        candidate.enabled and candidate.role != "baseline" for candidate in pair_candidates
-    )
+
+    requested = config.models.portfolio
+    if requested is None:
+        pair_ids = tuple(pair_by_id)
+        ranking_ids = tuple(ranker_by_id)
+        portfolio_id = "compiled_model_portfolio"
+        mandatory_baseline_id = fs.model_id
+        enabled_challengers = sum(
+            item.enabled and item.role != "baseline" for item in pair_by_id.values()
+        )
+        maximum_challengers = min(3, enabled_challengers)
+        allow_shadow_scoring = True
+    else:
+        pair_ids = requested.pair_model_ids
+        ranking_ids = requested.ranking_model_ids
+        portfolio_id = requested.portfolio_id
+        mandatory_baseline_id = requested.mandatory_baseline_id
+        maximum_challengers = requested.maximum_challengers
+        allow_shadow_scoring = requested.allow_shadow_scoring
+
     return ModelPortfolioDeclaration(
-        portfolio_id="compiled_model_portfolio",
-        pair_candidates=tuple(pair_candidates),
-        ranking_candidates=tuple(ranking_candidates),
-        mandatory_baseline_id=fs.model_id,
-        maximum_challengers=min(3, enabled_challengers),
+        portfolio_id=portfolio_id,
+        pair_candidates=tuple(pair_by_id[model_id] for model_id in pair_ids),
+        ranking_candidates=tuple(ranker_by_id[model_id] for model_id in ranking_ids),
+        mandatory_baseline_id=mandatory_baseline_id,
+        maximum_challengers=maximum_challengers,
+        allow_shadow_scoring=allow_shadow_scoring,
     )
 
 
