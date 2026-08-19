@@ -1,0 +1,99 @@
+name: finalize-plural-config-stage-artifacts-once
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+env:
+  PYTHONHASHSEED: "0"
+  MAPEL_TEST_DATA_POLICY: synthetic_only
+  MAPEL_TEST_SEED: "20260816"
+  OMP_NUM_THREADS: "1"
+  MKL_NUM_THREADS: "1"
+  OPENBLAS_NUM_THREADS: "1"
+
+jobs:
+  finalize:
+    if: github.head_ref == 'agent/plural-model-configuration-stage-artifacts'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout pull-request head branch
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+      - name: Set up Python 3.12
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Materialize source changes and remove one-use machinery
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("scripts/apply_plural_model_stage_patch.py")
+          text = path.read_text(encoding="utf-8")
+          old = '    new_models + "\\n\\nclass CalibrationConfig(ConfigNode):\\n",\n'
+          new = '    new_models + "\\n\\n",\n'
+          if text.count(old) != 1:
+              raise SystemExit("plural-model patch repair marker was not found exactly once")
+          path.write_text(text.replace(old, new, 1), encoding="utf-8")
+          PY
+          python scripts/apply_plural_model_stage_patch.py
+          rm scripts/apply_plural_model_stage_patch.py
+          rm .github/workflows/verify-plural-config-stage-artifacts-once.yml
+          rm .github/workflows/finalize-plural-config-stage-artifacts-once.yml
+      - name: Install core, LightGBM, CPU PyTorch, and development tools
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install \
+            --index-url https://download.pytorch.org/whl/cpu \
+            "torch==2.13.0"
+          python -m pip install \
+            -c constraints/ci-py312.txt \
+            -e ".[core,dev,lightgbm]"
+      - name: Format and regenerate derived contracts
+        run: |
+          ruff format .
+          python scripts/generate_config_schema.py
+          python scripts/generate_capability_matrix.py
+          python scripts/generate_repository_manifest.py
+      - name: Run complete Python 3.12 all-model gate
+        run: |
+          python scripts/verify_repository.py
+          ruff format --check .
+          ruff check .
+          mypy src tests
+          pre-commit run --all-files
+          pytest --junitxml="${RUNNER_TEMP}/all-models.xml"
+          REPORT_PATH="${RUNNER_TEMP}/all-models.xml" python - <<'PY'
+          import os
+          from pathlib import Path
+          from xml.etree import ElementTree
+
+          report = Path(os.environ["REPORT_PATH"])
+          root = ElementTree.parse(report).getroot()
+          if root.tag == "testsuite":
+              skipped = int(root.attrib.get("skipped", "0"))
+          else:
+              skipped = sum(
+                  int(suite.attrib.get("skipped", "0"))
+                  for suite in root.findall("testsuite")
+              )
+          if skipped:
+              raise SystemExit(f"all-model verification skipped {skipped} tests")
+          PY
+          rm -rf build dist
+          python -m build
+          python scripts/verify_repository.py --distribution dist
+      - name: Commit verified implementation
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Add plural model configuration and immutable stage artifacts"
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
