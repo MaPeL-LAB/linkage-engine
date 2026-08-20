@@ -99,7 +99,6 @@ files = ["src", "tests"]
 [[tool.mypy.overrides]]
 module = ["lightgbm", "torch"]
 ignore_missing_imports = true
-
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra --strict-markers --strict-config"

@@ -259,3 +259,154 @@ def prioritize_review_queue(
         strategy=active_config.strategy,
         relationship_count=len(ordered_entries),
     )
+
+
+def sample_active_learning_queue(
+    queue: ReviewQueue | Sequence[ReviewQueueEntry],
+    *,
+    budget: int,
+    strategy: ActiveLearningStrategy = "uncertainty",
+    config: ActiveLearningConfig | None = None,
+    committee_scores: Mapping[str, Sequence[float]] | None = None,
+) -> PrioritizedReviewQueue:
+    """Sample a bounded review queue prioritized by active learning strategy.
+
+    Parameters
+    ----------
+    queue:
+        The input ReviewQueue or sequence of ReviewQueueEntry objects.
+    budget:
+        Maximum number of review items to select (budget >= 0).
+    strategy:
+        Active learning prioritization strategy ('uncertainty', 'margin', 'committee', 'hybrid').
+    config:
+        Optional ActiveLearningConfig override.
+    committee_scores:
+        Optional mapping of relationship_id to model prediction probabilities for committee scoring.
+    """
+    if budget < 0:
+        raise AdjudicationError("ML-ADJ-008", "Active learning budget must be non-negative.")
+
+    review_queue: ReviewQueue
+    if isinstance(queue, ReviewQueue):
+        review_queue = queue
+    else:
+        entries_tuple = tuple(queue)
+        if not entries_tuple:
+            return PrioritizedReviewQueue(
+                entries=(),
+                scores=(),
+                run_id="",
+                queue_digest=_digest(
+                    {"run_id": "", "strategy": strategy, "entries": [], "scores": []}
+                ),
+                strategy=strategy,
+                relationship_count=0,
+            )
+        run_ids = {e.run_id for e in entries_tuple}
+        run_id = next(iter(run_ids))
+        q_dig = _digest(
+            {
+                "run_id": run_id,
+                "entries": [e.restricted_digest_payload() for e in entries_tuple],
+            }
+        )
+        review_queue = ReviewQueue(
+            entries=entries_tuple,
+            run_id=run_id,
+            queue_digest=q_dig,
+            relationship_count=len(entries_tuple),
+            review_required_count=sum(
+                e.relationship_status == "review_required" for e in entries_tuple
+            ),
+            unresolved_count=sum(e.relationship_status == "unresolved" for e in entries_tuple),
+        )
+
+    active_config = config or ActiveLearningConfig(strategy=strategy)
+    if active_config.strategy != strategy:
+        active_config = ActiveLearningConfig(
+            strategy=strategy,
+            decision_threshold=active_config.decision_threshold,
+            uncertainty_weight=active_config.uncertainty_weight,
+            margin_weight=active_config.margin_weight,
+            committee_weight=active_config.committee_weight,
+            reason_code_weight=active_config.reason_code_weight,
+            temperature=active_config.temperature,
+        )
+
+    prioritized = prioritize_review_queue(
+        review_queue,
+        config=active_config,
+        committee_scores=committee_scores,
+    )
+
+    if budget == 0 or not prioritized.entries:
+        return PrioritizedReviewQueue(
+            entries=(),
+            scores=(),
+            run_id=prioritized.run_id,
+            queue_digest=_digest(
+                {
+                    "run_id": prioritized.run_id,
+                    "strategy": strategy,
+                    "entries": [],
+                    "scores": [],
+                }
+            ),
+            strategy=strategy,
+            relationship_count=0,
+        )
+
+    bounded_entries = prioritized.entries[:budget]
+    bounded_scores = prioritized.scores[:budget]
+
+    # Assign sequential candidate_rank and tag with strategy code
+    strategy_tag = f"active_learning_{strategy}"
+    updated_entries: list[ReviewQueueEntry] = []
+    for rank_idx, entry in enumerate(bounded_entries, start=1):
+        existing_codes = list(entry.review_reason_codes)
+        if strategy_tag not in existing_codes:
+            existing_codes.append(strategy_tag)
+        updated_entries.append(
+            ReviewQueueEntry(
+                relationship_id=entry.relationship_id,
+                source_record_ref=entry.source_record_ref,
+                target_record_ref=entry.target_record_ref,
+                relationship_status=entry.relationship_status,
+                calibrated_probability=entry.calibrated_probability,
+                candidate_rank=rank_idx,
+                probability_margin=entry.probability_margin,
+                review_reason_codes=tuple(existing_codes),
+                model_version=entry.model_version,
+                decision_rule_id=entry.decision_rule_id,
+                assignment_method=entry.assignment_method,
+                run_id=entry.run_id,
+            )
+        )
+
+    final_entries = tuple(updated_entries)
+    final_digest = _digest(
+        {
+            "run_id": prioritized.run_id,
+            "strategy": strategy,
+            "budget": budget,
+            "entries": [e.restricted_digest_payload() for e in final_entries],
+            "scores": [
+                {
+                    "relationship_id": s.relationship_id,
+                    "priority_score": round(s.priority_score, 6),
+                    "sampling_probability": round(s.sampling_probability, 6),
+                }
+                for s in bounded_scores
+            ],
+        }
+    )
+
+    return PrioritizedReviewQueue(
+        entries=final_entries,
+        scores=bounded_scores,
+        run_id=prioritized.run_id,
+        queue_digest=final_digest,
+        strategy=strategy,
+        relationship_count=len(final_entries),
+    )

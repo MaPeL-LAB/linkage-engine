@@ -258,3 +258,74 @@ def test_cli_adjudication_lifecycle_workflow(
     prom_out = json.loads(capsys.readouterr().out)
     assert prom_out["retraining_triggered"] is False
     assert labels_dest.is_file()
+
+
+def test_cli_recommend_pipeline_meta_ranker(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    assert (
+        main(
+            [
+                "recommend-pipeline",
+                "--config",
+                str(EXAMPLE_CONFIG),
+                "--project-root",
+                str(ROOT),
+                "--method",
+                "meta-ranker",
+                "--registry-dir",
+                str(tmp_path / "empty_registry"),
+            ]
+        )
+        == 0
+    )
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["fallback_to_similarity"] is True
+    assert payload["recommendation_authority"] == "advisory_only"
+
+
+def test_cli_sample_review_queue(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    in_queue = tmp_path / "in_queue.jsonl"
+    in_queue.write_text(
+        json.dumps(
+            {
+                "relationship_id": "rel_1",
+                "source_record_ref": "s1",
+                "target_record_ref": "t1",
+                "relationship_status": "review_required",
+                "calibrated_probability": 0.52,
+                "candidate_rank": 1,
+                "probability_margin": 0.04,
+                "review_reason_codes": ["review_probability_region"],
+                "model_version": "v1.0",
+                "decision_rule_id": "rule_1",
+                "assignment_method": "ortools",
+                "run_id": "run_01",
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    out_queue = tmp_path / "out_queue.jsonl"
+    assert (
+        main(
+            [
+                "sample-review-queue",
+                "--input-queue",
+                str(in_queue),
+                "--output",
+                str(out_queue),
+                "--strategy",
+                "uncertainty",
+                "--budget",
+                "10",
+            ]
+        )
+        == 0
+    )
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["relationship_count"] == 1
+    assert out_queue.is_file()
+    sampled_lines = out_queue.read_text(encoding="utf-8").strip().splitlines()
+    assert len(sampled_lines) == 1
+    assert "active_learning_uncertainty" in json.loads(sampled_lines[0])["review_reason_codes"]
