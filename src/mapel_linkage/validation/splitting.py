@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import cast
 
-import networkx as nx
+import networkx as nx  # type: ignore[import-untyped]
 
 from mapel_linkage.domain.errors import LabelProvenanceError, ValidationReportError
 from mapel_linkage.governance.labels import (

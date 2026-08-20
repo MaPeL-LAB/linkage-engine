@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 
 import numpy as np
 from numpy.typing import NDArray
-from sklearn.metrics import (
+from sklearn.metrics import (  # type: ignore[import-untyped]
     average_precision_score,
     brier_score_loss,
 )
