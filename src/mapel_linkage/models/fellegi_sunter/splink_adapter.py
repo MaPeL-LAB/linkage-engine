@@ -48,6 +48,8 @@ from mapel_linkage.domain.sql_identifiers import quote_identifier
 from mapel_linkage.io import DuckDBStore
 from mapel_linkage.preprocessing import PreparedDataset
 
+_SPLINK_INPUT_ALIASES = ("mapel_source_a", "mapel_source_b")
+
 
 def _digest(payload: object) -> str:
     return hashlib.sha256(
@@ -415,7 +417,7 @@ class SplinkCandidateParityChecker:
                     ],
                     settings,
                     db_api=duckdb_api_type(),
-                    input_table_aliases=[left.dataset_id, right.dataset_id],
+                    input_table_aliases=list(_SPLINK_INPUT_ALIASES),
                 )
                 records = linker.inference.deterministic_link().as_record_dict()
         except Exception:

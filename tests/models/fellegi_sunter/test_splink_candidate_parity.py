@@ -7,6 +7,7 @@ import pytest
 
 from mapel_linkage.domain.errors import FellegiSunterError
 from mapel_linkage.domain.table_refs import TableRef
+from mapel_linkage.io import ColumnSpec, DuckDBStore
 from mapel_linkage.models.fellegi_sunter import (
     SplinkCandidateParityChecker,
     SplinkSettingsPlan,
@@ -62,6 +63,45 @@ def _plan() -> SplinkSettingsPlan:
         blocking_rule_count=1,
         settings={"blocking_rules_to_generate_predictions": ["l.value = r.value"]},
     )
+
+
+def test_real_splink_parity_uses_safe_aliases_for_reserved_dataset_ids() -> None:
+    columns = (
+        ColumnSpec("__ml_record_key", "VARCHAR"),
+        ColumnSpec("__ml_dataset_id", "VARCHAR"),
+        ColumnSpec("value", "VARCHAR"),
+    )
+    with DuckDBStore() as store:
+        left = PreparedDataset(
+            "left",
+            store.create_table_from_rows(
+                "reserved_alias_source",
+                columns,
+                (("left-surrogate", "left", "synthetic-equal"),),
+            ),
+            {"value": "value"},
+            {"value": "missing_value"},
+        )
+        right = PreparedDataset(
+            "right",
+            store.create_table_from_rows(
+                "reserved_alias_target",
+                columns,
+                (("right-surrogate", "right", "synthetic-equal"),),
+            ),
+            {"value": "value"},
+            {"value": "missing_value"},
+        )
+        report = SplinkCandidateParityChecker.check(
+            store=store,
+            left=left,
+            right=right,
+            settings_plan=_plan(),
+            expected_pairs=(("left-surrogate", "right-surrogate"),),
+        )
+
+    assert report.parity is True
+    assert report.expected_pair_count == report.observed_pair_count == 1
 
 
 def test_splink_candidate_parity_report_is_aggregate_only(monkeypatch: pytest.MonkeyPatch) -> None:

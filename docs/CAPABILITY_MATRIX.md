@@ -11,7 +11,7 @@ No current capability has established operational validation.
 
 | Capability | Milestone | Component | Workflow | Runtime verification | Notes |
 |---|---|---|---|---|---|
-| `fellegi_sunter_reference` | M2 | implemented | workflow_integrated | core_ci | Package-owned scoring path; the full native Splink lifecycle remains partial. |
+| `fellegi_sunter_reference` | M2 | implemented | workflow_integrated | core_ci | Package-owned deterministic reference oracle; evidence-only with no decision authority. |
 | `xgboost_pair_classifier` | M2 | implemented | workflow_integrated | core_ci | Eligible verified labels only; uncalibrated scores remain evidence-only. |
 | `xgboost_candidate_ranker` | M2 | implemented | workflow_integrated | core_ci | Ranking-only authority; it cannot emit a relationship status. |
 | `sigmoid_calibration` | M2 | implemented | workflow_integrated | core_ci | Fits only on the protected calibration partition. |
@@ -33,7 +33,7 @@ No current capability has established operational validation.
 | `correlation_clustering` | M7 | implemented | component_only | core_ci | Strict cannot-link enforcement and violation reporting are implemented. |
 | `constrained_agglomerative_clustering` | M7 | implemented | component_only | core_ci | Cluster merges preserve cannot-link and configured capacity boundaries. |
 | `bcubed_cluster_metrics` | M7 | implemented | component_only | core_ci | BCubed precision, recall, F1, purity, and constraint diagnostics are available. |
-| `splink_native_model_lifecycle` | I1 | partial | not_integrated | core_ci | Settings compilation and candidate parity exist; native training/persistence is pending. |
+| `splink_native_model_lifecycle` | I1 | implemented | workflow_integrated | core_ci | Pinned Splink fit, canonical JSON reload, bounded candidate parity, and scoring are integrated as uncalibrated evidence only; operational validity is not established. |
 | `approved_recipe_inference` | I1 | implemented | workflow_integrated | core_ci | The immutable recipe approval contract and approved recipe inference workflow integrated. |
 | `stage1_linkage_strategy_advisor` | I2A | implemented | workflow_integrated | core_ci | Configuration-only profiling, hard eligibility, structural Pareto shortlisting, transparent explanations, and explicit empirical abstention. |
 | `synthetic_benchmark_registry` | B1 | implemented | workflow_integrated | core_ci | Parametric scenario generator, benchmark portfolio runner, and file-backed registry persistence. |

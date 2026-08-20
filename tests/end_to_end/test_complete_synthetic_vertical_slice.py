@@ -72,6 +72,26 @@ def test_complete_synthetic_vertical_slice_is_deterministic_and_privacy_bounded(
         "relationship_decisions_and_review",
         "synthetic_evaluation",
     )
+    candidate_stage = next(
+        stage for stage in first.stage_summaries if stage.stage == "candidate_generation"
+    )
+    model_stage = next(
+        stage for stage in first.stage_summaries if stage.stage == "pair_model_training_and_scoring"
+    )
+    assert (
+        model_stage.counts["fs_native_training_candidate_pair_count"]
+        == model_stage.counts["fs_native_scored_pair_count"]
+    )
+    assert (
+        model_stage.digests["fs_native_training_candidate_pair_set_digest"]
+        == candidate_stage.digests["candidate_pair_set_digest"]
+        == model_stage.digests["fs_native_scoring_candidate_pair_set_digest"]
+    )
+    assert model_stage.digests["fs_native_decision_authority"] == "evidence_only"
+    assert model_stage.digests["fs_native_relationship_authority"] == "none"
+    assert model_stage.digests["fs_native_assignment_authority"] == "none"
+    assert model_stage.digests["fs_native_merge_authority"] == "none"
+    assert model_stage.digests["fs_native_operational_validation"] == "not_established"
 
     report = json.loads(first.aggregate_report_path.read_text(encoding="utf-8"))
     benchmark = json.loads(

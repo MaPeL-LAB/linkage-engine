@@ -58,7 +58,15 @@ Scores are not automatically calibrated probabilities or decisions.
 
 The corresponding pair table retains surrogate pair references and evidence fields locally, including log2 Bayes factor, match weight, model posterior, model/version identifiers, and the parameter digest. Every M2D result is labelled `model_posterior_uncalibrated` and `evidence_only`.
 
-`SplinkSettingsPlanCompiler` separately translates the same validated canonical comparison and blocking configuration into a package-owned Splink 4 settings plan. Full production runtime fitting, parity, and native model export remain later M2D work.
+`SplinkSettingsPlanCompiler` translates the validated canonical comparison and blocking
+configuration into a package-owned Splink settings plan. The integrated
+`SplinkNativeDuckDBMatcher` requires the exact Splink 4.0.16 runtime, fixed safe input
+aliases (`mapel_source_a` and `mapel_source_b`) and linker UID (`mapel001`), bounded exact
+candidate-pair parity, and additive pseudo-count smoothing over aggregate m/u masses. It
+persists only immutable, duplicate-free canonical value-hidden JSON with version,
+configuration, schema, model, artifact, and recipe-binding integrity checks, then strictly
+reloads before scoring. The package-owned matcher remains the deterministic oracle; native
+scores are uncalibrated evidence only, and operational validity is not established.
 
 ## CandidateRanker
 

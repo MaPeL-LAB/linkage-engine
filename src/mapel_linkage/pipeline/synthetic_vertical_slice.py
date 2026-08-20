@@ -71,10 +71,11 @@ from mapel_linkage.models.boosted import (
     write_xgboost_artifact,
 )
 from mapel_linkage.models.fellegi_sunter import (
-    DuckDBFellegiSunterMatcher,
-    DuckDBRandomPairSampler,
     SplinkCandidateParityChecker,
+    SplinkNativeDuckDBMatcher,
     SplinkSettingsPlanCompiler,
+    deserialize_splink_native_model,
+    serialize_splink_native_model,
 )
 from mapel_linkage.models.ranking import (
     XGBoostCandidateRanker,
@@ -762,27 +763,33 @@ class SyntheticVerticalSliceRunner:
                 )
             )
 
-            random_sample = DuckDBRandomPairSampler(store).sample(
+            fs_matcher = SplinkNativeDuckDBMatcher(store)
+            trained_fs_model = fs_matcher.fit(
                 left=left,
                 right=right,
-                maximum_pairs=plan.config.models.fellegi_sunter.u_max_pairs,
-                random_seed=plan.random_seed,
-            )
-            u_features = feature_builder.build(
-                candidates=random_sample.table,
-                left=left,
-                right=right,
-                comparisons=plan.config.comparisons,
-            )
-            fs_matcher = DuckDBFellegiSunterMatcher(store)
-            fs_model = fs_matcher.fit(
-                u_features=u_features,
-                em_features=features,
-                comparisons=plan.config.comparisons,
+                settings_plan=splink_plan,
                 model=plan.config.models.fellegi_sunter,
+                configuration_digest=plan.configuration_digest,
+                expected_pairs=snapshot.pairs,
+                maximum_candidate_pairs=plan.config.runtime.maximum_candidate_pairs,
                 random_seed=plan.random_seed,
             )
-            fs_scores = fs_matcher.score(features=features, model=fs_model)
+            fs_model = deserialize_splink_native_model(
+                serialize_splink_native_model(trained_fs_model),
+                settings_plan=splink_plan,
+                model=plan.config.models.fellegi_sunter,
+                configuration_digest=plan.configuration_digest,
+                feature_schema_digest=trained_fs_model.feature_schema_digest,
+                random_seed=plan.random_seed,
+            )
+            fs_scores = fs_matcher.score(
+                left=left,
+                right=right,
+                settings_plan=splink_plan,
+                artifact=fs_model,
+                expected_pairs=snapshot.pairs,
+                maximum_candidate_pairs=plan.config.runtime.maximum_candidate_pairs,
+            )
             fs_lookup = _score_lookup(
                 store,
                 table_name=fs_scores.table.table_name,
@@ -821,12 +828,27 @@ class SyntheticVerticalSliceRunner:
                     "pair_model_training_and_scoring",
                     "completed",
                     counts={
-                        "fs_scored_pair_count": fs_scores.pair_count,
+                        "fs_native_training_candidate_pair_count": fs_model.candidate_pair_count,
+                        "fs_native_scored_pair_count": fs_scores.pair_count,
                         "xgb_training_pair_count": xgb_model.training_pair_count,
                         "xgb_scored_pair_count": xgb_scores.pair_count,
                     },
                     digests={
-                        "fs_parameter_digest": fs_model.parameter_digest,
+                        "fs_native_artifact_digest": fs_model.artifact_digest,
+                        "fs_native_model_digest": fs_model.model_digest,
+                        "fs_native_parameter_digest": fs_model.parameter_digest,
+                        "fs_native_score_digest": fs_scores.score_digest,
+                        "fs_native_training_candidate_pair_set_digest": (
+                            fs_model.training_candidate_pair_set_digest
+                        ),
+                        "fs_native_scoring_candidate_pair_set_digest": (
+                            fs_scores.scoring_candidate_pair_set_digest
+                        ),
+                        "fs_native_decision_authority": fs_model.decision_authority,
+                        "fs_native_relationship_authority": fs_model.relationship_authority,
+                        "fs_native_assignment_authority": fs_model.assignment_authority,
+                        "fs_native_merge_authority": fs_model.merge_authority,
+                        "fs_native_operational_validation": fs_model.operational_validation,
                         "xgb_model_digest": xgb_model.model_digest,
                     },
                 )
@@ -838,7 +860,7 @@ class SyntheticVerticalSliceRunner:
                 source_model_family="fellegi_sunter",
                 source_model_id=fs_model.model_id,
                 source_model_version=fs_model.model_version,
-                source_evidence_digest=fs_model.parameter_digest,
+                source_evidence_digest=fs_model.artifact_digest,
                 feature_schema_digest=fs_model.feature_schema_digest,
                 partition_manifest_digest=disjointness.manifest_digest,
             )
@@ -856,7 +878,7 @@ class SyntheticVerticalSliceRunner:
                 family="fellegi_sunter",
                 model_id=fs_model.model_id,
                 model_version=fs_model.model_version,
-                evidence_digest=fs_model.parameter_digest,
+                evidence_digest=fs_model.artifact_digest,
                 feature_schema_digest=fs_model.feature_schema_digest,
                 validation_batch=validation_fs,
                 training_label_authority_digest=None,

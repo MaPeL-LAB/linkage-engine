@@ -37,8 +37,14 @@ def test_capability_registry_distinguishes_components_from_workflows() -> None:
     assert by_id["link_and_dedupe"].component_status is ComponentStatus.IMPLEMENTED
     assert by_id["approved_recipe_inference"].component_status is ComponentStatus.IMPLEMENTED
     assert by_id["approved_recipe_inference"].workflow_status is WorkflowStatus.INTEGRATED
-    assert by_id["splink_native_model_lifecycle"].component_status is ComponentStatus.PARTIAL
-    assert by_id["splink_native_model_lifecycle"].workflow_status is WorkflowStatus.NOT_INTEGRATED
+    assert by_id["splink_native_model_lifecycle"].component_status is ComponentStatus.IMPLEMENTED
+    assert by_id["splink_native_model_lifecycle"].workflow_status is WorkflowStatus.INTEGRATED
+    assert (
+        by_id["splink_native_model_lifecycle"].runtime_verification
+        is RuntimeVerificationStatus.CORE_CI
+    )
+    assert "evidence only" in by_id["splink_native_model_lifecycle"].notes
+    assert "operational validity is not established" in by_id["splink_native_model_lifecycle"].notes
 
 
 def test_optional_model_capabilities_require_all_models_ci() -> None:

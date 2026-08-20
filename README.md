@@ -41,7 +41,7 @@ strict configuration
 → deterministic-anchor evidence
 → bounded candidate retrieval
 → comparison features
-→ Fellegi-Sunter and XGBoost pair scoring
+→ native Splink 4.0.16 Fellegi-Sunter and XGBoost pair scoring
 → validation-only champion selection
 → sigmoid, isotonic, or Beta calibration
 → XGBoost candidate ranking
@@ -251,7 +251,7 @@ build refuses row-level execution without `--synthetic-demo`.
 
 | Role | Current implementation | Integrated workflow |
 |---|---|---|
-| Statistical baseline | package-owned Fellegi-Sunter; Splink settings/parity adapter | yes, package-owned path |
+| Statistical baseline | native Splink 4.0.16 fit, canonical JSON reload, exact candidate parity, and scoring; package-owned reference matcher retained as deterministic oracle | yes |
 | Pair classifier | XGBoost | yes |
 | Pair-classifier challenger | LightGBM | component only |
 | Candidate ranker | XGBoost | yes |
@@ -262,6 +262,12 @@ build refuses row-level execution without `--synthetic-demo`.
 | Assignment | one-to-one OR-Tools plus SciPy reference | yes |
 | Extended assignment | many-to-one, one-to-many, unconstrained | component only |
 | Multi-source | source-aware graph resolver and constrained clustering | component only |
+
+The integrated synthetic lifecycle fits the native Splink model, serializes and strictly
+reloads its value-hidden canonical artifact, and scores only the exact bounded pair set
+authorized by package-owned candidate retrieval. Fellegi-Sunter outputs remain uncalibrated,
+evidence-only model posteriors; they cannot emit relationship decisions or establish
+operational validity.
 
 The default core CI remains fast. Dedicated all-model CI installs pinned LightGBM and CPU
 PyTorch, runs the complete test suite, and fails when any test is skipped.

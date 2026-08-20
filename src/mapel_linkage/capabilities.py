@@ -73,7 +73,7 @@ _CAPABILITIES: Final[tuple[Capability, ...]] = (
         ComponentStatus.IMPLEMENTED,
         WorkflowStatus.INTEGRATED,
         RuntimeVerificationStatus.CORE_CI,
-        "Package-owned scoring path; the full native Splink lifecycle remains partial.",
+        "Package-owned deterministic reference oracle; evidence-only with no decision authority.",
     ),
     Capability(
         "xgboost_pair_classifier",
@@ -269,10 +269,11 @@ _CAPABILITIES: Final[tuple[Capability, ...]] = (
         "splink_native_model_lifecycle",
         "Full native Splink model lifecycle",
         "I1",
-        ComponentStatus.PARTIAL,
-        WorkflowStatus.NOT_INTEGRATED,
+        ComponentStatus.IMPLEMENTED,
+        WorkflowStatus.INTEGRATED,
         RuntimeVerificationStatus.CORE_CI,
-        "Settings compilation and candidate parity exist; native training/persistence is pending.",
+        "Pinned Splink fit, canonical JSON reload, bounded candidate parity, and scoring are "
+        "integrated as uncalibrated evidence only; operational validity is not established.",
     ),
     Capability(
         "approved_recipe_inference",

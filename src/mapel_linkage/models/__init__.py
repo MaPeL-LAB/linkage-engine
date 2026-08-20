@@ -24,6 +24,7 @@ from mapel_linkage.models.ensembles import (
     write_stacking_artifact,
 )
 from mapel_linkage.models.fellegi_sunter import (
+    SUPPORTED_SPLINK_VERSION,
     DuckDBFellegiSunterMatcher,
     DuckDBRandomPairSampler,
     FellegiSunterComparisonParameters,
@@ -31,8 +32,17 @@ from mapel_linkage.models.fellegi_sunter import (
     FellegiSunterModelArtifact,
     FellegiSunterScoreResult,
     RandomPairSampleResult,
+    SplinkCandidateParityChecker,
+    SplinkCandidateParityReport,
+    SplinkNativeDuckDBMatcher,
+    SplinkNativeModelArtifact,
+    SplinkNativeScoreResult,
     SplinkSettingsPlan,
     SplinkSettingsPlanCompiler,
+    assert_splink_native_recipe_binding,
+    deserialize_splink_native_model,
+    serialize_splink_native_model,
+    splink_native_feature_schema_digest,
 )
 from mapel_linkage.models.neural import (
     PyTorchModelArtifact,
@@ -61,6 +71,7 @@ from mapel_linkage.models.ranking import (
 )
 
 __all__ = [
+    "SUPPORTED_SPLINK_VERSION",
     "BoostedFeatureMatrix",
     "BoostedLabelledMatrix",
     "BoostedTreeScoreResult",
@@ -82,6 +93,11 @@ __all__ = [
     "RankingFeatureMatrix",
     "RankingMatrix",
     "RankingScoreBatch",
+    "SplinkCandidateParityChecker",
+    "SplinkCandidateParityReport",
+    "SplinkNativeDuckDBMatcher",
+    "SplinkNativeModelArtifact",
+    "SplinkNativeScoreResult",
     "SplinkSettingsPlan",
     "SplinkSettingsPlanCompiler",
     "StackingModelArtifact",
@@ -95,8 +111,10 @@ __all__ = [
     "XGBoostModelArtifact",
     "XGBoostPairClassifier",
     "XGBoostRankingArtifact",
+    "assert_splink_native_recipe_binding",
     "build_ranking_matrix",
     "build_ranking_scoring_matrix",
+    "deserialize_splink_native_model",
     "ranking_artifact_digest",
     "read_lightgbm_artifact",
     "read_lightgbm_ranker_artifact",
@@ -104,6 +122,8 @@ __all__ = [
     "read_ranking_artifact",
     "read_stacking_artifact",
     "read_xgboost_artifact",
+    "serialize_splink_native_model",
+    "splink_native_feature_schema_digest",
     "write_lightgbm_artifact",
     "write_lightgbm_ranker_artifact",
     "write_pytorch_artifact",
