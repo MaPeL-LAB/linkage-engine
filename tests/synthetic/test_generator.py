@@ -9,6 +9,7 @@ from mapel_linkage.governance.errors import SafeError, SafeErrorCode
 from mapel_linkage.synthetic import (
     SyntheticGenerationConfig,
     generate_synthetic_bundle,
+    matches_synthetic_fixture_layout,
     write_synthetic_bundle,
 )
 
@@ -29,12 +30,28 @@ def test_truth_is_separate_from_model_input() -> None:
     assert len(bundle.truth) == len(bundle.source_a) + len(bundle.source_b)
 
 
+def test_generated_fixture_layout_contract_is_exact() -> None:
+    assert matches_synthetic_fixture_layout(
+        source_format="jsonl",
+        record_id_column="record_key",
+    )
+    assert not matches_synthetic_fixture_layout(
+        source_format="parquet",
+        record_id_column="record_key",
+    )
+    assert not matches_synthetic_fixture_layout(
+        source_format="jsonl",
+        record_id_column="source_identifier",
+    )
+
+
 def test_generator_includes_required_edge_cases() -> None:
     bundle = generate_synthetic_bundle(
         SyntheticGenerationConfig(
             seed=7,
             entity_count=12,
             duplicate_count=2,
+            right_duplicate_count=2,
             left_only_count=2,
             right_only_count=2,
             competing_candidate_count=2,
@@ -46,6 +63,11 @@ def test_generator_includes_required_edge_cases() -> None:
         if truth.dataset_id == "source_a":
             entity_counts[truth.entity_key] = entity_counts.get(truth.entity_key, 0) + 1
     assert any(count > 1 for count in entity_counts.values())
+    right_entity_counts: dict[str, int] = {}
+    for truth in bundle.truth:
+        if truth.dataset_id == "source_b":
+            right_entity_counts[truth.entity_key] = right_entity_counts.get(truth.entity_key, 0) + 1
+    assert any(count > 1 for count in right_entity_counts.values())
     assert any(
         record.label_value is None or record.date_value is None for record in bundle.source_b
     )

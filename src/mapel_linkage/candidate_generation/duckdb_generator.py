@@ -51,6 +51,50 @@ class DuckDBCandidateGenerator:
     ) -> CandidateGenerationResult:
         """Materialise deduplicated candidates without making match decisions."""
 
+        return self._generate(
+            left=left,
+            right=right,
+            variable_columns=variable_columns,
+            rules=rules,
+            maximum_candidate_pairs=maximum_candidate_pairs,
+            record_key_column=record_key_column,
+            canonical_same_table=False,
+        )
+
+    def generate_deduplication(
+        self,
+        *,
+        dataset: TableRef,
+        variable_columns: Mapping[str, str],
+        rules: Sequence[BlockingRule],
+        maximum_candidate_pairs: int,
+        record_key_column: str = "__ml_record_key",
+    ) -> CandidateGenerationResult:
+        """Generate canonical same-table pairs with no self-pairs or mirrored duplicates."""
+
+        return self._generate(
+            left=dataset,
+            right=dataset,
+            variable_columns=variable_columns,
+            rules=rules,
+            maximum_candidate_pairs=maximum_candidate_pairs,
+            record_key_column=record_key_column,
+            canonical_same_table=True,
+        )
+
+    def _generate(
+        self,
+        *,
+        left: TableRef,
+        right: TableRef,
+        variable_columns: Mapping[str, str],
+        rules: Sequence[BlockingRule],
+        maximum_candidate_pairs: int,
+        record_key_column: str,
+        canonical_same_table: bool,
+    ) -> CandidateGenerationResult:
+        """Materialise one bounded candidate relation under a package-owned join shape."""
+
         if not rules:
             raise CandidateGenerationError(
                 "ML-CANDIDATE-001", "At least one blocking rule is required."
@@ -69,6 +113,8 @@ class DuckDBCandidateGenerator:
         selects: list[str] = []
         for rule in rules:
             condition = compile_predicate(rule.predicate, variable_columns)
+            if canonical_same_table:
+                condition = f"({condition}) AND l.{key} < r.{key}"
             selects.append(
                 "SELECT "
                 f"l.{key} AS left_record_key, "
@@ -95,7 +141,12 @@ class DuckDBCandidateGenerator:
             )
 
         digest_input = "|".join(
-            [left.table_name, right.table_name, *(rule.rule_id for rule in rules)]
+            [
+                left.table_name,
+                right.table_name,
+                "canonical_same_table" if canonical_same_table else "cross_table",
+                *(rule.rule_id for rule in rules),
+            ]
         )
         suffix = hashlib.sha256(digest_input.encode("utf-8")).hexdigest()[:12]
         table_name = f"__ml_candidates_{suffix}"

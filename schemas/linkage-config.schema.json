@@ -621,6 +621,54 @@
       "title": "DecisionPolicyConfig",
       "type": "object"
     },
+    "DeduplicationConfig": {
+      "additionalProperties": false,
+      "description": "Bounded package-owned intra-source clustering configuration.",
+      "properties": {
+        "algorithm": {
+          "enum": [
+            "connected_components",
+            "clique"
+          ],
+          "title": "Algorithm",
+          "type": "string"
+        },
+        "deterministic_tie_breaking": {
+          "const": true,
+          "default": true,
+          "title": "Deterministic Tie Breaking",
+          "type": "boolean"
+        },
+        "maximum_candidate_edges": {
+          "exclusiveMinimum": 0,
+          "maximum": 10000000000,
+          "title": "Maximum Candidate Edges",
+          "type": "integer"
+        },
+        "maximum_cluster_size": {
+          "default": 10000,
+          "exclusiveMinimum": 0,
+          "maximum": 100000,
+          "title": "Maximum Cluster Size",
+          "type": "integer"
+        },
+        "minimum_probability": {
+          "$ref": "#/$defs/Probability"
+        },
+        "no_match_utility": {
+          "default": 0.0,
+          "title": "No Match Utility",
+          "type": "number"
+        }
+      },
+      "required": [
+        "algorithm",
+        "minimum_probability",
+        "maximum_candidate_edges"
+      ],
+      "title": "DeduplicationConfig",
+      "type": "object"
+    },
     "DeterministicAnchorConfig": {
       "additionalProperties": false,
       "properties": {
@@ -1004,6 +1052,43 @@
         }
       },
       "title": "MissingnessConfig",
+      "type": "object"
+    },
+    "ModeOrchestrationConfig": {
+      "additionalProperties": false,
+      "description": "Opt-in contract for the bounded generated-synthetic I1C orchestrator.",
+      "properties": {
+        "artifact_schema_version": {
+          "const": "1",
+          "default": "1",
+          "title": "Artifact Schema Version",
+          "type": "string"
+        },
+        "deduplication": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DeduplicationConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "implementation": {
+          "const": "synthetic_mode_v1",
+          "title": "Implementation",
+          "type": "string"
+        },
+        "pair_model_id": {
+          "$ref": "#/$defs/Identifier"
+        }
+      },
+      "required": [
+        "implementation",
+        "pair_model_id"
+      ],
+      "title": "ModeOrchestrationConfig",
       "type": "object"
     },
     "ModelPortfolioConfig": {
@@ -2104,6 +2189,17 @@
       "anyOf": [
         {
           "$ref": "#/$defs/LabelsConfig"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "mode_orchestration": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ModeOrchestrationConfig"
         },
         {
           "type": "null"

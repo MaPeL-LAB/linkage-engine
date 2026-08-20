@@ -18,6 +18,8 @@ type RegistryCategory = Literal[
     "ranker",
     "calibrator",
     "assignment_solver",
+    "mode_orchestrator",
+    "deduplication_solver",
 ]
 
 
@@ -86,6 +88,24 @@ ASSIGNMENT_SOLVERS: Final = MappingProxyType(
         for key in ("ortools_min_cost_flow", "unconstrained")
     }
 )
+MODE_ORCHESTRATORS: Final = MappingProxyType(
+    {
+        key: OperationDescriptor(key, "mode_orchestrator")
+        for key in (
+            "synthetic_mode_v1:link_only:many_to_one",
+            "synthetic_mode_v1:link_only:one_to_many",
+            "synthetic_mode_v1:link_only:unconstrained",
+            "synthetic_mode_v1:dedupe_only:unconstrained",
+            "synthetic_mode_v1:link_and_dedupe:one_to_one",
+        )
+    }
+)
+DEDUPLICATION_SOLVERS: Final = MappingProxyType(
+    {
+        key: OperationDescriptor(key, "deduplication_solver")
+        for key in ("connected_components", "clique")
+    }
+)
 
 _REGISTRIES: Final = MappingProxyType(
     {
@@ -96,6 +116,8 @@ _REGISTRIES: Final = MappingProxyType(
         "ranker": RANKERS,
         "calibrator": CALIBRATORS,
         "assignment_solver": ASSIGNMENT_SOLVERS,
+        "mode_orchestrator": MODE_ORCHESTRATORS,
+        "deduplication_solver": DEDUPLICATION_SOLVERS,
     }
 )
 

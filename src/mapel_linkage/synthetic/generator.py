@@ -34,6 +34,7 @@ class SyntheticGenerationConfig(BaseModel):
     left_only_count: Annotated[StrictInt, Field(ge=1, le=10_000)] = 2
     right_only_count: Annotated[StrictInt, Field(ge=1, le=10_000)] = 2
     duplicate_count: Annotated[StrictInt, Field(ge=1, le=10_000)] = 2
+    right_duplicate_count: Annotated[StrictInt, Field(ge=0, le=10_000)] = 0
     competing_candidate_count: Annotated[StrictInt, Field(ge=1, le=10_000)] = 2
     source_a_missing_rate: Annotated[StrictFloat, Field(ge=0.0, le=0.5)] = 0.05
     source_b_missing_rate: Annotated[StrictFloat, Field(ge=0.0, le=0.8)] = 0.20
@@ -84,6 +85,7 @@ class SyntheticProvenance:
     left_only_count: int
     right_only_count: int
     duplicate_count: int
+    right_duplicate_count: int
     competing_candidate_count: int
     source_a_missing_rate: float
     source_b_missing_rate: float
@@ -106,6 +108,12 @@ class SyntheticBundle:
             f"truth_record_count={len(self.truth)}, "
             f"seed={self.provenance.seed})"
         )
+
+
+def matches_synthetic_fixture_layout(*, source_format: str, record_id_column: str) -> bool:
+    """Validate the package-owned generated-fixture IO mapping contract."""
+
+    return source_format == "jsonl" and record_id_column == "record_key"
 
 
 _SYLLABLES = (
@@ -204,6 +212,19 @@ def generate_synthetic_bundle(
         )
         truth.append(SyntheticTruthRecord("source_a", key, entity_key, household_key))
 
+    for index in range(min(spec.right_duplicate_count, len(bases))):
+        entity_key, household_key, label, date_text = bases[index]
+        key = f"BD{index:05d}"
+        source_b.append(
+            SyntheticRecord(
+                record_key=key,
+                label_value=_mutate_label(label, rng),
+                date_value=date_text,
+                group_value=f"G{index % 7:02d}",
+            )
+        )
+        truth.append(SyntheticTruthRecord("source_b", key, entity_key, household_key))
+
     for index in range(spec.left_only_count):
         entity_key = f"LA{index:05d}"
         household_key = f"LH{index:04d}"
@@ -260,6 +281,7 @@ def generate_synthetic_bundle(
         left_only_count=spec.left_only_count,
         right_only_count=spec.right_only_count,
         duplicate_count=min(spec.duplicate_count, len(bases)),
+        right_duplicate_count=min(spec.right_duplicate_count, len(bases)),
         competing_candidate_count=min(spec.competing_candidate_count, len(bases)),
         source_a_missing_rate=spec.source_a_missing_rate,
         source_b_missing_rate=spec.source_b_missing_rate,

@@ -32,7 +32,14 @@ from mapel_linkage.configuration import (
 from mapel_linkage.configuration.compiler import ExecutionPlan
 from mapel_linkage.domain.errors import AdvisorError, LinkageRuntimeError
 from mapel_linkage.governance.errors import SafeError, SafeErrorCode
-from mapel_linkage.pipeline import SyntheticPortfolioWorkflowRunner, SyntheticVerticalSliceRunner
+from mapel_linkage.pipeline import (
+    SyntheticDedupeModeWorkflowResult,
+    SyntheticLinkAndDedupeWorkflowResult,
+    SyntheticModeWorkflowResult,
+    SyntheticModeWorkflowRunner,
+    SyntheticPortfolioWorkflowRunner,
+    SyntheticVerticalSliceRunner,
+)
 from mapel_linkage.pipeline.local_workspace import initialise_local_project, run_doctor
 from mapel_linkage.profiling import build_preflight_task_profile
 from mapel_linkage.profiling.contracts import PreflightTaskProfile
@@ -287,6 +294,20 @@ def build_parser() -> argparse.ArgumentParser:
     portfolio.add_argument("--entity-count", type=int, default=120)
     portfolio.add_argument("--k-folds", type=int, default=3)
     portfolio.set_defaults(handler=_run_model_portfolio)
+
+    linkage_mode = subparsers.add_parser(
+        "run-linkage-mode",
+        help="Run one allow-listed extended linkage mode on generated synthetic data only.",
+    )
+    linkage_mode.add_argument("--config", metavar="CONFIG", required=True)
+    linkage_mode.add_argument("--project-root", metavar="ROOT", default=".")
+    linkage_mode.add_argument(
+        "--synthetic-demo",
+        action="store_true",
+        help="Required guard confirming package-generated synthetic inputs only.",
+    )
+    linkage_mode.add_argument("--entity-count", type=int, default=120)
+    linkage_mode.set_defaults(handler=_run_linkage_mode)
     return parser
 
 
@@ -339,6 +360,11 @@ def _status(namespace: argparse.Namespace) -> int:
         "generated-synthetic link_only workflow; other workflow scopes remain capability-specific."
     )
     print(
+        "I1C synthetic mode dispatch is allow-listed only to link_only with many-to-one, "
+        "one-to-many, or unconstrained assignment; dedupe_only with unconstrained assignment; "
+        "and link_and_dedupe with one-to-one assignment."
+    )
+    print(
         "Synthetic testing establishes software behaviour only; real-data validation "
         "and operational approval remain local and not established."
     )
@@ -367,9 +393,14 @@ def _initialise_local_project(namespace: argparse.Namespace) -> int:
 
 def _compile_plan(namespace: argparse.Namespace) -> ExecutionPlan:
     loaded = load_config(Path(namespace.config))
+    project_root = Path(namespace.project_root)
+    trusted_input_roots = (project_root / "data", project_root / "private")
+    trusted_output_roots = (project_root / "private", project_root / "artifacts")
     return compile_config(
         loaded.config,
-        project_root=Path(namespace.project_root),
+        project_root=project_root,
+        host_input_roots=trusted_input_roots,
+        host_output_roots=trusted_output_roots,
     )
 
 
@@ -745,6 +776,78 @@ def _run_model_portfolio(namespace: argparse.Namespace) -> int:
             generation=_generation_spec(namespace, plan.random_seed),
             k_folds=folds,
         )
+    except SafeError as error:
+        print(error.render(), file=sys.stderr)
+        return 2
+    except LinkageRuntimeError as error:
+        print(f"ERROR {error.code}: {error.public_message}", file=sys.stderr)
+        return 2
+    print(json.dumps(result.safe_summary(), sort_keys=True))
+    return 0
+
+
+def _mode_generation_spec(namespace: argparse.Namespace) -> SyntheticGenerationConfig:
+    count = int(namespace.entity_count)
+    if count < 100:
+        raise LinkageRuntimeError(
+            "ML-CLI-001",
+            "Synthetic linkage modes require at least 100 generated entities.",
+        )
+    if count > 100_000:
+        raise LinkageRuntimeError(
+            "ML-CLI-003",
+            "Synthetic linkage modes permit at most 100000 generated entities.",
+        )
+    return SyntheticGenerationConfig(
+        seed=20260816,
+        entity_count=count,
+        left_only_count=max(4, count // 15),
+        right_only_count=max(4, count // 15),
+        duplicate_count=count,
+        right_duplicate_count=count,
+        competing_candidate_count=max(8, count // 6),
+        source_a_missing_rate=0.05,
+        source_b_missing_rate=0.20,
+        source_b_typo_rate=0.35,
+        source_b_date_shift_rate=0.20,
+    )
+
+
+def _run_linkage_mode(namespace: argparse.Namespace) -> int:
+    if not namespace.synthetic_demo:
+        print(
+            "ERROR ML-CLI-002: Linkage-mode execution requires --synthetic-demo.",
+            file=sys.stderr,
+        )
+        return 2
+    try:
+        generation = _mode_generation_spec(namespace)
+        plan = _compile_plan(namespace)
+        mode = plan.config.project.linkage_mode
+        result: (
+            SyntheticModeWorkflowResult
+            | SyntheticDedupeModeWorkflowResult
+            | SyntheticLinkAndDedupeWorkflowResult
+        )
+        if mode == "link_only":
+            result = SyntheticModeWorkflowRunner.run_link_only(
+                plan,
+                generation=generation,
+            )
+        elif mode == "dedupe_only":
+            result = SyntheticModeWorkflowRunner.run_dedupe_only(
+                plan,
+                generation=generation,
+            )
+        elif mode == "link_and_dedupe":
+            result = SyntheticModeWorkflowRunner.run_link_and_dedupe(
+                plan,
+                generation=generation,
+            )
+        else:
+            raise LinkageRuntimeError(
+                "ML-MODE-010", "The configured linkage mode is not allow-listed."
+            )
     except SafeError as error:
         print(error.render(), file=sys.stderr)
         return 2

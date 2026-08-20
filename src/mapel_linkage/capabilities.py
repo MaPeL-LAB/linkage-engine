@@ -155,7 +155,8 @@ _CAPABILITIES: Final[tuple[Capability, ...]] = (
         ComponentStatus.IMPLEMENTED,
         WorkflowStatus.INTEGRATED,
         RuntimeVerificationStatus.CORE_CI,
-        "Greedy many-to-one assignment workflow integrated.",
+        "Greedy many-to-one assignment is CLI-integrated only in the exact generated-synthetic "
+        "I1C link_only combination; operational dispatch is not established.",
     ),
     Capability(
         "one_to_many_assignment",
@@ -164,7 +165,8 @@ _CAPABILITIES: Final[tuple[Capability, ...]] = (
         ComponentStatus.IMPLEMENTED,
         WorkflowStatus.INTEGRATED,
         RuntimeVerificationStatus.CORE_CI,
-        "Greedy one-to-many assignment workflow integrated.",
+        "Greedy one-to-many assignment is CLI-integrated only in the exact generated-synthetic "
+        "I1C link_only combination; operational dispatch is not established.",
     ),
     Capability(
         "unconstrained_assignment",
@@ -173,7 +175,8 @@ _CAPABILITIES: Final[tuple[Capability, ...]] = (
         ComponentStatus.IMPLEMENTED,
         WorkflowStatus.INTEGRATED,
         RuntimeVerificationStatus.CORE_CI,
-        "Threshold-based unconstrained assignment workflow integrated.",
+        "Threshold-based unconstrained assignment is CLI-integrated only for the exact "
+        "generated-synthetic I1C link_only and dedupe_only combinations.",
     ),
     Capability(
         "single_source_deduplication",
@@ -182,7 +185,8 @@ _CAPABILITIES: Final[tuple[Capability, ...]] = (
         ComponentStatus.IMPLEMENTED,
         WorkflowStatus.INTEGRATED,
         RuntimeVerificationStatus.CORE_CI,
-        "Pair canonicalisation and single-source deduplication workflow integrated.",
+        "Canonical same-table pairs and aggregate clustering are CLI-integrated only for the "
+        "exact generated-synthetic I1C dedupe_only and link_and_dedupe combinations.",
     ),
     Capability(
         "link_and_dedupe",
@@ -191,7 +195,21 @@ _CAPABILITIES: Final[tuple[Capability, ...]] = (
         ComponentStatus.IMPLEMENTED,
         WorkflowStatus.INTEGRATED,
         RuntimeVerificationStatus.CORE_CI,
-        "Two-source linkage with intra-source duplicate clustering workflow integrated.",
+        "Two-source linkage plus two intra-source clustering surfaces is CLI-integrated only "
+        "for generated-synthetic I1C link_and_dedupe with one_to_one assignment.",
+    ),
+    Capability(
+        "configuration_driven_linkage_modes",
+        "Configuration-driven synthetic linkage modes",
+        "I1C",
+        ComponentStatus.IMPLEMENTED,
+        WorkflowStatus.INTEGRATED,
+        RuntimeVerificationStatus.CORE_CI,
+        "Generated-synthetic CLI dispatch is allow-listed to link_only with many_to_one, "
+        "one_to_many, or unconstrained assignment; dedupe_only with unconstrained assignment; "
+        "and link_and_dedupe with one_to_one assignment. Operational validation is not "
+        "established, no arbitrary or real-data mode dispatch is authorized, and strict "
+        "least-privilege attestation data-access isolation is not established.",
     ),
     Capability(
         "lightgbm_pair_classifier",
@@ -369,6 +387,13 @@ def capability_summary() -> dict[str, object]:
         "workflow_status_counts": dict(sorted(workflow_counts.items())),
         "runtime_verification_counts": dict(sorted(runtime_counts.items())),
         "integrated_synthetic_workflow": "two_source_link_only_one_to_one_configured_portfolio",
+        "integrated_synthetic_linkage_mode_combinations": (
+            "link_only+many_to_one",
+            "link_only+one_to_many",
+            "link_only+unconstrained",
+            "dedupe_only+unconstrained",
+            "link_and_dedupe+one_to_one",
+        ),
         "operational_validation": "not_established",
         "decision_authority": "explicit_policy_only",
         "merge_authority": "none",
@@ -404,12 +429,14 @@ def capability_matrix_markdown() -> str:
             "",
             "## Current integrated workflow",
             "",
-            "The complete configuration-driven row-level orchestrators remain bounded to",
+            "The legacy complete configuration-driven workflow remains bounded to",
             "generated-synthetic two-source `link_only`, `one_to_one` execution. I1B adds the",
             "configured all-model portfolio path within that same boundary.",
-            "M3 through M7 contain substantive",
-            "components, but their general CLI and artifact-to-artifact orchestration remains an",
-            "integration milestone.",
+            "I1C separately allow-lists exactly `link_only` with `many_to_one`, `one_to_many`,",
+            "or `unconstrained`; `dedupe_only` with `unconstrained`; and `link_and_dedupe` with",
+            "`one_to_one`. It is generated-synthetic only, operational validity is not",
+            "established, strict least-privilege attestation data-access isolation is not",
+            "established, and no arbitrary M3-M7, multi-source, or real-data dispatch is implied.",
             "",
             "## Test reporting",
             "",

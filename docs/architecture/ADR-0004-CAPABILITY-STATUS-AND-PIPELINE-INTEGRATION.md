@@ -3,6 +3,8 @@
 **Status:** Accepted  
 **Date:** 2026-08-19
 
+**I1C amendment:** 2026-08-20
+
 ## Context
 
 Linkage Engine now contains substantial implementations from M0 through M7. The complete
@@ -113,6 +115,13 @@ The integration track will add:
 - portfolio configuration for XGBoost, LightGBM, PyTorch, and stacking;
 - a source-aware N-dataset evidence-graph pipeline;
 - cluster-level review and BCubed evaluation where eligible truth exists.
+
+I1C implements a deliberately smaller part of this track: generated-synthetic dispatch for
+exactly `link_only` with many-to-one, one-to-many, or unconstrained assignment;
+`dedupe_only` with unconstrained assignment; and `link_and_dedupe` with one-to-one assignment.
+It binds decision-only evidence, fitted/reloaded pair-model and calibration artifacts, and
+aggregate tamper-evident mode artifacts. It does not implement arbitrary M3–M7 orchestration,
+multi-source dispatch, real-data execution, operational approval, or merge authority.
 
 ### 6. Add the Linkage Strategy Advisor only as advisory infrastructure
 

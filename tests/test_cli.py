@@ -2,11 +2,47 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any
 
 import pytest
 
 from mapel_linkage.cli.main import main
-from tests.helpers import EXAMPLE_CONFIG, ROOT
+from mapel_linkage.governance.atomic import atomic_write_text as real_atomic_write_text
+from tests.helpers import EXAMPLE_CONFIG, ROOT, valid_payload, yaml_text
+
+
+def _cli_mode_payload(mode: str, constraint: str) -> dict[str, Any]:
+    payload = valid_payload()
+    payload["project"]["linkage_mode"] = mode
+    payload["project"]["assignment_constraint"] = constraint
+    payload["assignment"]["constraint"] = constraint
+    payload["assignment"]["solver"] = (
+        "unconstrained" if constraint == "unconstrained" else "ortools_min_cost_flow"
+    )
+    payload["calibration"]["source_model"] = "xgb_pair_classifier"
+    payload["mode_orchestration"] = {
+        "artifact_schema_version": "1",
+        "implementation": "synthetic_mode_v1",
+        "pair_model_id": "xgb_pair_classifier",
+    }
+    if mode == "dedupe_only":
+        payload["datasets"] = [payload["datasets"][0]]
+        for variable in payload["variables"]:
+            variable["source_columns"] = {"source_a": variable["source_columns"]["source_a"]}
+        payload["labels"]["source"]["entity_group_columns"] = {"source_a": "synthetic_entity_id_a"}
+        payload["labels"]["source"]["household_group_columns"] = {
+            "source_a": "synthetic_household_id_a"
+        }
+    if mode in {"dedupe_only", "link_and_dedupe"}:
+        payload["mode_orchestration"]["deduplication"] = {
+            "algorithm": "clique",
+            "minimum_probability": 0.75,
+            "no_match_utility": 0.0,
+            "maximum_cluster_size": 100,
+            "maximum_candidate_edges": 100000,
+            "deterministic_tie_breaking": True,
+        }
+    return payload
 
 
 def test_status_is_current_and_distinguishes_integration(
@@ -18,6 +54,8 @@ def test_status_is_current_and_distinguishes_integration(
     assert "component_only=" in output
     assert "generated-synthetic two-source link_only" in output
     assert "configuration-driven all-model portfolio" in output
+    assert "I1C synthetic mode dispatch is allow-listed only" in output
+    assert "link_and_dedupe with one-to-one assignment" in output
     assert "development candidate" not in output
     assert "record-level" not in output
 
@@ -101,7 +139,7 @@ def test_validate_config_error_does_not_echo_value_or_path(
     assert str(path) not in captured.err
 
 
-@pytest.mark.parametrize("command", ["run", "run-model-portfolio"])
+@pytest.mark.parametrize("command", ["run", "run-model-portfolio", "run-linkage-mode"])
 def test_target_command_fails_without_echoing_config(
     command: str,
     capsys: pytest.CaptureFixture[str],
@@ -111,6 +149,186 @@ def test_target_command_fails_without_echoing_config(
     assert "ML-CLI-002" in captured.err
     assert captured.out == ""
     assert "private/project.yaml" not in captured.err
+
+
+@pytest.mark.parametrize(
+    ("mode", "constraint"),
+    [
+        ("link_only", "many_to_one"),
+        ("link_only", "one_to_many"),
+        ("link_only", "unconstrained"),
+        ("dedupe_only", "unconstrained"),
+        ("link_and_dedupe", "one_to_one"),
+    ],
+)
+def test_cli_reaches_each_allow_listed_synthetic_mode(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    mode: str,
+    constraint: str,
+) -> None:
+    config_path = tmp_path / "mode.yaml"
+    config_path.write_text(
+        yaml_text(_cli_mode_payload(mode, constraint)),
+        encoding="utf-8",
+    )
+    assert (
+        main(
+            [
+                "run-linkage-mode",
+                "--config",
+                str(config_path),
+                "--project-root",
+                str(tmp_path),
+                "--synthetic-demo",
+                "--entity-count",
+                "100",
+            ]
+        )
+        == 0
+    )
+    output = capsys.readouterr().out
+    summary = json.loads(output)
+    assert summary["linkage_mode"] == mode
+    assert summary["assignment_constraint"] == constraint
+    assert summary["operational_validation"] == "not_established"
+    assert summary["merge_authority"] == "none"
+    for forbidden in ("A000000", "B000000", str(tmp_path), str(config_path)):
+        assert forbidden not in output
+
+
+def test_cli_rejects_non_orchestrated_mode_without_private_path_echo(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert (
+        main(
+            [
+                "run-linkage-mode",
+                "--config",
+                str(EXAMPLE_CONFIG),
+                "--project-root",
+                str(ROOT),
+                "--synthetic-demo",
+                "--entity-count",
+                "100",
+            ]
+        )
+        == 2
+    )
+    captured = capsys.readouterr()
+    assert "ML-MODE-010" in captured.err
+    assert str(EXAMPLE_CONFIG) not in captured.err
+    assert captured.out == ""
+
+
+@pytest.mark.parametrize(
+    ("failure_point", "mode", "constraint", "expected_code"),
+    [
+        ("model", "link_only", "many_to_one", "ML-MODE-014"),
+        ("calibrator", "link_only", "many_to_one", "ML-MODE-015"),
+        ("recipe", "link_only", "many_to_one", "ML-MODE-016"),
+        ("mode_artifact", "dedupe_only", "unconstrained", "ML-MODE-016"),
+    ],
+)
+def test_linkage_mode_cli_translates_artifact_filesystem_errors_without_path_echo(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+    failure_point: str,
+    mode: str,
+    constraint: str,
+    expected_code: str,
+) -> None:
+    config_path = tmp_path / "mode.yaml"
+    config_path.write_text(yaml_text(_cli_mode_payload(mode, constraint)), encoding="utf-8")
+
+    def fail_with_private_path(*_args: object, **_kwargs: object) -> None:
+        raise OSError(f"restricted path: {tmp_path}")
+
+    if failure_point == "model":
+        monkeypatch.setattr(
+            "mapel_linkage.pipeline.synthetic_mode_workflow.write_xgboost_artifact",
+            fail_with_private_path,
+        )
+    elif failure_point == "calibrator":
+        monkeypatch.setattr(
+            "mapel_linkage.pipeline.synthetic_mode_workflow.write_calibrator_artifact",
+            fail_with_private_path,
+        )
+    else:
+        target_name = "recipe-v1.json" if failure_point == "recipe" else "mode-run-v1.json"
+
+        def fail_selected_atomic_write(destination: Path, text: str) -> None:
+            if destination.name == target_name:
+                raise OSError(f"restricted path: {tmp_path}")
+            real_atomic_write_text(destination, text)
+
+        monkeypatch.setattr(
+            "mapel_linkage.pipeline.synthetic_mode_workflow.atomic_write_text",
+            fail_selected_atomic_write,
+        )
+
+    assert (
+        main(
+            [
+                "run-linkage-mode",
+                "--config",
+                str(config_path),
+                "--project-root",
+                str(tmp_path),
+                "--synthetic-demo",
+                "--entity-count",
+                "100",
+            ]
+        )
+        == 2
+    )
+    captured = capsys.readouterr()
+    assert expected_code in captured.err
+    assert "Traceback" not in captured.err
+    assert str(tmp_path) not in captured.err
+    assert captured.out == ""
+
+
+@pytest.mark.parametrize("managed_root", ["artifacts", "data", "private"])
+def test_linkage_mode_cli_rejects_symlinked_managed_roots_without_external_write(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    managed_root: str,
+) -> None:
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    external_root = tmp_path / "external"
+    external_root.mkdir()
+    (project_root / managed_root).symlink_to(external_root, target_is_directory=True)
+    config_path = project_root / "mode.yaml"
+    config_path.write_text(
+        yaml_text(_cli_mode_payload("link_only", "many_to_one")),
+        encoding="utf-8",
+    )
+
+    assert (
+        main(
+            [
+                "run-linkage-mode",
+                "--config",
+                str(config_path),
+                "--project-root",
+                str(project_root),
+                "--synthetic-demo",
+                "--entity-count",
+                "100",
+            ]
+        )
+        == 2
+    )
+    captured = capsys.readouterr()
+    assert "ML-PATH-001" in captured.err
+    assert "Traceback" not in captured.err
+    assert str(project_root) not in captured.err
+    assert str(external_root) not in captured.err
+    assert not tuple(external_root.iterdir())
+    assert captured.out == ""
 
 
 def test_synthetic_entity_count_upper_bound_is_safe(

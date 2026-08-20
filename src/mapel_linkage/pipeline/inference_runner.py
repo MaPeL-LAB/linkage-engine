@@ -218,6 +218,7 @@ def _verified_package_bundle_digest(bundle: SyntheticBundle) -> str:
                 left_only_count=provenance.left_only_count,
                 right_only_count=provenance.right_only_count,
                 duplicate_count=provenance.duplicate_count,
+                right_duplicate_count=provenance.right_duplicate_count,
                 competing_candidate_count=provenance.competing_candidate_count,
                 source_a_missing_rate=provenance.source_a_missing_rate,
                 source_b_missing_rate=provenance.source_b_missing_rate,

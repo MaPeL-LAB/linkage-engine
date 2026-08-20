@@ -97,6 +97,39 @@ def test_manifest_write_rejects_out_of_root(tmp_path: Path) -> None:
     assert str(tmp_path) not in str(caught.value)
 
 
+@pytest.mark.parametrize("symlink_shape", ["destination", "ancestor"])
+def test_output_resolution_rejects_terminal_and_ancestor_symlinks_without_target_write(
+    tmp_path: Path,
+    symlink_shape: str,
+) -> None:
+    artifact_root = tmp_path / "artifacts"
+    artifact_root.mkdir()
+    external_root = tmp_path / "external"
+    external_root.mkdir()
+    external_target = external_root / "protected.json"
+    external_target.write_text("unchanged\n", encoding="utf-8")
+    policy = PathPolicy.build(
+        project_root=tmp_path,
+        configured_input_roots=("data",),
+        configured_output_roots=("artifacts",),
+        host_input_roots=(tmp_path / "data",),
+        host_output_roots=(artifact_root,),
+    )
+
+    if symlink_shape == "destination":
+        run_directory = artifact_root / "run"
+        run_directory.mkdir()
+        (run_directory / "recipe-v1.json").symlink_to(external_target)
+    else:
+        (artifact_root / "run").symlink_to(external_root, target_is_directory=True)
+
+    with pytest.raises(SafeError) as caught:
+        policy.resolve_output("artifacts/run/recipe-v1.json")
+
+    assert external_target.read_text(encoding="utf-8") == "unchanged\n"
+    assert str(tmp_path) not in caught.value.render()
+
+
 def test_safe_log_builder_hides_rejected_key_and_value() -> None:
     sensitive_key = "SYNTHETIC-SECRET-FIELD"
     sentinel = "SYNTHETIC-SECRET-VALUE"

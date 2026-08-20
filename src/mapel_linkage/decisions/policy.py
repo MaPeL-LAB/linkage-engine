@@ -9,7 +9,12 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Literal
 
-from mapel_linkage.assignment import AssignmentEdgeBatch, AssignmentResult, pair_digest
+from mapel_linkage.assignment import (
+    AssignedEdge,
+    AssignmentEdgeBatch,
+    AssignmentResult,
+    pair_digest,
+)
 from mapel_linkage.configuration.models import DecisionPolicyConfig, OutputField
 from mapel_linkage.domain.errors import DecisionPolicyError
 
@@ -315,8 +320,16 @@ class DecisionEvidenceBuilder:
                     candidates.pair_digests[index],
                 )
             )
-        assignment_by_source = {item.source_record_key: item for item in assignment.assignments}
-        if set(assignment_by_source) != set(candidates.source_record_keys):
+        assignments_by_source: dict[str, list[AssignedEdge]] = {
+            source: [] for source in candidates.source_record_keys
+        }
+        for item in assignment.assignments:
+            if item.source_record_key not in assignments_by_source:
+                raise DecisionPolicyError(
+                    "ML-DECISION-010", "Assignment and candidate evidence coverage differs."
+                )
+            assignments_by_source[item.source_record_key].append(item)
+        if any(not items for items in assignments_by_source.values()):
             raise DecisionPolicyError(
                 "ML-DECISION-010", "Assignment and candidate evidence coverage differs."
             )
@@ -339,50 +352,58 @@ class DecisionEvidenceBuilder:
             )
             top = ordered[0][0] if ordered else 0.0
             second = ordered[1][0] if len(ordered) > 1 else 0.0
-            assigned = assignment_by_source[source]
-            if not assigned.selected_no_match:
-                candidate = candidates_by_digest.get(assigned.pair_digest or "")
-                if candidate is None or candidate != (
-                    source,
-                    assigned.target_record_key,
-                    assigned.calibrated_probability,
-                    assigned.candidate_rank,
-                ):
-                    raise DecisionPolicyError(
-                        "ML-DECISION-011",
-                        "An assigned edge is not supported by candidate evidence.",
+            for assigned in sorted(
+                assignments_by_source[source],
+                key=lambda item: (item.selected_no_match, item.pair_digest or ""),
+            ):
+                if not assigned.selected_no_match:
+                    candidate = candidates_by_digest.get(assigned.pair_digest or "")
+                    if candidate is None or candidate != (
+                        source,
+                        assigned.target_record_key,
+                        assigned.calibrated_probability,
+                        assigned.candidate_rank,
+                    ):
+                        raise DecisionPolicyError(
+                            "ML-DECISION-011",
+                            "An assigned edge is not supported by candidate evidence.",
+                        )
+                pair_rules: tuple[str, ...] = ()
+                if assigned.pair_digest is not None and candidate_rules_by_pair_digest is not None:
+                    pair_rules = candidate_rules_by_pair_digest.get(assigned.pair_digest, ())
+                output.append(
+                    DecisionEvidence(
+                        source_dataset_id=source_dataset_id,
+                        target_dataset_id=target_dataset_id,
+                        source_record_ref=source,
+                        assigned_target_ref=assigned.target_record_key,
+                        assigned_pair_digest=assigned.pair_digest,
+                        selected_no_match=assigned.selected_no_match,
+                        calibrated_probability=assigned.calibrated_probability,
+                        candidate_rank=assigned.candidate_rank,
+                        top_probability=top,
+                        second_probability=second,
+                        probability_margin=max(0.0, top - second),
+                        candidate_search_complete=candidates.candidate_search_complete,
+                        candidate_search_truncated=candidates.candidate_search_truncated,
+                        calibration_valid=True,
+                        data_quality_sufficient=source not in insufficient_data_sources,
+                        anchor_conflict=source in anchor_conflict_sources,
+                        model_disagreement=source in model_disagreement_sources,
+                        assignment_changed_top1=(
+                            assigned.changed_from_independent_top1
+                            or (
+                                assigned.candidate_rank is not None and assigned.candidate_rank != 1
+                            )
+                        ),
+                        anchor_rule_ids=(
+                            ()
+                            if anchor_rules_by_source is None
+                            else anchor_rules_by_source.get(source, ())
+                        ),
+                        candidate_rule_ids=pair_rules,
                     )
-            pair_rules: tuple[str, ...] = ()
-            if assigned.pair_digest is not None and candidate_rules_by_pair_digest is not None:
-                pair_rules = candidate_rules_by_pair_digest.get(assigned.pair_digest, ())
-            output.append(
-                DecisionEvidence(
-                    source_dataset_id=source_dataset_id,
-                    target_dataset_id=target_dataset_id,
-                    source_record_ref=source,
-                    assigned_target_ref=assigned.target_record_key,
-                    assigned_pair_digest=assigned.pair_digest,
-                    selected_no_match=assigned.selected_no_match,
-                    calibrated_probability=assigned.calibrated_probability,
-                    candidate_rank=assigned.candidate_rank,
-                    top_probability=top,
-                    second_probability=second,
-                    probability_margin=max(0.0, top - second),
-                    candidate_search_complete=candidates.candidate_search_complete,
-                    candidate_search_truncated=candidates.candidate_search_truncated,
-                    calibration_valid=True,
-                    data_quality_sufficient=source not in insufficient_data_sources,
-                    anchor_conflict=source in anchor_conflict_sources,
-                    model_disagreement=source in model_disagreement_sources,
-                    assignment_changed_top1=assigned.changed_from_independent_top1,
-                    anchor_rule_ids=(
-                        ()
-                        if anchor_rules_by_source is None
-                        else anchor_rules_by_source.get(source, ())
-                    ),
-                    candidate_rule_ids=pair_rules,
                 )
-            )
         return tuple(output)
 
 

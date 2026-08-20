@@ -1,6 +1,7 @@
 # Configuration Reference
 
-**Implementation status:** complete two-source synthetic MVP contract in `0.2.0.dev0`.
+**Implementation status:** complete two-source synthetic MVP plus bounded I1C synthetic-mode
+contract in `0.2.0.dev3`.
 
 ## Normative principles
 
@@ -31,6 +32,7 @@ models
 calibration
 model_selection
 assignment
+mode_orchestration
 decision_policy
 validation
 outputs
@@ -46,7 +48,19 @@ Required fields:
 - `assignment_constraint`: `one_to_one`, `many_to_one`, `one_to_many`, or `unconstrained`
 - `random_seed`
 
-The complete synthetic MVP currently executes `link_only` with `one_to_one` assignment. Other validated enum values are reserved for later mode-specific implementations and fail safely where no runtime implementation exists.
+The legacy complete synthetic MVP executes `link_only` with `one_to_one` assignment. The
+separate I1C synthetic-mode route executes only five exact allow-listed combinations:
+
+```text
+link_only + many_to_one
+link_only + one_to_many
+link_only + unconstrained
+dedupe_only + unconstrained
+link_and_dedupe + one_to_one
+```
+
+Every other combination, including `multi_source`, fails before execution. The I1C route does
+not accept real data and does not establish operational validity.
 
 ## Runtime and privacy
 
@@ -256,6 +270,39 @@ assignment:
 ```
 
 The synthetic MVP supports sparse one-to-one assignment with a private no-match option for each source record. SciPy provides a small-problem oracle. Assignment selects a globally compatible real or no-match edge but cannot emit a relationship status.
+
+## Mode orchestration
+
+I1C mode execution is explicitly enabled and bound to package-owned implementations:
+
+```yaml
+mode_orchestration:
+  artifact_schema_version: "1"
+  implementation: synthetic_mode_v1
+  pair_model_id: xgb_pair_classifier
+  deduplication:
+    algorithm: clique
+    minimum_probability: 0.75
+    no_match_utility: 0.0
+    maximum_cluster_size: 100
+    maximum_candidate_edges: 100000
+    deterministic_tie_breaking: true
+```
+
+`deduplication` is required for `dedupe_only` and `link_and_dedupe`, and forbidden for the
+three extended `link_only` combinations. The route also requires seed `20260816`, the enabled
+XGBoost pair classifier, calibration bound to that declared pair-model identifier, and zero
+assignment no-match utility. Unknown implementations, algorithms, schema versions, modes,
+constraints, artifact digests, or provenance bindings fail closed.
+
+Same-source candidate retrieval is deterministic, removes self-pairs, and canonicalises
+symmetric pairs before comparison features are built. All three `link_and_dedupe` pair
+surfaces share one protected entity/household partition assignment and one combined fitted and
+calibrated model authority. Cross-source-only calibration cannot authorise same-source
+clustering. Only decision-partition feature evidence is scored for linkage or clustering;
+training, validation, calibration, and locked-test pairs are never relationship-decision
+inputs. Dedupe-only and link-and-dedupe modes emit aggregate assignment/cluster evidence
+without relationship statuses, record values, decision authority, or merge authority.
 
 ## Decision policy
 

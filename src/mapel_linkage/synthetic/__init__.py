@@ -9,6 +9,7 @@ from mapel_linkage.synthetic.generator import (
     SyntheticRecord,
     SyntheticTruthRecord,
     generate_synthetic_bundle,
+    matches_synthetic_fixture_layout,
     write_synthetic_bundle,
 )
 
@@ -19,5 +20,6 @@ __all__ = [
     "SyntheticRecord",
     "SyntheticTruthRecord",
     "generate_synthetic_bundle",
+    "matches_synthetic_fixture_layout",
     "write_synthetic_bundle",
 ]

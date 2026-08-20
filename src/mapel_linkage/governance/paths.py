@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import re
+import stat
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -12,6 +13,30 @@ from mapel_linkage.governance.errors import SafeError, SafeErrorCode
 
 _URI_SCHEME = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:")
 _WINDOWS_DRIVE = re.compile(r"^[A-Za-z]:[\\/]")
+
+
+def _reject_symlink_components(path: Path) -> Path:
+    """Return an absolute lexical path after rejecting every existing symlink component."""
+
+    absolute = Path(os.path.abspath(os.fspath(path)))
+    current = Path(absolute.anchor)
+    for part in absolute.parts[1:]:
+        current /= part
+        try:
+            metadata = os.lstat(current)
+        except FileNotFoundError:
+            continue
+        except OSError:
+            raise SafeError(
+                SafeErrorCode.PATH_POLICY,
+                "A managed path component could not be inspected safely.",
+            ) from None
+        if stat.S_ISLNK(metadata.st_mode):
+            raise SafeError(
+                SafeErrorCode.PATH_POLICY,
+                "Symlinked managed paths are not permitted.",
+            )
+    return absolute
 
 
 def _looks_remote(value: str) -> bool:
@@ -46,7 +71,7 @@ def _resolve(base: Path, raw: str) -> Path:
         )
     if not candidate.is_absolute():
         candidate = base / candidate
-    return candidate.resolve(strict=False)
+    return _reject_symlink_components(candidate).resolve(strict=False)
 
 
 def _is_within(candidate: Path, roots: tuple[Path, ...]) -> bool:
@@ -77,14 +102,16 @@ class PathPolicy:
         host_input_roots: Iterable[Path] | None = None,
         host_output_roots: Iterable[Path] | None = None,
     ) -> PathPolicy:
-        root = project_root.resolve(strict=False)
+        root = _reject_symlink_components(project_root).resolve(strict=False)
         default_host_inputs = (root / "data", root / "private")
         default_host_outputs = (root / "private", root / "artifacts")
         host_inputs = tuple(
-            path.resolve(strict=False) for path in (host_input_roots or default_host_inputs)
+            _reject_symlink_components(path).resolve(strict=False)
+            for path in (host_input_roots or default_host_inputs)
         )
         host_outputs = tuple(
-            path.resolve(strict=False) for path in (host_output_roots or default_host_outputs)
+            _reject_symlink_components(path).resolve(strict=False)
+            for path in (host_output_roots or default_host_outputs)
         )
         inputs = tuple(_resolve(root, raw) for raw in configured_input_roots)
         outputs = tuple(_resolve(root, raw) for raw in configured_output_roots)

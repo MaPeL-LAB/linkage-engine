@@ -43,10 +43,11 @@ than repository-granted authority.
 ### M4 — extended linkage modes
 
 Many-to-one, one-to-many, unconstrained assignment, single-source deduplication, and combined
-link-and-dedupe workflows are integrated and core-CI verified. The bounded complete CLI
-orchestrator remains the generated-synthetic, two-source `link_only`, `one_to_one` workflow;
-the capability matrix, rather than that CLI boundary, is authoritative for the other shipped
-workflow APIs.
+link-and-dedupe components are integrated with core-CI coverage; CI evidence is assessed per
+commit. I1C adds bounded synthetic orchestration for exactly `link_only` with `many_to_one`,
+`one_to_many`, or `unconstrained`;
+`dedupe_only` with `unconstrained`; and `link_and_dedupe` with `one_to_one`. This does not
+authorise arbitrary M4 combinations, multi-source or real-data dispatch, or operational use.
 
 ### M5 — broader model portfolio
 
@@ -80,7 +81,7 @@ as component-only where the capability matrix says so. Building a production N-s
 from locally approved pairwise recipes remains outside the complete synthetic CLI and does not
 gain merge authority.
 
-## I1A/I1B — orchestration and configured model portfolio
+## I1A/I1B/I1C — orchestration, configured model portfolio, and bounded modes
 
 I1 now establishes, for the bounded generated-synthetic two-source workflow:
 
@@ -90,8 +91,14 @@ I1 now establishes, for the bounded generated-synthetic two-source workflow:
 - approved-recipe new-data inference;
 - shadow challengers with no decision authority;
 - configuration-driven native and optional-model portfolio execution.
+- typed allow-list dispatch for the five I1C generated-synthetic combinations;
+- canonical same-table retrieval plus fitted/reloaded pair-model and calibration evidence;
+- feature-only decision rows for scoring and assignment, plus aggregate, tamper-evident
+  mode-run provenance.
 
 This does not claim one general CLI for every M3–M7 capability or any operational approval.
+Package synthetic-attestation authentication still re-reads the complete generated bundle;
+strict least-privilege data-access isolation is not established.
 
 See
 [`architecture/ADR-0004-CAPABILITY-STATUS-AND-PIPELINE-INTEGRATION.md`](architecture/ADR-0004-CAPABILITY-STATUS-AND-PIPELINE-INTEGRATION.md).

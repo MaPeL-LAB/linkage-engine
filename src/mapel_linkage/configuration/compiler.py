@@ -32,6 +32,7 @@ class ExecutionPlan:
     dataset_count: int
     variable_count: int
     random_seed: int
+    mode_dispatch_key: str | None
     dataset_paths: Mapping[str, Path] = field(repr=False)
     restricted_output_directory: Path = field(repr=False)
     label_source_path: Path | None = field(repr=False)
@@ -85,6 +86,20 @@ def _resolve_registries(config: LinkageConfig) -> None:
         resolve_operation("ranker", ranking_model.implementation)
     resolve_operation("calibrator", config.calibration.method)
     resolve_operation("assignment_solver", config.assignment.solver)
+    if config.mode_orchestration is not None:
+        dispatch_key = ":".join(
+            (
+                config.mode_orchestration.implementation,
+                config.project.linkage_mode,
+                config.project.assignment_constraint,
+            )
+        )
+        resolve_operation("mode_orchestrator", dispatch_key)
+        if config.mode_orchestration.deduplication is not None:
+            resolve_operation(
+                "deduplication_solver",
+                config.mode_orchestration.deduplication.algorithm,
+            )
 
 
 def compile_config(
@@ -111,12 +126,22 @@ def compile_config(
     label_source_path: Path | None = None
     if config.labels is not None and not isinstance(config.labels.source, SyntheticTruthSource):
         label_source_path = path_policy.resolve_input(config.labels.source.path)
+    mode_dispatch_key = None
+    if config.mode_orchestration is not None:
+        mode_dispatch_key = ":".join(
+            (
+                config.mode_orchestration.implementation,
+                config.project.linkage_mode,
+                config.project.assignment_constraint,
+            )
+        )
     return ExecutionPlan(
         configuration_digest=canonical_configuration_digest(config),
         registry_digest=registry_digest(),
         dataset_count=len(config.datasets),
         variable_count=len(config.variables),
         random_seed=config.project.random_seed,
+        mode_dispatch_key=mode_dispatch_key,
         dataset_paths=dataset_paths,
         restricted_output_directory=restricted_output,
         label_source_path=label_source_path,

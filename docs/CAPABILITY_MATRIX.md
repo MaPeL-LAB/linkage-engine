@@ -20,11 +20,12 @@ No current capability has established operational validation.
 | `one_to_one_assignment` | M2 | implemented | workflow_integrated | core_ci | OR-Tools is the primary solver; SciPy provides a small-problem reference. |
 | `adjudication_audit_ledger` | M3 | implemented | workflow_integrated | core_ci | Immutable append-only audit ledger, multi-reviewer consensus, and label promotion workflow integrated. |
 | `active_learning_queue` | M3 | implemented | workflow_integrated | core_ci | Active-learning review ordering across uncertainty, margin, committee, and hybrid modes. |
-| `many_to_one_assignment` | M4 | implemented | workflow_integrated | core_ci | Greedy many-to-one assignment workflow integrated. |
-| `one_to_many_assignment` | M4 | implemented | workflow_integrated | core_ci | Greedy one-to-many assignment workflow integrated. |
-| `unconstrained_assignment` | M4 | implemented | workflow_integrated | core_ci | Threshold-based unconstrained assignment workflow integrated. |
-| `single_source_deduplication` | M4 | implemented | workflow_integrated | core_ci | Pair canonicalisation and single-source deduplication workflow integrated. |
-| `link_and_dedupe` | M4 | implemented | workflow_integrated | core_ci | Two-source linkage with intra-source duplicate clustering workflow integrated. |
+| `many_to_one_assignment` | M4 | implemented | workflow_integrated | core_ci | Greedy many-to-one assignment is CLI-integrated only in the exact generated-synthetic I1C link_only combination; operational dispatch is not established. |
+| `one_to_many_assignment` | M4 | implemented | workflow_integrated | core_ci | Greedy one-to-many assignment is CLI-integrated only in the exact generated-synthetic I1C link_only combination; operational dispatch is not established. |
+| `unconstrained_assignment` | M4 | implemented | workflow_integrated | core_ci | Threshold-based unconstrained assignment is CLI-integrated only for the exact generated-synthetic I1C link_only and dedupe_only combinations. |
+| `single_source_deduplication` | M4 | implemented | workflow_integrated | core_ci | Canonical same-table pairs and aggregate clustering are CLI-integrated only for the exact generated-synthetic I1C dedupe_only and link_and_dedupe combinations. |
+| `link_and_dedupe` | M4 | implemented | workflow_integrated | core_ci | Two-source linkage plus two intra-source clustering surfaces is CLI-integrated only for generated-synthetic I1C link_and_dedupe with one_to_one assignment. |
+| `configuration_driven_linkage_modes` | I1C | implemented | workflow_integrated | core_ci | Generated-synthetic CLI dispatch is allow-listed to link_only with many_to_one, one_to_many, or unconstrained assignment; dedupe_only with unconstrained assignment; and link_and_dedupe with one_to_one assignment. Operational validation is not established, no arbitrary or real-data mode dispatch is authorized, and strict least-privilege attestation data-access isolation is not established. |
 | `lightgbm_pair_classifier` | M5 | implemented | workflow_integrated | all_models_ci | Configured synthetic tournament, protected selection/calibration, persisted reload, and recipe-bound replay execute in all-models CI. |
 | `lightgbm_candidate_ranker` | M5 | implemented | workflow_integrated | all_models_ci | Configured source-query execution is recipe-replayable; target-query candidates are trained and reported but cannot be silently reinterpreted for source assignment. |
 | `stacking_ensemble` | M5 | implemented | workflow_integrated | core_ci | Protected meta-model workflow, tournament selection, and out-of-fold stacking integrated. |
@@ -44,12 +45,14 @@ No current capability has established operational validation.
 
 ## Current integrated workflow
 
-The complete configuration-driven row-level orchestrators remain bounded to
+The legacy complete configuration-driven workflow remains bounded to
 generated-synthetic two-source `link_only`, `one_to_one` execution. I1B adds the
 configured all-model portfolio path within that same boundary.
-M3 through M7 contain substantive
-components, but their general CLI and artifact-to-artifact orchestration remains an
-integration milestone.
+I1C separately allow-lists exactly `link_only` with `many_to_one`, `one_to_many`,
+or `unconstrained`; `dedupe_only` with `unconstrained`; and `link_and_dedupe` with
+`one_to_one`. It is generated-synthetic only, operational validity is not
+established, strict least-privilege attestation data-access isolation is not
+established, and no arbitrary M3-M7, multi-source, or real-data dispatch is implied.
 
 ## Test reporting
 

@@ -15,10 +15,11 @@
 
 ## Component versus workflow boundary
 
-The complete configuration-driven CLI remains bounded to generated-synthetic, two-source
-`link_only`, `one_to_one` execution. Within that boundary, the plural all-model portfolio,
-strict artifact reload, recipe binding, and synthetic new-data replay are integrated. M3–M7
-contain a mix of integrated workflow APIs and component-only capabilities; the matrix is
+The complete legacy configuration-driven CLI remains bounded to generated-synthetic,
+two-source `link_only`, `one_to_one` execution. Within that boundary, the plural all-model
+portfolio, strict artifact reload, recipe binding, and synthetic new-data replay are
+integrated. I1C adds a separate synthetic-only route for five exact allow-listed mode and
+constraint combinations; it is not a general M3–M7 orchestrator. The capability matrix is
 authoritative for each item.
 
 The repository does not provide a general operational runner for arbitrary linkage modes,
@@ -70,6 +71,14 @@ statistical performance on a real population.
   strict persistence/reload, and recipe-bound replay in one bounded command. Separate
   operational train/approve/infer commands and shadow-challenger execution remain outside
   this CLI.
+- `run-linkage-mode` is synthetic-only and accepts only the five I1C combinations documented
+  in the configuration reference. It returns aggregate counts and provenance metadata; it
+  cannot dispatch arbitrary modes or establish operational validity.
+- I1C scoring, assignment, and relationship decisions consume feature-only decision rows,
+  but package synthetic-provenance verification re-reads the complete generated bundle,
+  including protected truth, solely to authenticate the synthetic attestation. Strict
+  least-privilege data-access isolation remains unestablished; truth and locked-test rows are
+  not score, selection, calibration, assignment, or decision evidence.
 - Operational row-level execution remains blocked by design until the local restricted
   validation and approval workflow exists.
 
@@ -79,8 +88,15 @@ statistical performance on a real population.
   bounded package-owned predicate subset. More advanced blocking remains future work.
 - Date-window predicates are available in the typed configuration and anchor-evidence
   layer, but candidate-retrieval coverage and parity must remain explicitly tested.
-- Extended assignment and deduplication workflows are capability-tracked, but they are not
-  dispatched by the bounded all-model CLI.
+- I1C dispatch is limited to `link_only` with `many_to_one`, `one_to_many`, or
+  `unconstrained`; `dedupe_only` with `unconstrained`; and `link_and_dedupe` with
+  `one_to_one`. All other combinations fail closed.
+- Dedupe-only and link-and-dedupe modes use same-table protected partitions and emit
+  aggregate assignment/cluster evidence only. They emit no relationship statuses and have no
+  decision or merge authority.
+- The combined mode uses one surface-tagged, globally partitioned cross/intra-source model
+  and calibration binding. It does not treat cross-source calibration as authorisation for
+  same-source clustering.
 - Multi-source graph solvers consume source-aware evidence, but the platform does not yet
   build a complete N-source graph from approved pairwise pipeline recipes.
 - The engine emits relationship or cluster evidence and statuses; it never constructs a

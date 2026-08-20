@@ -48,6 +48,14 @@ from mapel_linkage.pipeline.stage_artifacts import (
     StageArtifactLedger,
     StageArtifactRef,
 )
+from mapel_linkage.pipeline.synthetic_mode_workflow import (
+    CombinedSurfaceCalibrationBinding,
+    ProtectedModeEvidenceAudit,
+    SyntheticDedupeModeWorkflowResult,
+    SyntheticLinkAndDedupeWorkflowResult,
+    SyntheticModeWorkflowResult,
+    SyntheticModeWorkflowRunner,
+)
 from mapel_linkage.pipeline.synthetic_portfolio_workflow import (
     SyntheticPortfolioWorkflowResult,
     SyntheticPortfolioWorkflowRunner,
@@ -57,6 +65,7 @@ from mapel_linkage.pipeline.synthetic_vertical_slice import SyntheticVerticalSli
 __all__ = [
     "ApprovedRecipeInferenceResult",
     "ApprovedRecipeInferenceRunner",
+    "CombinedSurfaceCalibrationBinding",
     "DeduplicationWorkflowResult",
     "DeduplicationWorkflowRunner",
     "LinkAndDedupeSolver",
@@ -72,6 +81,7 @@ __all__ = [
     "PairScoreEvidenceBatch",
     "PipelineRecipeArtifact",
     "PortfolioTournamentResult",
+    "ProtectedModeEvidenceAudit",
     "RankingCandidateDeclaration",
     "RecipeApprovalStatus",
     "RecipeExecutionMode",
@@ -79,6 +89,10 @@ __all__ = [
     "StageArtifactLedger",
     "StageArtifactRef",
     "StageSummary",
+    "SyntheticDedupeModeWorkflowResult",
+    "SyntheticLinkAndDedupeWorkflowResult",
+    "SyntheticModeWorkflowResult",
+    "SyntheticModeWorkflowRunner",
     "SyntheticPortfolioWorkflowResult",
     "SyntheticPortfolioWorkflowRunner",
     "SyntheticVerticalSliceResult",

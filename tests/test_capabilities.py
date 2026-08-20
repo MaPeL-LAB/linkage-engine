@@ -42,6 +42,11 @@ def test_capability_registry_distinguishes_components_from_workflows() -> None:
     assert (
         by_id["configuration_driven_model_portfolio"].workflow_status is WorkflowStatus.INTEGRATED
     )
+    mode_capability = by_id["configuration_driven_linkage_modes"]
+    assert mode_capability.workflow_status is WorkflowStatus.INTEGRATED
+    assert "generated-synthetic" in mode_capability.notes.lower()
+    assert "Operational validation is not established" in mode_capability.notes
+    assert "arbitrary or real-data mode dispatch" in mode_capability.notes
     assert by_id["lightgbm_pair_classifier"].workflow_status is WorkflowStatus.INTEGRATED
     assert by_id["lightgbm_candidate_ranker"].workflow_status is WorkflowStatus.INTEGRATED
     assert by_id["pytorch_tabular_matcher"].workflow_status is WorkflowStatus.INTEGRATED
@@ -74,6 +79,13 @@ def test_capability_summary_is_aggregate_only() -> None:
     )
     assert summary["operational_validation"] == "not_established"
     assert summary["merge_authority"] == "none"
+    assert summary["integrated_synthetic_linkage_mode_combinations"] == (
+        "link_only+many_to_one",
+        "link_only+one_to_many",
+        "link_only+unconstrained",
+        "dedupe_only+unconstrained",
+        "link_and_dedupe+one_to_one",
+    )
     assert "record" not in repr(summary).lower()
 
 

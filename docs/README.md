@@ -71,11 +71,13 @@ validation, local operation, and research evidence.
 - [`implementation/M2E_VERIFIED_LABEL_XGBOOST_CHALLENGER.md`](implementation/M2E_VERIFIED_LABEL_XGBOOST_CHALLENGER.md)
 - [`implementation/M2_COMPLETE_SYNTHETIC_MVP.md`](implementation/M2_COMPLETE_SYNTHETIC_MVP.md)
 - [`implementation/I1B_CONFIGURATION_DRIVEN_MODEL_PORTFOLIO.md`](implementation/I1B_CONFIGURATION_DRIVEN_MODEL_PORTFOLIO.md)
+- [`implementation/I1C_CONFIGURATION_DRIVEN_LINKAGE_MODES.md`](implementation/I1C_CONFIGURATION_DRIVEN_LINKAGE_MODES.md)
 
 M3 through M7 have a mix of integrated workflows and component-only capabilities. I1B adds
-the bounded configuration-driven all-model synthetic portfolio; it does not claim one general
-CLI for every milestone. The generated capability matrix is normative when older
-implementation reports describe historical status.
+the bounded configuration-driven all-model synthetic portfolio; I1C adds only five exact
+generated-synthetic linkage-mode combinations. Neither claims one general CLI for every
+milestone or any operational validation. The generated capability matrix is normative when
+older implementation reports describe historical status.
 
 ## Research evidence
 

@@ -11,7 +11,7 @@ linkage, entity resolution, and within-dataset deduplication.
 | Import package | `mapel_linkage` |
 | Command-line interface | `mapel-linkage` |
 | Initial Python runtime | Python 3.12 |
-| Current package version | `0.2.0.dev1` |
+| Current package version | `0.2.0.dev3` |
 
 The repository name is **`linkage-engine`**. `MaPeL-LAB` identifies the developer and
 GitHub organisation; it is not part of the repository name.
@@ -73,6 +73,25 @@ only; relationship status comes only from the decision policy and merge authorit
 
 Other M3–M7 workflows have the component/workflow states recorded in the generated capability
 matrix. The complete CLI does not imply one general orchestrator for every capability.
+
+### Configuration-driven linkage modes
+
+I1C adds one separately allow-listed generated-synthetic command for exactly these combinations:
+
+- `link_only` with `many_to_one`;
+- `link_only` with `one_to_many`;
+- `link_only` with `unconstrained`;
+- `dedupe_only` with `unconstrained`; and
+- `link_and_dedupe` with `one_to_one`.
+
+Link-only decisions are made only from the protected decision partition. Same-source
+candidate generation removes self-pairs and canonicalises symmetric pairs before feature
+construction. `link_and_dedupe` fits and calibrates one strictly bound model over cross-source
+and both same-source surfaces rather than transporting cross-source calibration. Dedupe-only
+and link-and-dedupe outputs are aggregate assignment/cluster evidence: they emit no
+relationship statuses and have no decision or merge authority. This I1C route is
+synthetic-only, has operational validity `not_established`, and does not authorise arbitrary
+mode combinations, multi-source dispatch, or real-data use.
 
 The I2 advisory stack is integrated with coverage checks, uncertainty, fallback, abstention,
 and explicit human approval boundaries. It cannot approve models, thresholds, assignments,
@@ -235,6 +254,8 @@ mapel-linkage evaluate --config CONFIG --project-root ROOT --synthetic-demo
 mapel-linkage run --config CONFIG --project-root ROOT --synthetic-demo
 mapel-linkage run-model-portfolio --config configs/examples/synthetic_all_models.yaml \
   --project-root ROOT --synthetic-demo --entity-count 120 --k-folds 3
+mapel-linkage run-linkage-mode --config CONFIG --project-root ROOT \
+  --synthetic-demo --entity-count 120
 ```
 
 The current stage commands execute the required complete synthetic workflow and print the
@@ -242,7 +263,8 @@ requested stage summary. `run-model-portfolio` executes the configured protected
 strict artifact reload, locked-test evaluation, and disjoint recipe-bound replay and prints
 aggregate metadata only. The repository build refuses row-level execution without
 `--synthetic-demo`. For a robust long-run preflight and verification wrapper, run
-`scripts/run_all_model_portfolio.sh --dry-run` first.
+`scripts/run_all_model_portfolio.sh --dry-run` first for I1B or
+`scripts/run_i1c_linkage_modes.sh --dry-run` first for I1C.
 
 ## Model portfolio
 
@@ -257,7 +279,8 @@ aggregate metadata only. The repository build refuses row-level execution withou
 | Neural challenger | feature-based PyTorch MLP | yes; all-models CI |
 | Calibration | sigmoid, isotonic, Beta | yes |
 | Assignment | one-to-one OR-Tools plus SciPy reference | yes |
-| Extended assignment | many-to-one, one-to-many, unconstrained | workflow APIs integrated; outside the complete CLI |
+| Extended assignment | many-to-one, one-to-many, unconstrained | exact generated-synthetic I1C combinations only |
+| Deduplication | same-source canonical candidates and aggregate cluster evidence | `dedupe_only` + `unconstrained`, and two-source `link_and_dedupe` + `one_to_one`, synthetic only |
 | Multi-source | source-aware graph resolver and constrained clustering | resolver workflow integrated; individual clustering/metric components remain separately classified |
 
 The integrated synthetic lifecycle fits the native Splink model, serializes and strictly

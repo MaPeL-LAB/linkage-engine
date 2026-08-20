@@ -11,6 +11,7 @@ from mapel_linkage.assignment import (
     AssignmentEdgeBatch,
     AssignmentPlan,
     ScipyOneToOneAssignmentSolver,
+    UnconstrainedAssignmentSolver,
 )
 from mapel_linkage.configuration.models import DecisionPolicyConfig
 from mapel_linkage.decisions import (
@@ -154,3 +155,49 @@ def test_confirmed_decision_requires_complete_real_edge_evidence() -> None:
     decision = next(item for item in classify() if item.relationship_status == "confirmed")
     with pytest.raises(DecisionPolicyError, match="ML-DECISION-019"):
         replace(decision, calibrated_probability=None)
+
+
+def test_multi_edge_evidence_preserves_source_coverage_and_lower_rank_cannot_confirm() -> None:
+    pairs = (("multi-source", "target-a"), ("multi-source", "target-b"), ("empty-source", "t"))
+    batch = AssignmentEdgeBatch(
+        source_record_keys=("multi-source", "empty-source"),
+        pair_references=pairs,
+        pair_digests=tuple(digest(f"{left}\x00{right}") for left, right in pairs),
+        probabilities=np.asarray([0.98, 0.70, 0.10], dtype=np.float64),
+        candidate_ranks=np.asarray([1, 2, 1], dtype=np.int64),
+        source_model_id="model",
+        source_model_version="v1",
+        calibrator_digest=digest("calibrator"),
+        ranking_model_digest=None,
+        candidate_search_complete=True,
+        candidate_search_truncated=False,
+    )
+    assignment = UnconstrainedAssignmentSolver.solve(
+        batch,
+        AssignmentPlan(constraint="unconstrained", solver="unconstrained"),
+    )
+    evidence = DecisionEvidenceBuilder.build(
+        candidates=batch,
+        assignment=assignment,
+        source_dataset_id="source_a",
+        target_dataset_id="source_b",
+    )
+    decisions = RelationshipDecisionPolicy.classify_all(
+        evidence,
+        decision_policy(),
+        model_family="xgboost",
+        model_version="v1",
+        assignment_method=assignment.solver,
+        assignment_constraint=assignment.constraint,
+        run_id="b" * 32,
+        configuration_digest=digest("configuration"),
+        feature_schema_digest=digest("features"),
+        created_at=datetime(2026, 8, 20, tzinfo=UTC),
+    )
+
+    assert len(evidence) == len(assignment.assignments) == 3
+    assert {item.source_record_ref for item in evidence} == {"multi-source", "empty-source"}
+    lower_rank = next(item for item in decisions if item.candidate_rank == 2)
+    assert lower_rank.relationship_status == "review_required"
+    assert "assignment_conflict" in lower_rank.review_reason_codes
+    assert sum(item.relationship_status == "no_match" for item in decisions) == 1

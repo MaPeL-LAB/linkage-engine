@@ -573,6 +573,26 @@ class NoMatchAssignmentConfig(ConfigNode):
     utility: StrictFloat = 0.0
 
 
+class DeduplicationConfig(ConfigNode):
+    """Bounded package-owned intra-source clustering configuration."""
+
+    algorithm: Literal["connected_components", "clique"]
+    minimum_probability: Probability
+    no_match_utility: StrictFloat = 0.0
+    maximum_cluster_size: Annotated[PositiveInt, Field(le=100_000)] = 10_000
+    maximum_candidate_edges: Annotated[PositiveInt, Field(le=10_000_000_000)]
+    deterministic_tie_breaking: Literal[True] = True
+
+
+class ModeOrchestrationConfig(ConfigNode):
+    """Opt-in contract for the bounded generated-synthetic I1C orchestrator."""
+
+    artifact_schema_version: Literal["1"] = "1"
+    implementation: Literal["synthetic_mode_v1"]
+    pair_model_id: Identifier
+    deduplication: DeduplicationConfig | None = None
+
+
 class AssignmentConfig(ConfigNode):
     solver: Literal["ortools_min_cost_flow", "unconstrained"]
     constraint: AssignmentConstraint
@@ -712,6 +732,7 @@ class LinkageConfig(ConfigNode):
     models: ModelsConfig
     calibration: CalibrationConfig
     model_selection: ModelSelectionConfig = Field(default_factory=ModelSelectionConfig)
+    mode_orchestration: ModeOrchestrationConfig | None = None
     assignment: AssignmentConfig
     decision_policy: DecisionPolicyConfig
     validation: ValidationConfig
@@ -728,6 +749,7 @@ class LinkageConfig(ConfigNode):
         self._validate_comparisons(variable_by_id)
         self._validate_labels(dataset_ids)
         self._validate_models()
+        self._validate_mode_orchestration()
         if self.models.fellegi_sunter.u_max_pairs > self.runtime.maximum_candidate_pairs:
             raise ValueError(
                 "Fellegi-Sunter random-pair sampling cannot exceed the runtime pair budget."
@@ -797,6 +819,56 @@ class LinkageConfig(ConfigNode):
         roles = Counter(dataset.role for dataset in self.datasets)
         if mode == "link_only" and (roles["source"] < 1 or roles["target"] < 1):
             raise ValueError("link_only requires source and target dataset roles.")
+        if mode == "dedupe_only" and roles["source"] != 1:
+            raise ValueError("dedupe_only requires one source dataset role.")
+        if mode == "link_and_dedupe" and (
+            len(dataset_ids) != 2 or roles["source"] != 1 or roles["target"] != 1
+        ):
+            raise ValueError(
+                "link_and_dedupe requires exactly one source and one target dataset role."
+            )
+
+    def _validate_mode_orchestration(self) -> None:
+        orchestration = self.mode_orchestration
+        mode = self.project.linkage_mode
+        constraint = self.project.assignment_constraint
+        extended_combinations = {
+            ("link_only", "many_to_one"),
+            ("link_only", "one_to_many"),
+            ("link_only", "unconstrained"),
+            ("dedupe_only", "unconstrained"),
+            ("link_and_dedupe", "one_to_one"),
+        }
+        combination = (mode, constraint)
+        if orchestration is None:
+            if combination in extended_combinations:
+                raise ValueError("Extended linkage modes require explicit mode orchestration.")
+            return
+        if combination not in extended_combinations:
+            raise ValueError("Mode orchestration is unsupported for this linkage mode.")
+        if self.project.random_seed != 20260816:
+            raise ValueError("Synthetic mode orchestration requires the package seed.")
+        model_by_id = {
+            model.model_id: model for model in self.models.all_boosted_trees() if model.enabled
+        }
+        selected_model = model_by_id.get(orchestration.pair_model_id)
+        if selected_model is None or selected_model.implementation != "xgboost_classifier":
+            raise ValueError("Mode orchestration requires an enabled XGBoost pair model.")
+        if self.calibration.source_model != orchestration.pair_model_id:
+            raise ValueError("Mode orchestration calibration must bind its pair model.")
+        if self.assignment.no_match.utility != 0.0:
+            raise ValueError(
+                "Synthetic mode orchestration requires the frozen zero no-match utility."
+            )
+        needs_deduplication = mode in {"dedupe_only", "link_and_dedupe"}
+        if needs_deduplication != (orchestration.deduplication is not None):
+            raise ValueError("Deduplication configuration does not match the linkage mode.")
+        if (
+            orchestration.deduplication is not None
+            and orchestration.deduplication.maximum_candidate_edges
+            > self.runtime.maximum_candidate_pairs
+        ):
+            raise ValueError("Deduplication cannot exceed the runtime pair budget.")
 
     def _validate_variables(self, dataset_ids: set[str]) -> None:
         for variable in self.variables:

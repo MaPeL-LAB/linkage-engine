@@ -170,3 +170,49 @@ def test_date_window_blocking_uses_the_typed_dsl() -> None:
             maximum_candidate_pairs=10,
         )
     assert result.candidate_pair_count == 1
+
+
+def test_same_table_candidates_are_canonical_and_exclude_self_pairs() -> None:
+    with DuckDBStore() as store:
+        table = store.create_table_from_rows(
+            "synthetic_dedupe_source",
+            COLUMNS,
+            (
+                ("record-1", "alpha", "2000-01-01", "zone-1"),
+                ("record-2", "alpine", "2000-01-02", "zone-1"),
+                ("record-3", "beta", "2001-01-01", "zone-2"),
+            ),
+        )
+        result = DuckDBCandidateGenerator(store).generate_deduplication(
+            dataset=table,
+            variable_columns={"location": "v_location"},
+            rules=(BlockingRule("location_exact", Exact("location")),),
+            maximum_candidate_pairs=10,
+        )
+        rows = store._fetch_model_rows(
+            f"SELECT left_record_key, right_record_key FROM {result.table.table_name}"
+        )
+
+    assert rows == [("record-1", "record-2")]
+    assert result.candidate_pair_count == 1
+
+
+def test_same_table_candidate_budget_counts_canonical_pairs_only() -> None:
+    with DuckDBStore() as store:
+        table = store.create_table_from_rows(
+            "synthetic_dedupe_budget",
+            COLUMNS,
+            (
+                ("record-1", "alpha", "2000-01-01", "zone-1"),
+                ("record-2", "alpine", "2000-01-02", "zone-1"),
+                ("record-3", "amber", "2000-01-03", "zone-1"),
+            ),
+        )
+        generator = DuckDBCandidateGenerator(store)
+        with pytest.raises(CandidateBudgetExceeded):
+            generator.generate_deduplication(
+                dataset=table,
+                variable_columns={"location": "v_location"},
+                rules=(BlockingRule("location_exact", Exact("location")),),
+                maximum_candidate_pairs=2,
+            )
