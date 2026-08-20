@@ -11,7 +11,7 @@ from dataclasses import replace
 from typing import Any, Literal
 
 import numpy as np
-from scipy.optimize import linear_sum_assignment  # type: ignore[import-untyped]
+from scipy.optimize import linear_sum_assignment
 
 from mapel_linkage.assignment.contracts import (
     AssignedEdge,
@@ -22,7 +22,7 @@ from mapel_linkage.assignment.contracts import (
 from mapel_linkage.domain.errors import AssignmentError
 
 try:
-    from ortools.graph.python import min_cost_flow  # type: ignore[import-untyped]
+    from ortools.graph.python import min_cost_flow
 except ImportError:  # pragma: no cover - optional dependency boundary
     min_cost_flow = None
 
