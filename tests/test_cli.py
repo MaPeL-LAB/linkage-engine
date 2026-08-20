@@ -17,7 +17,7 @@ def test_status_is_current_and_distinguishes_integration(
     assert "workflow_integrated=" in output
     assert "component_only=" in output
     assert "generated-synthetic two-source link_only" in output
-    assert "M3 through M7" in output
+    assert "configuration-driven all-model portfolio" in output
     assert "development candidate" not in output
     assert "record-level" not in output
 
@@ -45,7 +45,7 @@ def test_status_details_lists_component_and_workflow_state(
     assert main(["status", "--details"]) == 0
     output = capsys.readouterr().out
 
-    assert "lightgbm_pair_classifier\tcomponent=implemented\tworkflow=component_only" in output
+    assert "lightgbm_pair_classifier\tcomponent=implemented\tworkflow=workflow_integrated" in output
     assert (
         "approved_recipe_inference\tcomponent=implemented\tworkflow=workflow_integrated" in output
     )
@@ -101,10 +101,12 @@ def test_validate_config_error_does_not_echo_value_or_path(
     assert str(path) not in captured.err
 
 
+@pytest.mark.parametrize("command", ["run", "run-model-portfolio"])
 def test_target_command_fails_without_echoing_config(
+    command: str,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    assert main(["run", "--config", "private/project.yaml"]) == 2
+    assert main([command, "--config", "private/project.yaml"]) == 2
     captured = capsys.readouterr()
     assert "ML-CLI-002" in captured.err
     assert captured.out == ""
@@ -131,6 +133,28 @@ def test_synthetic_entity_count_upper_bound_is_safe(
     )
     captured = capsys.readouterr()
     assert "ML-CLI-003" in captured.err
+    assert captured.out == ""
+
+
+def test_model_portfolio_fold_bound_fails_before_config_access(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert (
+        main(
+            [
+                "run-model-portfolio",
+                "--config",
+                "private/project.yaml",
+                "--synthetic-demo",
+                "--k-folds",
+                "11",
+            ]
+        )
+        == 2
+    )
+    captured = capsys.readouterr()
+    assert "ML-CLI-004" in captured.err
+    assert "private/project.yaml" not in captured.err
     assert captured.out == ""
 
 

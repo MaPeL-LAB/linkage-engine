@@ -198,18 +198,20 @@ _CAPABILITIES: Final[tuple[Capability, ...]] = (
         "LightGBM pair-classifier challenger",
         "M5",
         ComponentStatus.IMPLEMENTED,
-        WorkflowStatus.COMPONENT_ONLY,
+        WorkflowStatus.INTEGRATED,
         RuntimeVerificationStatus.ALL_MODELS_CI,
-        "Optional dependency; dedicated all-models CI must execute the runtime path.",
+        "Configured synthetic tournament, protected selection/calibration, persisted reload, "
+        "and recipe-bound replay execute in all-models CI.",
     ),
     Capability(
         "lightgbm_candidate_ranker",
         "LightGBM candidate ranker",
         "M5",
         ComponentStatus.IMPLEMENTED,
-        WorkflowStatus.COMPONENT_ONLY,
+        WorkflowStatus.INTEGRATED,
         RuntimeVerificationStatus.ALL_MODELS_CI,
-        "Optional dependency; dedicated all-models CI must execute the runtime path.",
+        "Configured source-query execution is recipe-replayable; target-query candidates are "
+        "trained and reported but cannot be silently reinterpreted for source assignment.",
     ),
     Capability(
         "stacking_ensemble",
@@ -225,9 +227,10 @@ _CAPABILITIES: Final[tuple[Capability, ...]] = (
         "PyTorch tabular pair matcher",
         "M6",
         ComponentStatus.IMPLEMENTED,
-        WorkflowStatus.COMPONENT_ONLY,
+        WorkflowStatus.INTEGRATED,
         RuntimeVerificationStatus.ALL_MODELS_CI,
-        "Optional feature-based challenger; it has no raw-text or identity authority.",
+        "Configured deterministic CPU training, protected tournament selection, persisted reload, "
+        "and recipe-bound replay are integrated; it has no raw-text or identity authority.",
     ),
     Capability(
         "multi_source_entity_resolution",
@@ -274,6 +277,18 @@ _CAPABILITIES: Final[tuple[Capability, ...]] = (
         RuntimeVerificationStatus.CORE_CI,
         "Pinned Splink fit, canonical JSON reload, bounded candidate parity, and scoring are "
         "integrated as uncalibrated evidence only; operational validity is not established.",
+    ),
+    Capability(
+        "configuration_driven_model_portfolio",
+        "Configuration-driven all-model portfolio",
+        "I1B",
+        ComponentStatus.IMPLEMENTED,
+        WorkflowStatus.INTEGRATED,
+        RuntimeVerificationStatus.ALL_MODELS_CI,
+        "Generated-synthetic native Splink baseline plus configured XGBoost, LightGBM, PyTorch, "
+        "stacking, and ranking candidates with group-protected OOF evidence, validation-only "
+        "selection, calibration-only fitting, locked-test evaluation, strict artifact reload, "
+        "and disjoint recipe-bound replay; operational validity is not established.",
     ),
     Capability(
         "approved_recipe_inference",
@@ -353,7 +368,7 @@ def capability_summary() -> dict[str, object]:
         "component_status_counts": dict(sorted(component_counts.items())),
         "workflow_status_counts": dict(sorted(workflow_counts.items())),
         "runtime_verification_counts": dict(sorted(runtime_counts.items())),
-        "integrated_synthetic_workflow": "two_source_link_only_one_to_one",
+        "integrated_synthetic_workflow": "two_source_link_only_one_to_one_configured_portfolio",
         "operational_validation": "not_established",
         "decision_authority": "explicit_policy_only",
         "merge_authority": "none",
@@ -389,8 +404,9 @@ def capability_matrix_markdown() -> str:
             "",
             "## Current integrated workflow",
             "",
-            "The only complete configuration-driven row-level orchestrator is the",
-            "generated-synthetic two-source `link_only`, `one_to_one` workflow.",
+            "The complete configuration-driven row-level orchestrators remain bounded to",
+            "generated-synthetic two-source `link_only`, `one_to_one` execution. I1B adds the",
+            "configured all-model portfolio path within that same boundary.",
             "M3 through M7 contain substantive",
             "components, but their general CLI and artifact-to-artifact orchestration remains an",
             "integration milestone.",

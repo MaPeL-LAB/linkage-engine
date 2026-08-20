@@ -70,10 +70,12 @@ validation, local operation, and research evidence.
 - [`implementation/M2D_FELLEGI_SUNTER_BASELINE.md`](implementation/M2D_FELLEGI_SUNTER_BASELINE.md)
 - [`implementation/M2E_VERIFIED_LABEL_XGBOOST_CHALLENGER.md`](implementation/M2E_VERIFIED_LABEL_XGBOOST_CHALLENGER.md)
 - [`implementation/M2_COMPLETE_SYNTHETIC_MVP.md`](implementation/M2_COMPLETE_SYNTHETIC_MVP.md)
+- [`implementation/I1B_CONFIGURATION_DRIVEN_MODEL_PORTFOLIO.md`](implementation/I1B_CONFIGURATION_DRIVEN_MODEL_PORTFOLIO.md)
 
-M3 through M7 have substantive source components and tests, but their general
-configuration-driven orchestration remains the I1 integration track. The generated
-capability matrix is normative when older implementation reports describe historical status.
+M3 through M7 have a mix of integrated workflows and component-only capabilities. I1B adds
+the bounded configuration-driven all-model synthetic portfolio; it does not claim one general
+CLI for every milestone. The generated capability matrix is normative when older
+implementation reports describe historical status.
 
 ## Research evidence
 

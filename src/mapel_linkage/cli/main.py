@@ -32,7 +32,7 @@ from mapel_linkage.configuration import (
 from mapel_linkage.configuration.compiler import ExecutionPlan
 from mapel_linkage.domain.errors import AdvisorError, LinkageRuntimeError
 from mapel_linkage.governance.errors import SafeError, SafeErrorCode
-from mapel_linkage.pipeline import SyntheticVerticalSliceRunner
+from mapel_linkage.pipeline import SyntheticPortfolioWorkflowRunner, SyntheticVerticalSliceRunner
 from mapel_linkage.pipeline.local_workspace import initialise_local_project, run_doctor
 from mapel_linkage.profiling import build_preflight_task_profile
 from mapel_linkage.profiling.contracts import PreflightTaskProfile
@@ -272,6 +272,21 @@ def build_parser() -> argparse.ArgumentParser:
             help="Use the dense SciPy reference assignment solver.",
         )
         subparser.set_defaults(handler=_run_pipeline_command)
+
+    portfolio = subparsers.add_parser(
+        "run-model-portfolio",
+        help="Run the configured all-model portfolio on generated synthetic data only.",
+    )
+    portfolio.add_argument("--config", metavar="CONFIG", required=True)
+    portfolio.add_argument("--project-root", metavar="ROOT", default=".")
+    portfolio.add_argument(
+        "--synthetic-demo",
+        action="store_true",
+        help="Required guard confirming generated synthetic inputs only.",
+    )
+    portfolio.add_argument("--entity-count", type=int, default=120)
+    portfolio.add_argument("--k-folds", type=int, default=3)
+    portfolio.set_defaults(handler=_run_model_portfolio)
     return parser
 
 
@@ -320,8 +335,8 @@ def _status(namespace: argparse.Namespace) -> int:
         "shortlisting, and abstention without empirical performance claims."
     )
     print(
-        "M3 through M7 contain implemented components whose general configuration and "
-        "CLI orchestration is still pending."
+        "The configuration-driven all-model portfolio is integrated for the bounded "
+        "generated-synthetic link_only workflow; other workflow scopes remain capability-specific."
     )
     print(
         "Synthetic testing establishes software behaviour only; real-data validation "
@@ -709,6 +724,34 @@ def _run_pipeline_command(namespace: argparse.Namespace) -> int:
     stage_name = _STAGE_BY_COMMAND[namespace.command]
     stage = next(item for item in result.stage_summaries if item.stage == stage_name)
     print(json.dumps(stage.safe_summary(), sort_keys=True))
+    return 0
+
+
+def _run_model_portfolio(namespace: argparse.Namespace) -> int:
+    if not namespace.synthetic_demo:
+        print(
+            "ERROR ML-CLI-002: Model-portfolio execution requires --synthetic-demo.",
+            file=sys.stderr,
+        )
+        return 2
+    folds = int(namespace.k_folds)
+    if folds < 2 or folds > 10:
+        print("ERROR ML-CLI-004: --k-folds must be between 2 and 10.", file=sys.stderr)
+        return 2
+    try:
+        plan = _compile_plan(namespace)
+        result = SyntheticPortfolioWorkflowRunner.run(
+            plan,
+            generation=_generation_spec(namespace, plan.random_seed),
+            k_folds=folds,
+        )
+    except SafeError as error:
+        print(error.render(), file=sys.stderr)
+        return 2
+    except LinkageRuntimeError as error:
+        print(f"ERROR {error.code}: {error.public_message}", file=sys.stderr)
+        return 2
+    print(json.dumps(result.safe_summary(), sort_keys=True))
     return 0
 
 

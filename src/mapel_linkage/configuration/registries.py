@@ -70,6 +70,7 @@ PAIR_MODELS: Final = MappingProxyType(
             "xgboost_classifier",
             "lightgbm_classifier",
             "pytorch_pair_mlp",
+            "stacking_logistic",
         )
     }
 )
@@ -77,7 +78,7 @@ RANKERS: Final = MappingProxyType(
     {key: OperationDescriptor(key, "ranker") for key in ("xgboost_ranker", "lightgbm_ranker")}
 )
 CALIBRATORS: Final = MappingProxyType(
-    {key: OperationDescriptor(key, "calibrator") for key in ("sigmoid", "isotonic")}
+    {key: OperationDescriptor(key, "calibrator") for key in ("sigmoid", "isotonic", "beta")}
 )
 ASSIGNMENT_SOLVERS: Final = MappingProxyType(
     {

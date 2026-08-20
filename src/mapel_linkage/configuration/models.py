@@ -429,6 +429,13 @@ class NeuralModelConfig(ConfigNode):
     implementation: Literal["pytorch_pair_mlp"]
     model_id: Identifier = "neural_pair_matcher"
     require_verified_labels: Literal[True] = True
+    epochs: Annotated[PositiveInt, Field(le=5000)] = 50
+    learning_rate: Annotated[StrictFloat, Field(gt=0.0, le=1.0)] = 0.01
+    weight_decay: Annotated[StrictFloat, Field(ge=0.0, le=1.0)] = 0.00001
+    maximum_training_pairs: Annotated[PositiveInt, Field(le=10_000_000)] = 1_000_000
+    device: Literal["cpu"] = "cpu"
+    n_threads: Literal[1] = 1
+    deterministic_mode: Literal[True] = True
 
 
 class StackingModelConfig(ConfigNode):
@@ -735,6 +742,11 @@ class LinkageConfig(ConfigNode):
             for model in self.models.all_ranking_models()
         ):
             raise ValueError("Ranking training cannot exceed the runtime pair budget.")
+        if any(
+            model.enabled and model.maximum_training_pairs > self.runtime.maximum_candidate_pairs
+            for model in self.models.all_neural_models()
+        ):
+            raise ValueError("Neural training cannot exceed the runtime pair budget.")
         if any(
             model.enabled and model.maximum_training_pairs > self.runtime.maximum_candidate_pairs
             for model in self.models.ensembles

@@ -212,8 +212,9 @@ class PyTorchPairMatcher:
         model: NeuralModelConfig | None = None,
         random_seed: int = 42,
         configuration_digest: str = "0" * 64,
-        epochs: int = 50,
-        learning_rate: float = 0.01,
+        epochs: int | None = None,
+        learning_rate: float | None = None,
+        weight_decay: float | None = None,
     ) -> PyTorchModelArtifact:
         if matrix.partition != "training":
             raise NeuralModelError(
@@ -225,8 +226,43 @@ class PyTorchPairMatcher:
             c not in "0123456789abcdef" for c in configuration_digest
         ):
             raise NeuralModelError("ML-NEUR-004", "The configuration digest is invalid.")
+        if model is not None and matrix.pair_count > model.maximum_training_pairs:
+            raise NeuralModelError(
+                "ML-NEUR-019", "The neural training matrix exceeds its configured pair budget."
+            )
+
+        configured_epochs = model.epochs if model is not None else 50
+        configured_learning_rate = model.learning_rate if model is not None else 0.01
+        configured_weight_decay = model.weight_decay if model is not None else 0.00001
+        if model is not None and (
+            (epochs is not None and epochs != configured_epochs)
+            or (learning_rate is not None and learning_rate != configured_learning_rate)
+            or (weight_decay is not None and weight_decay != configured_weight_decay)
+        ):
+            raise NeuralModelError(
+                "ML-NEUR-020", "Neural training parameters drifted from project configuration."
+            )
+        resolved_epochs = configured_epochs if epochs is None else epochs
+        resolved_learning_rate = (
+            configured_learning_rate if learning_rate is None else learning_rate
+        )
+        resolved_weight_decay = configured_weight_decay if weight_decay is None else weight_decay
+        if (
+            isinstance(resolved_epochs, bool)
+            or not isinstance(resolved_epochs, int)
+            or not 1 <= resolved_epochs <= 5000
+            or isinstance(resolved_learning_rate, bool)
+            or not isinstance(resolved_learning_rate, (int, float))
+            or not 0.0 < float(resolved_learning_rate) <= 1.0
+            or isinstance(resolved_weight_decay, bool)
+            or not isinstance(resolved_weight_decay, (int, float))
+            or not 0.0 <= float(resolved_weight_decay) <= 1.0
+        ):
+            raise NeuralModelError("ML-NEUR-020", "Neural training parameters are invalid.")
 
         torch = _require_torch()
+        torch.set_num_threads(1)
+        torch.use_deterministic_algorithms(True)
         torch.manual_seed(random_seed)
         model_id = model.model_id if model is not None else "pytorch_pair_mlp"
 
@@ -237,10 +273,14 @@ class PyTorchPairMatcher:
 
         net = _build_torch_mlp(len(matrix.feature_names))
         criterion = torch.nn.BCELoss()
-        optimizer = torch.optim.Adam(net.parameters(), lr=learning_rate, weight_decay=1e-5)
+        optimizer = torch.optim.Adam(
+            net.parameters(),
+            lr=float(resolved_learning_rate),
+            weight_decay=float(resolved_weight_decay),
+        )
 
         net.train()
-        for _ in range(epochs):
+        for _ in range(resolved_epochs):
             optimizer.zero_grad()
             outputs = net(x_tensor)
             loss = criterion(outputs, y_tensor)
@@ -256,10 +296,13 @@ class PyTorchPairMatcher:
         model_digest = hashlib.sha256(weights_json.encode("utf-8")).hexdigest()
         parameter_digest = _canonical_digest(
             {
-                "epochs": epochs,
-                "learning_rate": learning_rate,
+                "epochs": resolved_epochs,
+                "learning_rate": float(resolved_learning_rate),
+                "weight_decay": float(resolved_weight_decay),
                 "seed": random_seed,
                 "architecture": "32-16-1-mlp",
+                "device": "cpu",
+                "n_threads": 1,
                 "feature_names": matrix.feature_names,
             }
         )

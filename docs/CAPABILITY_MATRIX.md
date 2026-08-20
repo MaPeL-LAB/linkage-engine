@@ -25,15 +25,16 @@ No current capability has established operational validation.
 | `unconstrained_assignment` | M4 | implemented | workflow_integrated | core_ci | Threshold-based unconstrained assignment workflow integrated. |
 | `single_source_deduplication` | M4 | implemented | workflow_integrated | core_ci | Pair canonicalisation and single-source deduplication workflow integrated. |
 | `link_and_dedupe` | M4 | implemented | workflow_integrated | core_ci | Two-source linkage with intra-source duplicate clustering workflow integrated. |
-| `lightgbm_pair_classifier` | M5 | implemented | component_only | all_models_ci | Optional dependency; dedicated all-models CI must execute the runtime path. |
-| `lightgbm_candidate_ranker` | M5 | implemented | component_only | all_models_ci | Optional dependency; dedicated all-models CI must execute the runtime path. |
+| `lightgbm_pair_classifier` | M5 | implemented | workflow_integrated | all_models_ci | Configured synthetic tournament, protected selection/calibration, persisted reload, and recipe-bound replay execute in all-models CI. |
+| `lightgbm_candidate_ranker` | M5 | implemented | workflow_integrated | all_models_ci | Configured source-query execution is recipe-replayable; target-query candidates are trained and reported but cannot be silently reinterpreted for source assignment. |
 | `stacking_ensemble` | M5 | implemented | workflow_integrated | core_ci | Protected meta-model workflow, tournament selection, and out-of-fold stacking integrated. |
-| `pytorch_tabular_matcher` | M6 | implemented | component_only | all_models_ci | Optional feature-based challenger; it has no raw-text or identity authority. |
+| `pytorch_tabular_matcher` | M6 | implemented | workflow_integrated | all_models_ci | Configured deterministic CPU training, protected tournament selection, persisted reload, and recipe-bound replay are integrated; it has no raw-text or identity authority. |
 | `multi_source_entity_resolution` | M7 | implemented | workflow_integrated | core_ci | Multi-source N-dataset entity resolution and global crosswalk workflow integrated. |
 | `correlation_clustering` | M7 | implemented | component_only | core_ci | Strict cannot-link enforcement and violation reporting are implemented. |
 | `constrained_agglomerative_clustering` | M7 | implemented | component_only | core_ci | Cluster merges preserve cannot-link and configured capacity boundaries. |
 | `bcubed_cluster_metrics` | M7 | implemented | component_only | core_ci | BCubed precision, recall, F1, purity, and constraint diagnostics are available. |
 | `splink_native_model_lifecycle` | I1 | implemented | workflow_integrated | core_ci | Pinned Splink fit, canonical JSON reload, bounded candidate parity, and scoring are integrated as uncalibrated evidence only; operational validity is not established. |
+| `configuration_driven_model_portfolio` | I1B | implemented | workflow_integrated | all_models_ci | Generated-synthetic native Splink baseline plus configured XGBoost, LightGBM, PyTorch, stacking, and ranking candidates with group-protected OOF evidence, validation-only selection, calibration-only fitting, locked-test evaluation, strict artifact reload, and disjoint recipe-bound replay; operational validity is not established. |
 | `approved_recipe_inference` | I1 | implemented | workflow_integrated | core_ci | The immutable recipe approval contract and approved recipe inference workflow integrated. |
 | `stage1_linkage_strategy_advisor` | I2A | implemented | workflow_integrated | core_ci | Configuration-only profiling, hard eligibility, structural Pareto shortlisting, transparent explanations, and explicit empirical abstention. |
 | `synthetic_benchmark_registry` | B1 | implemented | workflow_integrated | core_ci | Parametric scenario generator, benchmark portfolio runner, and file-backed registry persistence. |
@@ -43,8 +44,9 @@ No current capability has established operational validation.
 
 ## Current integrated workflow
 
-The only complete configuration-driven row-level orchestrator is the
-generated-synthetic two-source `link_only`, `one_to_one` workflow.
+The complete configuration-driven row-level orchestrators remain bounded to
+generated-synthetic two-source `link_only`, `one_to_one` execution. I1B adds the
+configured all-model portfolio path within that same boundary.
 M3 through M7 contain substantive
 components, but their general CLI and artifact-to-artifact orchestration remains an
 integration milestone.

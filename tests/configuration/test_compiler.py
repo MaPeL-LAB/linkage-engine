@@ -5,7 +5,8 @@ from typing import Any
 
 import pytest
 
-from mapel_linkage.configuration import ExecutionPlan, compile_config, load_config_text
+from mapel_linkage.configuration import ExecutionPlan, compile_config, load_config, load_config_text
+from mapel_linkage.configuration import compiler as compiler_module
 from mapel_linkage.governance.errors import SafeError, SafeErrorCode
 from tests.helpers import ROOT, valid_payload, yaml_text
 
@@ -102,6 +103,30 @@ def test_digest_changes_when_structural_configuration_changes() -> None:
     payload["runtime"]["maximum_candidate_pairs"] += 1
     second = _plan(payload)
     assert first.configuration_digest != second.configuration_digest
+
+
+def test_compiler_resolves_every_plural_model_implementation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[tuple[str, str]] = []
+    monkeypatch.setattr(
+        compiler_module,
+        "resolve_operation",
+        lambda registry, key: calls.append((registry, key)),
+    )
+    config = load_config(ROOT / "configs/examples/synthetic_all_models.yaml").config
+
+    compile_config(config, project_root=ROOT)
+
+    assert {
+        ("pair_model", "splink_duckdb"),
+        ("pair_model", "xgboost_classifier"),
+        ("pair_model", "lightgbm_classifier"),
+        ("pair_model", "pytorch_pair_mlp"),
+        ("pair_model", "stacking_logistic"),
+        ("ranker", "xgboost_ranker"),
+        ("ranker", "lightgbm_ranker"),
+    }.issubset(calls)
 
 
 @pytest.mark.parametrize(

@@ -24,6 +24,7 @@ PairModelFamily = Literal[
 ]
 PairModelImplementation = Literal[
     "mapel_reference_fellegi_sunter",
+    "splink_duckdb",
     "xgboost_classifier",
     "lightgbm_classifier",
     "pytorch_pair_mlp",
@@ -69,6 +70,7 @@ class PairModelCandidateDeclaration(PortfolioNode):
     def validate_family_contract(self) -> Self:
         expected = {
             "mapel_reference_fellegi_sunter": "fellegi_sunter",
+            "splink_duckdb": "fellegi_sunter",
             "xgboost_classifier": "xgboost",
             "lightgbm_classifier": "lightgbm",
             "pytorch_pair_mlp": "pytorch",
@@ -186,7 +188,7 @@ def compile_model_portfolio(config: LinkageConfig) -> ModelPortfolioDeclaration:
     pair_by_id[fs.model_id] = PairModelCandidateDeclaration(
         model_id=fs.model_id,
         family="fellegi_sunter",
-        implementation="mapel_reference_fellegi_sunter",
+        implementation=fs.implementation,
         role="baseline",
         enabled=fs.enabled,
         require_verified_labels=False,

@@ -2,7 +2,8 @@
 
 ## Status
 
-Bounded post-audit integration milestone. This work expands synthetic model-development configuration and provenance contracts; it does not provide an approved operational inference runner.
+Integrated as the configuration/provenance foundation for the bounded I1B generated-synthetic
+portfolio. It does not provide an approved operational inference runner.
 
 ## Plural model configuration
 
@@ -49,14 +50,13 @@ merge_authority = none
 
 The manifest contains no pair references or prediction values.
 
-## Remaining work
+## I1B integration and remaining limits
 
-1. materialize immutable stage artifacts during portfolio training;
-2. generate grouped out-of-fold predictions without entity or household leakage;
-3. train eligible pair candidates and stacking only from protected training evidence;
-4. select the champion on validation evidence;
-5. select calibration without reusing calibrator-fit observations;
-6. bind the champion, calibrator, ranker, assignment, and decision policy into an approved recipe;
-7. implement a separate recipe-driven inference runner with optional shadow challengers.
+I1B now materializes and reloads executable model/calibrator/ranker/recipe artifacts, creates
+source-side entity/household-connected OOF evidence, trains eligible candidates from training,
+selects on validation, fits calibration on calibration, evaluates locked test only after
+freezing, and replays disjoint synthetic decision evidence. Separate operational approval,
+general mode dispatch, and optional shadow-challenger execution remain outside this bounded
+workflow.
 
 Synthetic tests establish software behaviour only. They do not establish operational model validity.

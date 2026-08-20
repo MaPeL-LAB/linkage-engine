@@ -52,39 +52,31 @@ strict configuration
 
 This is a two-source `link_only`, `one_to_one` software-validation workflow.
 
-### Implemented components awaiting general orchestration
+### Configuration-driven model portfolio
 
-Substantive components also exist for:
+I1B adds a second bounded path inside the same generated-synthetic, two-source
+`link_only`, `one_to_one` authority boundary:
 
-- adjudication import, disagreement resolution, label-promotion eligibility, and
-  active-learning review ordering;
-- many-to-one, one-to-many, and unconstrained assignment;
-- single-source deduplication and combined-mode primitives;
-- LightGBM pair classification and candidate ranking;
-- a stacking meta-learner;
-- a feature-based PyTorch pair matcher;
-- source-aware multi-source entity resolution;
-- correlation clustering, constrained agglomerative clustering, and cannot-link
-  enforcement;
-- BCubed, purity, pairwise, and constraint-violation cluster metrics.
+- compile the plural model configuration without implementation fallbacks;
+- fit and reload the mandatory native Splink baseline;
+- train configured XGBoost, LightGBM, PyTorch, stacking, and ranking candidates;
+- create source-side entity/household-connected out-of-fold stacking evidence;
+- select only on validation and fit calibration only on calibration;
+- evaluate the frozen champion on locked test without selection or calibration access;
+- persist and strictly reload the executable champion, calibrator, source-query ranker,
+  and recipe-v1 binding;
+- replay two disjoint synthetic decision-evidence subsets through the reloaded recipe.
 
-These components are not yet all reachable through a complete configuration-driven CLI
-workflow. Code presence is not reported as platform integration.
+Target-query rankers are trained and reported but are not silently reinterpreted by the
+source-to-target assignment contract. All model and ranker outputs remain evidence or ordering
+only; relationship status comes only from the decision policy and merge authority remains none.
 
-### Current integration track
+Other M3–M7 workflows have the component/workflow states recorded in the generated capability
+matrix. The complete CLI does not imply one general orchestrator for every capability.
 
-I1 will add:
-
-- genuine artifact-to-artifact stage boundaries;
-- model-portfolio configuration;
-- train, approve, and new-data inference separation;
-- immutable approved pipeline-recipe artifacts;
-- shadow challengers with no decision authority;
-- complete M3 through M7 orchestration and synthetic end-to-end tests.
-
-I2 will introduce the advisory-only Linkage Strategy Advisor, using privacy-safe task
-profiles and benchmark evidence to recommend a small pipeline shortlist with uncertainty,
-coverage checks, and abstention.
+The I2 advisory stack is integrated with coverage checks, uncertainty, fallback, abstention,
+and explicit human approval boundaries. It cannot approve models, thresholds, assignments,
+relationship statuses, or merges.
 
 See
 [`docs/architecture/ADR-0004-CAPABILITY-STATUS-AND-PIPELINE-INTEGRATION.md`](docs/architecture/ADR-0004-CAPABILITY-STATUS-AND-PIPELINE-INTEGRATION.md).
@@ -241,11 +233,16 @@ mapel-linkage predict --config CONFIG --project-root ROOT --synthetic-demo
 mapel-linkage assign --config CONFIG --project-root ROOT --synthetic-demo
 mapel-linkage evaluate --config CONFIG --project-root ROOT --synthetic-demo
 mapel-linkage run --config CONFIG --project-root ROOT --synthetic-demo
+mapel-linkage run-model-portfolio --config configs/examples/synthetic_all_models.yaml \
+  --project-root ROOT --synthetic-demo --entity-count 120 --k-folds 3
 ```
 
 The current stage commands execute the required complete synthetic workflow and print the
-requested stage summary. Genuine reusable stage artifacts are part of I1. The repository
-build refuses row-level execution without `--synthetic-demo`.
+requested stage summary. `run-model-portfolio` executes the configured protected tournament,
+strict artifact reload, locked-test evaluation, and disjoint recipe-bound replay and prints
+aggregate metadata only. The repository build refuses row-level execution without
+`--synthetic-demo`. For a robust long-run preflight and verification wrapper, run
+`scripts/run_all_model_portfolio.sh --dry-run` first.
 
 ## Model portfolio
 
@@ -253,21 +250,22 @@ build refuses row-level execution without `--synthetic-demo`.
 |---|---|---|
 | Statistical baseline | native Splink 4.0.16 fit, canonical JSON reload, exact candidate parity, and scoring; package-owned reference matcher retained as deterministic oracle | yes |
 | Pair classifier | XGBoost | yes |
-| Pair-classifier challenger | LightGBM | component only |
+| Pair-classifier challenger | LightGBM | yes; all-models CI |
 | Candidate ranker | XGBoost | yes |
-| Ranking challenger | LightGBM | component only |
-| Ensemble | stacking meta-learner | component only |
-| Neural challenger | feature-based PyTorch MLP | component only |
+| Ranking challenger | LightGBM | yes; source-query replay, target-query reporting only |
+| Ensemble | stacking meta-learner | yes |
+| Neural challenger | feature-based PyTorch MLP | yes; all-models CI |
 | Calibration | sigmoid, isotonic, Beta | yes |
 | Assignment | one-to-one OR-Tools plus SciPy reference | yes |
-| Extended assignment | many-to-one, one-to-many, unconstrained | component only |
-| Multi-source | source-aware graph resolver and constrained clustering | component only |
+| Extended assignment | many-to-one, one-to-many, unconstrained | workflow APIs integrated; outside the complete CLI |
+| Multi-source | source-aware graph resolver and constrained clustering | resolver workflow integrated; individual clustering/metric components remain separately classified |
 
 The integrated synthetic lifecycle fits the native Splink model, serializes and strictly
 reloads its value-hidden canonical artifact, and scores only the exact bounded pair set
-authorized by package-owned candidate retrieval. Fellegi-Sunter outputs remain uncalibrated,
-evidence-only model posteriors; they cannot emit relationship decisions or establish
-operational validity.
+authorized by package-owned candidate retrieval. Native scores are recomputed from typed
+prepared-data replay when Splink wins; integrity-only score evidence cannot authorize generic
+inference. Fellegi-Sunter outputs remain uncalibrated, evidence-only model posteriors; they
+cannot emit relationship decisions or establish operational validity.
 
 The default core CI remains fast. Dedicated all-model CI installs pinned LightGBM and CPU
 PyTorch, runs the complete test suite, and fails when any test is skipped.

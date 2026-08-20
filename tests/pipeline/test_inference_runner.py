@@ -87,7 +87,7 @@ def _synthetic_inference_inputs() -> tuple[
     return bundle, source_record_keys, pair_references, (0.9, 0.1)
 
 
-def test_inference_runner_approved_recipe(tmp_path: Path) -> None:
+def test_inference_runner_rejects_bare_scores_outside_development(tmp_path: Path) -> None:
     cal_art = _make_dummy_calibrator()
 
     recipe = PipelineRecipeArtifact(
@@ -115,20 +115,33 @@ def test_inference_runner_approved_recipe(tmp_path: Path) -> None:
 
     out_dest = tmp_path / "decisions.csv"
 
+    with pytest.raises(PipelineError, match="ML-PIPE-069"):
+        infer_with_approved_recipe(
+            recipe=recipe,
+            source_record_keys=source_keys,
+            pair_references=pair_refs,
+            raw_scores=raw_scores,
+            calibrator_artifact=cal_art,
+            execution_mode=RecipeExecutionMode.INFERENCE,
+            source_dataset_id="source",
+            target_dataset_id="target",
+            output_decisions_path=out_dest,
+        )
+
     result = infer_with_approved_recipe(
         recipe=recipe,
         source_record_keys=source_keys,
         pair_references=pair_refs,
         raw_scores=raw_scores,
         calibrator_artifact=cal_art,
-        execution_mode=RecipeExecutionMode.INFERENCE,
+        execution_mode=RecipeExecutionMode.DEVELOPMENT,
         source_dataset_id="source",
         target_dataset_id="target",
         output_decisions_path=out_dest,
     )
 
     assert result.recipe_id == "approved_rec_1"
-    assert result.execution_mode == RecipeExecutionMode.INFERENCE
+    assert result.execution_mode == RecipeExecutionMode.DEVELOPMENT
     assert result.pair_count == 3
     assert out_dest.is_file()
     assert len(result.decisions) == 3
@@ -190,7 +203,7 @@ def test_inference_runner_draft_recipe_rejected_for_inference() -> None:
     assert dev_result.execution_mode == RecipeExecutionMode.DEVELOPMENT
 
 
-def test_synthetic_inference_preserves_non_operational_authority_boundary() -> None:
+def test_synthetic_inference_rejects_bare_scores_as_unbound_evidence() -> None:
     calibrator = _make_dummy_calibrator()
     bundle, source_keys, pair_refs, raw_scores = _synthetic_inference_inputs()
     synthetic_recipe = PipelineRecipeArtifact(
@@ -218,30 +231,23 @@ def test_synthetic_inference_preserves_non_operational_authority_boundary() -> N
         raw_scores=raw_scores,
     )
 
-    result = infer_with_approved_recipe(
-        recipe=synthetic_recipe,
-        source_record_keys=source_keys,
-        pair_references=pair_refs,
-        raw_scores=raw_scores,
-        calibrator_artifact=calibrator,
-        execution_mode=RecipeExecutionMode.SYNTHETIC_INFERENCE,
-        synthetic_attestation=attestation,
-        synthetic_bundle=bundle,
-        source_dataset_id="source_a",
-        target_dataset_id="source_b",
-    )
+    with pytest.raises(PipelineError, match="ML-PIPE-069"):
+        infer_with_approved_recipe(
+            recipe=synthetic_recipe,
+            source_record_keys=source_keys,
+            pair_references=pair_refs,
+            raw_scores=raw_scores,
+            calibrator_artifact=calibrator,
+            execution_mode=RecipeExecutionMode.SYNTHETIC_INFERENCE,
+            synthetic_attestation=attestation,
+            synthetic_bundle=bundle,
+            source_dataset_id="source_a",
+            target_dataset_id="source_b",
+        )
 
-    assert result.execution_mode is RecipeExecutionMode.SYNTHETIC_INFERENCE
     assert synthetic_recipe.operational_validation is OperationalValidationStatus.NOT_ESTABLISHED
     assert synthetic_recipe.decision_authority == "explicit_policy_only"
     assert synthetic_recipe.merge_authority == "none"
-    assert all(
-        decision.decision_authority == "policy_classification" for decision in result.decisions
-    )
-    assert all(decision.merge_authority == "none" for decision in result.decisions)
-    assert result.assignment_result.decision_authority == "none"
-    assert result.assignment_result.assignment_authority == "global_selection_only"
-    assert result.synthetic_attestation_digest == attestation.attestation_digest
     assert attestation.safe_summary()["operational_validity"] == "not_established"
     assert attestation.safe_summary()["decision_authority"] == "none"
     assert attestation.safe_summary()["assignment_authority"] == "none"
@@ -256,19 +262,19 @@ def test_synthetic_inference_preserves_non_operational_authority_boundary() -> N
         pair_references=serialized_pair_refs,
         raw_scores=serialized_scores,
     )
-    serialized_result = infer_with_approved_recipe(
-        recipe=serialize_pipeline_recipe(synthetic_recipe),
-        source_record_keys=serialized_source_keys,
-        pair_references=serialized_pair_refs,
-        raw_scores=serialized_scores,
-        calibrator_artifact=calibrator,
-        execution_mode=RecipeExecutionMode.SYNTHETIC_INFERENCE,
-        synthetic_attestation=serialized_attestation,
-        synthetic_bundle=bundle,
-        source_dataset_id="source_a",
-        target_dataset_id="source_b",
-    )
-    assert serialized_result.recipe_digest == synthetic_recipe.recipe_digest
+    with pytest.raises(PipelineError, match="ML-PIPE-069"):
+        infer_with_approved_recipe(
+            recipe=serialize_pipeline_recipe(synthetic_recipe),
+            source_record_keys=serialized_source_keys,
+            pair_references=serialized_pair_refs,
+            raw_scores=serialized_scores,
+            calibrator_artifact=calibrator,
+            execution_mode=RecipeExecutionMode.SYNTHETIC_INFERENCE,
+            synthetic_attestation=serialized_attestation,
+            synthetic_bundle=bundle,
+            source_dataset_id="source_a",
+            target_dataset_id="source_b",
+        )
 
     with pytest.raises(PipelineError, match="ML-RECIPE-005"):
         infer_with_approved_recipe(

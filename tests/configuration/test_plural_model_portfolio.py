@@ -47,6 +47,7 @@ def test_plural_configuration_compiles_lightgbm_neural_stacking_and_rankers() ->
             "enabled": True,
             "implementation": "pytorch_pair_mlp",
             "model_id": "torch_candidate",
+            "maximum_training_pairs": models["boosted_tree"]["maximum_training_pairs"],
         }
     ]
     models["ensembles"] = [

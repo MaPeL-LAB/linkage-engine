@@ -11,7 +11,7 @@ from collections.abc import Sequence
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Protocol
 
 import numpy as np
 from numpy.typing import NDArray
@@ -50,6 +50,7 @@ from mapel_linkage.decisions.policy import (
 from mapel_linkage.domain.errors import PipelineError
 from mapel_linkage.governance.atomic import atomic_write_text
 from mapel_linkage.governance.paths import PathPolicy
+from mapel_linkage.io import DuckDBStore
 from mapel_linkage.models.boosted import (
     BoostedFeatureMatrix,
     LightGBMModelArtifact,
@@ -61,9 +62,22 @@ from mapel_linkage.models.ensembles import (
     StackingModelArtifact,
     StackingPairClassifier,
 )
+from mapel_linkage.models.fellegi_sunter import (
+    SplinkNativeDuckDBMatcher,
+    SplinkNativeModelArtifact,
+    SplinkSettingsPlan,
+    assert_splink_native_recipe_binding,
+)
 from mapel_linkage.models.neural import (
     PyTorchModelArtifact,
     PyTorchPairMatcher,
+)
+from mapel_linkage.models.ranking import (
+    LightGBMRanker,
+    LightGBMRankingArtifact,
+    XGBoostCandidateRanker,
+    XGBoostRankingArtifact,
+    build_ranking_scoring_matrix,
 )
 from mapel_linkage.pipeline.portfolio_runner import (
     ReferenceFeatureScoreArtifact,
@@ -75,6 +89,11 @@ from mapel_linkage.pipeline.recipes import (
     RecipeExecutionMode,
     SyntheticInferenceAttestation,
 )
+from mapel_linkage.pipeline.score_evidence import (
+    PairScoreEvidenceBatch,
+    issue_native_splink_score_evidence,
+)
+from mapel_linkage.preprocessing import PreparedDataset, surrogate_record_key
 from mapel_linkage.synthetic import (
     SyntheticBundle,
     SyntheticGenerationConfig,
@@ -97,6 +116,93 @@ def _synthetic_bundle_digest(bundle: SyntheticBundle) -> str:
             "truth": [record.as_mapping() for record in bundle.truth],
         }
     )
+
+
+class _NativeReplayBinding(Protocol):
+    @property
+    def public_pair_references(self) -> tuple[tuple[str, str], ...]: ...
+
+    def binding_digest(self) -> str: ...
+
+
+@dataclass(frozen=True, slots=True, repr=False)
+class NativeSplinkInferenceReplay:
+    """Typed native prepared-data replay input with exact public-pair translation."""
+
+    store: DuckDBStore = field(repr=False)
+    left: PreparedDataset = field(repr=False)
+    right: PreparedDataset = field(repr=False)
+    settings_plan: SplinkSettingsPlan = field(repr=False)
+    model_artifact: SplinkNativeModelArtifact = field(repr=False)
+    expected_prepared_pairs: tuple[tuple[str, str], ...] = field(repr=False)
+    selected_prepared_pairs: tuple[tuple[str, str], ...] = field(repr=False)
+    public_pair_references: tuple[tuple[str, str], ...] = field(repr=False)
+    maximum_candidate_pairs: int
+
+    def __post_init__(self) -> None:
+        translated_public_pairs = tuple(
+            (
+                surrogate_record_key(self.left.dataset_id, public_left),
+                surrogate_record_key(self.right.dataset_id, public_right),
+            )
+            for public_left, public_right in self.public_pair_references
+        )
+        if (
+            not self.expected_prepared_pairs
+            or not self.selected_prepared_pairs
+            or len(self.selected_prepared_pairs) != len(self.public_pair_references)
+            or len(set(self.expected_prepared_pairs)) != len(self.expected_prepared_pairs)
+            or len(set(self.selected_prepared_pairs)) != len(self.selected_prepared_pairs)
+            or len(set(self.public_pair_references)) != len(self.public_pair_references)
+            or not set(self.selected_prepared_pairs).issubset(self.expected_prepared_pairs)
+            or self.maximum_candidate_pairs < len(self.expected_prepared_pairs)
+            or self.left.dataset_id == self.right.dataset_id
+            or self.left.variable_columns != self.right.variable_columns
+            or self.settings_plan.settings.get("link_type") != "link_only"
+            or self.settings_plan.settings.get("unique_id_column_name") != "__ml_record_key"
+            or self.settings_plan.settings.get("source_dataset_column_name") != "__ml_dataset_id"
+            or translated_public_pairs != self.selected_prepared_pairs
+        ):
+            raise PipelineError("ML-PIPE-088", "Native Splink replay input is invalid.")
+
+    def binding_digest(self) -> str:
+        return _canonical_digest(
+            {
+                "artifact_digest": self.model_artifact.artifact_digest,
+                "configuration_digest": self.model_artifact.configuration_digest,
+                "feature_schema_digest": self.model_artifact.feature_schema_digest,
+                "expected_prepared_pair_digests": [
+                    pair_digest(left, right) for left, right in self.expected_prepared_pairs
+                ],
+                "selected_prepared_pair_digests": [
+                    pair_digest(left, right) for left, right in self.selected_prepared_pairs
+                ],
+                "public_pair_digests": [
+                    pair_digest(left, right) for left, right in self.public_pair_references
+                ],
+            }
+        )
+
+    def score(self, *, recipe: PipelineRecipeArtifact) -> NDArray[np.float64]:
+        assert_splink_native_recipe_binding(recipe=recipe, artifact=self.model_artifact)
+        result = SplinkNativeDuckDBMatcher(self.store).score(
+            left=self.left,
+            right=self.right,
+            settings_plan=self.settings_plan,
+            artifact=self.model_artifact,
+            expected_pairs=self.expected_prepared_pairs,
+            maximum_candidate_pairs=self.maximum_candidate_pairs,
+        )
+        evidence = issue_native_splink_score_evidence(
+            store=self.store,
+            score_result=result,
+            model_artifact=self.model_artifact,
+            pair_references=self.selected_prepared_pairs,
+            pair_digests=tuple(
+                pair_digest(left, right) for left, right in self.selected_prepared_pairs
+            ),
+        )
+        return evidence.scores
 
 
 def _verified_package_bundle_digest(bundle: SyntheticBundle) -> str:
@@ -139,9 +245,12 @@ def _selected_evidence_digest(
     pair_references: tuple[tuple[str, str], ...],
     raw_scores: NDArray[np.float64] | Sequence[float] | None,
     feature_matrix: BoostedFeatureMatrix | None,
+    native_splink_replay: _NativeReplayBinding | None = None,
 ) -> tuple[str, str]:
     """Bind the exact selected evidence path without retaining values in the contract."""
     if raw_scores is not None:
+        if native_splink_replay is not None:
+            raise PipelineError("ML-PIPE-061", "Synthetic inference evidence is invalid.")
         try:
             values = np.asarray(raw_scores, dtype="<f8")
         except (TypeError, ValueError):
@@ -161,6 +270,32 @@ def _selected_evidence_digest(
         digest.update(values.tobytes(order="C"))
         return "raw_scores", digest.hexdigest()
 
+    if native_splink_replay is not None:
+        if native_splink_replay.public_pair_references != pair_references:
+            raise PipelineError("ML-PIPE-061", "Synthetic inference evidence is invalid.")
+        feature_digest: str | None = None
+        if feature_matrix is not None:
+            values = np.asarray(feature_matrix.features, dtype="<f8")
+            if (
+                feature_matrix.pair_references != pair_references
+                or values.ndim != 2
+                or values.shape[0] != len(pair_references)
+                or np.any(np.isinf(values))
+            ):
+                raise PipelineError("ML-PIPE-061", "Synthetic inference evidence is invalid.")
+            digest = hashlib.sha256()
+            digest.update(str(values.shape).encode("ascii"))
+            digest.update(feature_matrix.feature_schema_digest.encode("ascii"))
+            digest.update("\x00".join(feature_matrix.feature_names).encode("utf-8"))
+            digest.update(values.tobytes(order="C"))
+            feature_digest = digest.hexdigest()
+        return "native_splink_replay", _canonical_digest(
+            {
+                "replay_binding_digest": native_splink_replay.binding_digest(),
+                "ranking_feature_digest": feature_digest,
+            }
+        )
+
     if feature_matrix is None:
         raise PipelineError("ML-PIPE-061", "Synthetic inference evidence is invalid.")
     values = np.asarray(feature_matrix.features, dtype="<f8")
@@ -168,7 +303,7 @@ def _selected_evidence_digest(
         feature_matrix.pair_references != pair_references
         or values.ndim != 2
         or values.shape[0] != len(pair_references)
-        or not np.all(np.isfinite(values))
+        or np.any(np.isinf(values))
     ):
         raise PipelineError("ML-PIPE-061", "Synthetic inference evidence is invalid.")
     digest = hashlib.sha256()
@@ -188,11 +323,13 @@ def _inference_input_digest(
     feature_matrix: BoostedFeatureMatrix | None,
     source_dataset_id: str,
     target_dataset_id: str,
+    native_splink_replay: _NativeReplayBinding | None = None,
 ) -> str:
     evidence_kind, evidence_digest = _selected_evidence_digest(
         pair_references=pair_references,
         raw_scores=raw_scores,
         feature_matrix=feature_matrix,
+        native_splink_replay=native_splink_replay,
     )
     return _canonical_digest(
         {
@@ -216,6 +353,7 @@ def attest_generated_synthetic_inference(
     pair_references: tuple[tuple[str, str], ...],
     raw_scores: NDArray[np.float64] | Sequence[float] | None = None,
     feature_matrix: BoostedFeatureMatrix | None = None,
+    native_splink_replay: _NativeReplayBinding | None = None,
     source_dataset_id: str = "source_a",
     target_dataset_id: str = "source_b",
 ) -> SyntheticInferenceAttestation:
@@ -260,6 +398,7 @@ def attest_generated_synthetic_inference(
         pair_references=pair_references,
         raw_scores=raw_scores,
         feature_matrix=feature_matrix,
+        native_splink_replay=native_splink_replay,
         source_dataset_id=source_dataset_id,
         target_dataset_id=target_dataset_id,
     )
@@ -369,6 +508,8 @@ class ApprovedRecipeInferenceRunner:
         raw_scores: NDArray[np.float64] | Sequence[float] | None = None,
         feature_matrix: BoostedFeatureMatrix | None = None,
         champion_model_artifact: Any | None = None,
+        score_evidence: PairScoreEvidenceBatch | None = None,
+        native_splink_replay: NativeSplinkInferenceReplay | None = None,
         calibrator_artifact: CalibratorArtifact,
         decision_policy: DecisionPolicyConfig | None = None,
         ranking_artifact: Any | None = None,
@@ -406,6 +547,7 @@ class ApprovedRecipeInferenceRunner:
                 pair_references=pair_references,
                 raw_scores=raw_scores,
                 feature_matrix=feature_matrix,
+                native_splink_replay=native_splink_replay,
                 source_dataset_id=source_dataset_id,
                 target_dataset_id=target_dataset_id,
             )
@@ -422,6 +564,7 @@ class ApprovedRecipeInferenceRunner:
                 pair_references=pair_references,
                 raw_scores=raw_scores,
                 feature_matrix=feature_matrix,
+                native_splink_replay=native_splink_replay,
                 source_dataset_id=source_dataset_id,
                 target_dataset_id=target_dataset_id,
             )
@@ -446,7 +589,31 @@ class ApprovedRecipeInferenceRunner:
         # 4. Generate or validate model scores
         scores_array: NDArray[np.float64]
         if raw_scores is not None:
+            if execution_mode is not RecipeExecutionMode.DEVELOPMENT:
+                raise PipelineError(
+                    "ML-PIPE-069",
+                    "Approved inference requires replay through a recipe-bound fitted artifact.",
+                )
+            if (
+                feature_matrix is not None
+                or champion_model_artifact is not None
+                or score_evidence is not None
+                or native_splink_replay is not None
+            ):
+                raise PipelineError(
+                    "ML-PIPE-069",
+                    "Approved inference requires one unambiguous model-evidence path.",
+                )
             scores_array = np.asarray(raw_scores, dtype=np.float64)
+        elif native_splink_replay is not None:
+            if champion_model_artifact is not None or score_evidence is not None:
+                raise PipelineError(
+                    "ML-PIPE-069",
+                    "Approved inference requires one unambiguous model-evidence path.",
+                )
+            if native_splink_replay.public_pair_references != pair_references:
+                raise PipelineError("ML-PIPE-088", "Native Splink replay input is invalid.")
+            scores_array = native_splink_replay.score(recipe=recipe_obj)
         elif feature_matrix is not None and champion_model_artifact is not None:
             cls._assert_champion_artifact_matches_recipe(
                 recipe=recipe_obj,
@@ -457,7 +624,21 @@ class ApprovedRecipeInferenceRunner:
                 feature_matrix=feature_matrix,
                 model_artifact=champion_model_artifact,
             )
+            if score_evidence is not None:
+                ordered_pair_digests = tuple(
+                    pair_digest(left, right) for left, right in pair_references
+                )
+                score_evidence.assert_matches(
+                    recipe=recipe_obj,
+                    pair_digests=ordered_pair_digests,
+                )
+                score_evidence.assert_scores(scores_array)
         else:
+            if score_evidence is not None:
+                raise PipelineError(
+                    "ML-PIPE-069",
+                    "Score integrity metadata cannot authorize approved inference.",
+                )
             raise PipelineError(
                 "ML-PIPE-051",
                 "Inference requires raw scores or feature matrix with champion model artifact.",
@@ -482,20 +663,72 @@ class ApprovedRecipeInferenceRunner:
                 f"Unsupported calibrator method {calibrator_artifact.method}.",
             )
 
-        # 6. Build Candidate ranks per source record
+        # 6. Replay the recipe-bound ranker when the recipe declares one.
         pair_digests = tuple(pair_digest(u, v) for u, v in pair_references)
-        ranks_by_source: dict[str, list[tuple[float, str, int]]] = {
-            src: [] for src in source_record_keys
-        }
-        for idx, (src, _tgt) in enumerate(pair_references):
-            if src in ranks_by_source:
-                ranks_by_source[src].append((float(calibrated_probs[idx]), pair_digests[idx], idx))
-
         candidate_ranks = np.zeros(len(pair_references), dtype=np.int64)
-        for _src, items in ranks_by_source.items():
-            sorted_items = sorted(items, key=lambda it: (-it[0], it[1]))
-            for rank_num, (_p, _dig, original_idx) in enumerate(sorted_items, start=1):
-                candidate_ranks[original_idx] = rank_num
+        if recipe_obj.ranking_artifact_digest is not None:
+            if (
+                feature_matrix is None
+                or not isinstance(
+                    ranking_artifact,
+                    (XGBoostRankingArtifact, LightGBMRankingArtifact),
+                )
+                or ranking_artifact.artifact_digest != recipe_obj.ranking_artifact_digest
+                or ranking_artifact.configuration_digest != recipe_obj.configuration_digest
+                or ranking_artifact.feature_schema_digest != feature_matrix.feature_schema_digest
+                or ranking_artifact.query_side != "source"
+                or ranking_artifact.decision_authority != "ranking_only"
+                or ranking_artifact.relationship_authority != "none"
+            ):
+                raise PipelineError(
+                    "ML-PIPE-089",
+                    "The executable ranking artifact does not match the pipeline recipe.",
+                )
+            ranking_matrix = build_ranking_scoring_matrix(
+                feature_matrix,
+                query_side=ranking_artifact.query_side,
+            )
+            if isinstance(ranking_artifact, XGBoostRankingArtifact):
+                ranking_scores = XGBoostCandidateRanker.score(
+                    matrix=ranking_matrix,
+                    model=ranking_artifact,
+                )
+            else:
+                ranking_scores = LightGBMRanker.score(
+                    matrix=ranking_matrix,
+                    model=ranking_artifact,
+                )
+            rank_by_digest = dict(
+                zip(ranking_scores.pair_digests, ranking_scores.ranks, strict=True)
+            )
+            try:
+                candidate_ranks = np.asarray(
+                    [rank_by_digest[digest] for digest in pair_digests],
+                    dtype=np.int64,
+                )
+            except KeyError:
+                raise PipelineError(
+                    "ML-PIPE-089",
+                    "The executable ranking artifact does not match the pipeline recipe.",
+                ) from None
+        else:
+            if ranking_artifact is not None:
+                raise PipelineError(
+                    "ML-PIPE-089",
+                    "The executable ranking artifact does not match the pipeline recipe.",
+                )
+            ranks_by_source: dict[str, list[tuple[float, str, int]]] = {
+                src: [] for src in source_record_keys
+            }
+            for idx, (src, _tgt) in enumerate(pair_references):
+                if src in ranks_by_source:
+                    ranks_by_source[src].append(
+                        (float(calibrated_probs[idx]), pair_digests[idx], idx)
+                    )
+            for items in ranks_by_source.values():
+                sorted_items = sorted(items, key=lambda it: (-it[0], it[1]))
+                for rank_num, (_p, _dig, original_idx) in enumerate(sorted_items, start=1):
+                    candidate_ranks[original_idx] = rank_num
 
         # 7. Form AssignmentEdgeBatch
         batch = AssignmentEdgeBatch(
@@ -738,6 +971,8 @@ def infer_with_approved_recipe(
     raw_scores: NDArray[np.float64] | Sequence[float] | None = None,
     feature_matrix: BoostedFeatureMatrix | None = None,
     champion_model_artifact: Any | None = None,
+    score_evidence: PairScoreEvidenceBatch | None = None,
+    native_splink_replay: NativeSplinkInferenceReplay | None = None,
     calibrator_artifact: CalibratorArtifact,
     decision_policy: DecisionPolicyConfig | None = None,
     ranking_artifact: Any | None = None,
@@ -758,6 +993,8 @@ def infer_with_approved_recipe(
         raw_scores=raw_scores,
         feature_matrix=feature_matrix,
         champion_model_artifact=champion_model_artifact,
+        score_evidence=score_evidence,
+        native_splink_replay=native_splink_replay,
         calibrator_artifact=calibrator_artifact,
         decision_policy=decision_policy,
         ranking_artifact=ranking_artifact,
@@ -775,6 +1012,7 @@ def infer_with_approved_recipe(
 __all__ = [
     "ApprovedRecipeInferenceResult",
     "ApprovedRecipeInferenceRunner",
+    "NativeSplinkInferenceReplay",
     "SyntheticInferenceAttestation",
     "attest_generated_synthetic_inference",
     "infer_with_approved_recipe",

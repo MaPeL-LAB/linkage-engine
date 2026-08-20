@@ -84,13 +84,16 @@ def test_oof_manifest_prohibits_test_calibration_and_decision_partitions() -> No
         label_authority_digest=digest("c"),
         split_manifest_digest=digest("d"),
         fold_count=5,
+        group_count=40,
         pair_count=120,
         prediction_digest=digest("e"),
+        group_assignment_digest=digest("f"),
     )
     summary = manifest.safe_summary()
     assert summary["partition"] == "training_oof"
     assert summary["test_partition_used"] is False
     assert summary["calibration_partition_used"] is False
     assert summary["decision_partition_used"] is False
+    assert summary["grouping_method"] == "source_entity_household_connected_components"
     assert summary["decision_authority"] == "evidence_only"
     assert "pair_references" not in repr(manifest)

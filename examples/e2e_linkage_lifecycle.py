@@ -57,24 +57,17 @@ from mapel_linkage.governance import (
 )
 from mapel_linkage.governance.atomic import atomic_write_text
 from mapel_linkage.governance.labels import LabelPartition
-from mapel_linkage.io.duckdb_store import DuckDBStore
 from mapel_linkage.models.boosted import BoostedFeatureMatrix, BoostedLabelledMatrix
 from mapel_linkage.pipeline import (
     ApprovedRecipeInferenceResult,
-    ModelPortfolioDeclaration,
-    ModelPortfolioRunner,
     MultiSourceWorkflowResult,
     MultiSourceWorkflowRunner,
-    OperationalValidationStatus,
-    PairModelCandidateDeclaration,
     PortfolioTournamentResult,
-    RecipeApprovalStatus,
-    RecipeExecutionMode,
+    SyntheticPortfolioWorkflowRunner,
     deserialize_pipeline_recipe,
-    infer_with_approved_recipe,
     serialize_pipeline_recipe,
 )
-from mapel_linkage.pipeline.inference_runner import attest_generated_synthetic_inference
+from mapel_linkage.preprocessing import surrogate_record_key
 from mapel_linkage.profiling import PreflightTaskProfile, build_preflight_task_profile
 from mapel_linkage.recommendation import (
     AdvisorContext,
@@ -360,6 +353,56 @@ def _make_partition(
     return matrix, batch
 
 
+def _review_slice_from_protected_inference(
+    *,
+    bundle: SyntheticBundle,
+    inference: ApprovedRecipeInferenceResult,
+    decision_batch: VerifiedLabelBatch,
+    source_dataset_id: str,
+    target_dataset_id: str,
+) -> _SyntheticCandidateSlice:
+    """Bind public inference pairs back to the protected decision-label provenance."""
+
+    protected = {
+        (label.left_record_key, label.right_record_key): label for label in decision_batch.labels
+    }
+    selected: list[tuple[str, str, str, VerifiedPairLabel]] = []
+    for decision in inference.decisions:
+        if decision.target_record_ref is None:
+            continue
+        raw_left = decision.source_record_ref
+        raw_right = decision.target_record_ref
+        prepared_pair = (
+            surrogate_record_key(source_dataset_id, raw_left),
+            surrogate_record_key(target_dataset_id, raw_right),
+        )
+        label = protected.get(prepared_pair)
+        if label is None:
+            raise RuntimeError("Inference review evidence is outside the decision partition.")
+        selected.append((raw_left, raw_right, pair_digest(raw_left, raw_right), label))
+    if len(selected) < 3:
+        raise RuntimeError("Synthetic inference did not yield three protected review pairs.")
+    feature_schema_digest = _digest("synthetic_review_label_provenance_v1")
+    matrix = BoostedFeatureMatrix(
+        features=np.zeros((len(selected), 1), dtype=np.float64),
+        pair_references=tuple((left, right) for left, right, _, _ in selected),
+        pair_digests=tuple(digest for _, _, digest, _ in selected),
+        feature_names=("review_provenance_only",),
+        feature_schema_digest=feature_schema_digest,
+    )
+    return _SyntheticCandidateSlice(
+        matrix=matrix,
+        labels_by_pair_digest={digest: label.label for _, _, digest, label in selected},
+        entity_components_by_pair_digest={
+            digest: label.entity_component_digests for _, _, digest, label in selected
+        },
+        household_components_by_pair_digest={
+            digest: label.household_component_digests for _, _, digest, label in selected
+        },
+        bundle_digest=_bundle_digest(bundle),
+    )
+
+
 def _review_lifecycle(
     *,
     review_inference: ApprovedRecipeInferenceResult,
@@ -553,24 +596,33 @@ def run_lifecycle(*, project_root: Path | None = None) -> LifecycleArtifacts:
         raise RuntimeError("The lifecycle example requires the synthetic-only data policy.")
 
     loaded = load_config(CONFIG_PATH)
-    plan = compile_config(loaded.config, project_root=project_root or ROOT)
+    review_policy = DecisionPolicyConfig(
+        confirmed=ConfirmedDecisionConfig(
+            minimum_probability=1.0,
+            minimum_probability_margin=1.0,
+        ),
+        review_required=ReviewDecisionConfig(minimum_probability=0.01),
+        no_match=NoMatchDecisionConfig(maximum_top_probability=0.0),
+        unresolved=UnresolvedDecisionConfig(),
+    )
+    lifecycle_config = loaded.config.model_copy(update={"decision_policy": review_policy})
+    plan = compile_config(lifecycle_config, project_root=project_root or ROOT)
     if plan.random_seed != SEED:
         raise RuntimeError("The canonical lifecycle configuration seed has changed.")
 
-    bundle = generate_synthetic_bundle(
-        SyntheticGenerationConfig(
-            seed=SEED,
-            entity_count=24,
-            left_only_count=2,
-            right_only_count=2,
-            duplicate_count=2,
-            competing_candidate_count=2,
-            source_a_missing_rate=0.05,
-            source_b_missing_rate=0.20,
-            source_b_typo_rate=0.35,
-            source_b_date_shift_rate=0.20,
-        )
+    generation = SyntheticGenerationConfig(
+        seed=SEED,
+        entity_count=120,
+        left_only_count=8,
+        right_only_count=8,
+        duplicate_count=8,
+        competing_candidate_count=20,
+        source_a_missing_rate=0.05,
+        source_b_missing_rate=0.20,
+        source_b_typo_rate=0.35,
+        source_b_date_shift_rate=0.20,
     )
+    bundle = generate_synthetic_bundle(generation)
     profile = build_preflight_task_profile(plan)
     with TemporaryDirectory(prefix="mapel-linkage-e2e-benchmarks-") as registry_directory:
         registry = generate_and_run_seed_corpus(
@@ -616,68 +668,18 @@ def run_lifecycle(*, project_root: Path | None = None) -> LifecycleArtifacts:
     ):
         raise RuntimeError("The strategy advisor exceeded its fixed authority boundary.")
 
-    training_matrix, training_batch = _make_partition(
-        bundle, partition="training", pair_count=48, group_index=2
+    portfolio_workflow = SyntheticPortfolioWorkflowRunner.run(
+        plan,
+        generation=generation,
+        k_folds=3,
     )
-    validation_matrix, validation_batch = _make_partition(
-        bundle, partition="validation", pair_count=24, group_index=3
-    )
-    calibration_matrix, calibration_batch = _make_partition(
-        bundle, partition="calibration", pair_count=24, group_index=4
-    )
+    tournament = portfolio_workflow.tournament
+    protected_batches = {
+        batch.partition: batch for batch in portfolio_workflow.protected_label_batches
+    }
     partition_report = assert_disjoint_label_partitions(
-        (training_batch, validation_batch, calibration_batch)
+        tuple(protected_batches[name] for name in sorted(protected_batches))
     )
-    portfolio = ModelPortfolioDeclaration(
-        portfolio_id="synthetic_e2e_portfolio",
-        pair_candidates=(
-            PairModelCandidateDeclaration(
-                model_id="fs_baseline",
-                family="fellegi_sunter",
-                implementation="mapel_reference_fellegi_sunter",
-                role="baseline",
-                require_verified_labels=False,
-                artifact_format="package_json",
-            ),
-            PairModelCandidateDeclaration(
-                model_id="xgb_challenger",
-                family="xgboost",
-                implementation="xgboost_classifier",
-                role="challenger",
-                require_verified_labels=True,
-                artifact_format="xgboost_json",
-            ),
-            PairModelCandidateDeclaration(
-                model_id="stacked_challenger",
-                family="stacking",
-                implementation="stacking_logistic",
-                role="ensemble",
-                require_verified_labels=True,
-                artifact_format="package_json",
-                base_model_ids=("fs_baseline", "xgb_challenger"),
-            ),
-        ),
-        mandatory_baseline_id="fs_baseline",
-        maximum_challengers=2,
-    )
-    with DuckDBStore() as store:
-        tournament = ModelPortfolioRunner(store).run_tournament(
-            portfolio=portfolio,
-            training_matrix=training_matrix,
-            validation_matrix=validation_matrix,
-            calibration_matrix=calibration_matrix,
-            disjointness=partition_report,
-            split_manifest_digest=partition_report.manifest_digest,
-            configuration_digest=plan.configuration_digest,
-            candidate_plan_digest=_digest(f"{_bundle_digest(bundle)}:synthetic_e2e_candidate_plan"),
-            feature_schema_digest=training_matrix.feature_schema_digest,
-            decision_policy_digest=_digest("synthetic_e2e_decision_policy"),
-            random_seed=SEED,
-            k_folds=3,
-            calibrator_methods=("sigmoid",),
-            approval_status=RecipeApprovalStatus.SYNTHETIC_VALIDATED,
-            operational_validation=OperationalValidationStatus.NOT_ESTABLISHED,
-        )
     if any(
         manifest.partition != "training_oof"
         or manifest.test_partition_used
@@ -689,82 +691,26 @@ def run_lifecycle(*, project_root: Path | None = None) -> LifecycleArtifacts:
     ):
         raise RuntimeError("Protected out-of-fold stacking provenance is invalid.")
 
-    review_slice = _make_candidate_slice(
-        bundle,
-        group_index=0,
-        pair_count=12,
-    )
-    review_source_keys = tuple(sorted({left for left, _ in review_slice.matrix.pair_references}))
-    review_attestation = attest_generated_synthetic_inference(
+    review_inference = portfolio_workflow.review_inference
+    review_slice = _review_slice_from_protected_inference(
         bundle=bundle,
-        source_record_keys=review_source_keys,
-        pair_references=review_slice.matrix.pair_references,
-        feature_matrix=review_slice.matrix,
-        source_dataset_id="source_a",
-        target_dataset_id="source_b",
-    )
-    review_inference = infer_with_approved_recipe(
-        recipe=tournament.recipe,
-        source_record_keys=review_source_keys,
-        pair_references=review_slice.matrix.pair_references,
-        feature_matrix=review_slice.matrix,
-        champion_model_artifact=tournament.champion_model_artifact,
-        calibrator_artifact=tournament.calibrator_artifact,
-        decision_policy=DecisionPolicyConfig(
-            confirmed=ConfirmedDecisionConfig(
-                minimum_probability=1.0,
-                minimum_probability_margin=1.0,
-            ),
-            review_required=ReviewDecisionConfig(minimum_probability=0.01),
-            no_match=NoMatchDecisionConfig(maximum_top_probability=0.0),
-            unresolved=UnresolvedDecisionConfig(),
-        ),
-        execution_mode=RecipeExecutionMode.SYNTHETIC_INFERENCE,
-        synthetic_attestation=review_attestation,
-        synthetic_bundle=bundle,
+        inference=review_inference,
+        decision_batch=protected_batches["decision"],
         source_dataset_id="source_a",
         target_dataset_id="source_b",
     )
     review_queue, consensus, promotion = _review_lifecycle(
         review_inference=review_inference,
         review_slice=review_slice,
-        validation_batch=validation_batch,
-        calibration_batch=calibration_batch,
+        validation_batch=protected_batches["validation"],
+        calibration_batch=protected_batches["calibration"],
     )
 
     recipe_payload = serialize_pipeline_recipe(tournament.recipe)
     recipe = deserialize_pipeline_recipe(recipe_payload)
     if recipe != tournament.recipe:
         raise RuntimeError("The immutable pipeline recipe failed its canonical round trip.")
-    new_data_slice = _make_candidate_slice(bundle, group_index=1, pair_count=12)
-    new_data_source_keys = tuple(
-        sorted({left for left, _ in new_data_slice.matrix.pair_references})
-    )
-    inference_attestation = attest_generated_synthetic_inference(
-        bundle=bundle,
-        source_record_keys=new_data_source_keys,
-        pair_references=new_data_slice.matrix.pair_references,
-        feature_matrix=new_data_slice.matrix,
-        source_dataset_id="source_a",
-        target_dataset_id="source_b",
-    )
-    recipe.assert_usable_for(
-        RecipeExecutionMode.SYNTHETIC_INFERENCE,
-        synthetic_attestation=inference_attestation,
-    )
-    inference = infer_with_approved_recipe(
-        recipe=recipe_payload,
-        source_record_keys=new_data_source_keys,
-        pair_references=new_data_slice.matrix.pair_references,
-        feature_matrix=new_data_slice.matrix,
-        champion_model_artifact=tournament.champion_model_artifact,
-        calibrator_artifact=tournament.calibrator_artifact,
-        execution_mode=RecipeExecutionMode.SYNTHETIC_INFERENCE,
-        synthetic_attestation=inference_attestation,
-        synthetic_bundle=bundle,
-        source_dataset_id="source_a",
-        target_dataset_id="source_b",
-    )
+    inference = portfolio_workflow.inference
     if (
         inference.assignment_result.assignment_authority != "global_selection_only"
         or inference.assignment_result.decision_authority != "none"
@@ -809,7 +755,7 @@ def run_lifecycle(*, project_root: Path | None = None) -> LifecycleArtifacts:
         "portfolio_tournament": {
             **tournament.safe_summary(),
             "protected_partitions": partition_report.safe_summary(),
-            "calibration_partition": calibration_matrix.partition,
+            "calibration_partition": "calibration",
             "oof_partition": "training_oof",
             "oof_test_partition_used": False,
             "oof_calibration_partition_used": False,

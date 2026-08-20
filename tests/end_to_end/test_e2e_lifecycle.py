@@ -155,7 +155,8 @@ def test_advisor_tournament_and_calibration_authority_boundaries(
     assert tournament.recipe.decision_authority == "explicit_policy_only"
     assert tournament.recipe.merge_authority == "none"
     assert tournament.calibrator_artifact.calibration_status == "calibrated_on_protected_partition"
-    assert len(tournament.oof_manifests) == 2
+    assert len(tournament.oof_manifests) == 1
+    assert tournament.oof_manifests[0].model_id == "xgb_pair_classifier"
     assert all(manifest.partition == "training_oof" for manifest in tournament.oof_manifests)
     assert all(not manifest.test_partition_used for manifest in tournament.oof_manifests)
     assert all(not manifest.calibration_partition_used for manifest in tournament.oof_manifests)

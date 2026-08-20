@@ -75,11 +75,14 @@ def _resolve_registries(config: LinkageConfig) -> None:
     for comparison in config.comparisons:
         resolve_operation("comparison", comparison.function.kind)
     resolve_operation("pair_model", config.models.fellegi_sunter.implementation)
-    for model in (config.models.boosted_tree, config.models.neural):
-        if model is not None:
-            resolve_operation("pair_model", model.implementation)
-    if config.models.ranking is not None:
-        resolve_operation("ranker", config.models.ranking.implementation)
+    for boosted_model in config.models.all_boosted_trees():
+        resolve_operation("pair_model", boosted_model.implementation)
+    for neural_model in config.models.all_neural_models():
+        resolve_operation("pair_model", neural_model.implementation)
+    for ensemble_model in config.models.ensembles:
+        resolve_operation("pair_model", ensemble_model.implementation)
+    for ranking_model in config.models.all_ranking_models():
+        resolve_operation("ranker", ranking_model.implementation)
     resolve_operation("calibrator", config.calibration.method)
     resolve_operation("assignment_solver", config.assignment.solver)
 

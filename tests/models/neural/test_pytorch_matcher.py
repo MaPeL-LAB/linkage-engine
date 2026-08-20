@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import importlib
 import json
 import types
@@ -8,6 +9,7 @@ from unittest import mock
 
 import pytest
 
+from mapel_linkage.configuration.models import NeuralModelConfig
 from mapel_linkage.domain.errors import NeuralModelError
 from mapel_linkage.governance.labels import assert_disjoint_label_partitions
 from mapel_linkage.governance.paths import PathPolicy
@@ -70,6 +72,55 @@ def test_pytorch_matcher_is_deterministic_and_evidence_only() -> None:
     assert first.decision_authority == "evidence_only"
     assert first.real_data_validation_status == "not_established"
     assert "train-l1" not in repr(first)
+
+
+@_requires_torch
+def test_pytorch_matcher_uses_exact_typed_training_configuration() -> None:
+    config = NeuralModelConfig(
+        enabled=True,
+        implementation="pytorch_pair_mlp",
+        model_id="configured_pytorch",
+        epochs=7,
+        learning_rate=0.02,
+        weight_decay=0.003,
+        maximum_training_pairs=100,
+    )
+    with DuckDBStore() as store:
+        builder = DuckDBVerifiedMatrixBuilder(store)
+        matrix = builder.build_labelled(
+            features=feature_result(store, "pt_configured_features", training_rows()),
+            labels=training_labels(),
+        )
+        artifact = PyTorchPairMatcher(store).fit(
+            matrix=matrix,
+            model=config,
+            random_seed=17,
+            configuration_digest="d" * 64,
+        )
+        with pytest.raises(NeuralModelError, match="ML-NEUR-020"):
+            PyTorchPairMatcher(store).fit(
+                matrix=matrix,
+                model=config,
+                random_seed=17,
+                configuration_digest="d" * 64,
+                epochs=8,
+            )
+
+    expected_payload = {
+        "epochs": 7,
+        "learning_rate": 0.02,
+        "weight_decay": 0.003,
+        "seed": 17,
+        "architecture": "32-16-1-mlp",
+        "device": "cpu",
+        "n_threads": 1,
+        "feature_names": matrix.feature_names,
+    }
+    expected_digest = hashlib.sha256(
+        json.dumps(expected_payload, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    assert artifact.model_id == config.model_id
+    assert artifact.parameter_digest == expected_digest
 
 
 @_requires_torch

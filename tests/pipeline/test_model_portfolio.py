@@ -19,6 +19,7 @@ def test_current_configuration_compiles_to_plural_portfolio() -> None:
 
     assert portfolio.mandatory_baseline_id == config.models.fellegi_sunter.model_id
     assert portfolio.pair_candidates[0].family == "fellegi_sunter"
+    assert portfolio.pair_candidates[0].implementation == "splink_duckdb"
     assert any(candidate.family == "xgboost" for candidate in portfolio.pair_candidates)
     assert any(candidate.family == "xgboost" for candidate in portfolio.ranking_candidates)
     assert portfolio.test_partition_may_select_portfolio is False

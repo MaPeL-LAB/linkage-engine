@@ -10,6 +10,7 @@ from mapel_linkage.pipeline.deduplication_runner import (
 from mapel_linkage.pipeline.inference_runner import (
     ApprovedRecipeInferenceResult,
     ApprovedRecipeInferenceRunner,
+    NativeSplinkInferenceReplay,
     infer_with_approved_recipe,
 )
 from mapel_linkage.pipeline.model_portfolio import (
@@ -37,10 +38,19 @@ from mapel_linkage.pipeline.recipes import (
     RecipeApprovalStatus,
     RecipeExecutionMode,
 )
+from mapel_linkage.pipeline.score_evidence import (
+    PairScoreEvidenceArtifact,
+    PairScoreEvidenceBatch,
+    issue_native_splink_score_evidence,
+)
 from mapel_linkage.pipeline.stage_artifacts import (
     OutOfFoldPredictionManifest,
     StageArtifactLedger,
     StageArtifactRef,
+)
+from mapel_linkage.pipeline.synthetic_portfolio_workflow import (
+    SyntheticPortfolioWorkflowResult,
+    SyntheticPortfolioWorkflowRunner,
 )
 from mapel_linkage.pipeline.synthetic_vertical_slice import SyntheticVerticalSliceRunner
 
@@ -54,9 +64,12 @@ __all__ = [
     "ModelPortfolioRunner",
     "MultiSourceWorkflowResult",
     "MultiSourceWorkflowRunner",
+    "NativeSplinkInferenceReplay",
     "OperationalValidationStatus",
     "OutOfFoldPredictionManifest",
     "PairModelCandidateDeclaration",
+    "PairScoreEvidenceArtifact",
+    "PairScoreEvidenceBatch",
     "PipelineRecipeArtifact",
     "PortfolioTournamentResult",
     "RankingCandidateDeclaration",
@@ -66,11 +79,14 @@ __all__ = [
     "StageArtifactLedger",
     "StageArtifactRef",
     "StageSummary",
+    "SyntheticPortfolioWorkflowResult",
+    "SyntheticPortfolioWorkflowRunner",
     "SyntheticVerticalSliceResult",
     "SyntheticVerticalSliceRunner",
     "compile_model_portfolio",
     "deserialize_pipeline_recipe",
     "infer_with_approved_recipe",
+    "issue_native_splink_score_evidence",
     "pipeline_recipe_payload",
     "serialize_pipeline_recipe",
 ]

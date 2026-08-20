@@ -1,34 +1,33 @@
-"""Multi-model portfolio tournament runner with zero-leakage out-of-fold stacking."""
+"""Multi-model portfolio tournament with group-protected out-of-fold stacking."""
 
 from __future__ import annotations
 
 import hashlib
 import json
-from collections.abc import Sequence
-from dataclasses import dataclass, field
+from collections.abc import Mapping, Sequence
+from dataclasses import dataclass, field, replace
 from typing import Any, Literal
 
 import numpy as np
 from numpy.typing import NDArray
 
 from mapel_linkage.calibration import (
+    BetaCalibrator,
     ChampionCalibratorSelector,
     ChampionChallengerSelector,
+    IsotonicCalibrator,
     ModelEvaluationCandidate,
     PairScoreBatch,
+    SigmoidCalibrator,
 )
 from mapel_linkage.calibration.contracts import (
     CalibrationMethod,
     CalibratorArtifact,
     ChampionSelection,
 )
-from mapel_linkage.configuration.models import (
-    BoostedTreeModelConfig,
-    ModelSelectionConfig,
-    NeuralModelConfig,
-)
+from mapel_linkage.configuration.models import ModelsConfig, ModelSelectionConfig
 from mapel_linkage.domain.errors import PipelineError
-from mapel_linkage.governance.labels import PartitionDisjointnessReport
+from mapel_linkage.governance.labels import PartitionDisjointnessReport, VerifiedLabelBatch
 from mapel_linkage.io.duckdb_store import DuckDBStore
 from mapel_linkage.models.boosted import (
     BoostedFeatureMatrix,
@@ -42,9 +41,17 @@ from mapel_linkage.models.ensembles import (
     StackingModelArtifact,
     StackingPairClassifier,
 )
+from mapel_linkage.models.fellegi_sunter import SplinkNativeModelArtifact
 from mapel_linkage.models.neural import (
     PyTorchModelArtifact,
     PyTorchPairMatcher,
+)
+from mapel_linkage.models.ranking import (
+    LightGBMRanker,
+    LightGBMRankingArtifact,
+    XGBoostCandidateRanker,
+    XGBoostRankingArtifact,
+    build_ranking_matrix,
 )
 from mapel_linkage.pipeline.model_portfolio import (
     ModelPortfolioDeclaration,
@@ -56,8 +63,14 @@ from mapel_linkage.pipeline.recipes import (
     PipelineRecipeArtifact,
     RecipeApprovalStatus,
 )
+from mapel_linkage.pipeline.score_evidence import PairScoreEvidenceBatch
 from mapel_linkage.pipeline.stage_artifacts import OutOfFoldPredictionManifest
-from mapel_linkage.validation import PairValidationReport, evaluate_binary_scores
+from mapel_linkage.validation import (
+    PairValidationReport,
+    RankingValidationReport,
+    evaluate_binary_scores,
+    evaluate_ranking,
+)
 
 
 def _canonical_digest(payload: object) -> str:
@@ -68,6 +81,164 @@ def _canonical_digest(payload: object) -> str:
 def _require_digest(value: str, *, code: str = "ML-PIPE-064") -> None:
     if len(value) != 64 or any(character not in "0123456789abcdef" for character in value):
         raise PipelineError(code, "A fitted inference artifact digest is invalid.")
+
+
+def _feature_view(matrix: BoostedLabelledMatrix) -> BoostedFeatureMatrix:
+    return BoostedFeatureMatrix(
+        features=matrix.features,
+        feature_names=matrix.feature_names,
+        pair_references=matrix.pair_references,
+        pair_digests=matrix.pair_digests,
+        feature_schema_digest=matrix.feature_schema_digest,
+    )
+
+
+def _grouped_oof_folds(
+    *,
+    matrix: BoostedLabelledMatrix,
+    labels: VerifiedLabelBatch,
+    source_group_digests: Mapping[str, tuple[str, ...]],
+    fold_count: int,
+    random_seed: int,
+) -> tuple[tuple[NDArray[np.int64], ...], int, str]:
+    """Create folds protected by source-side entity/household connected components."""
+
+    if (
+        labels.partition != "training"
+        or labels.label_authority_digest != matrix.label_authority_digest
+        or len(labels.labels) != matrix.pair_count
+    ):
+        raise PipelineError("ML-PIPE-090", "Grouped OOF label provenance is incompatible.")
+    by_pair = {(item.left_record_key, item.right_record_key): item for item in labels.labels}
+    if set(by_pair) != set(matrix.pair_references):
+        raise PipelineError("ML-PIPE-090", "Grouped OOF label provenance is incompatible.")
+    ordered_labels = tuple(by_pair[pair] for pair in matrix.pair_references)
+    if any(
+        int(item.label) != int(label)
+        for item, label in zip(ordered_labels, matrix.labels, strict=True)
+    ):
+        raise PipelineError("ML-PIPE-090", "Grouped OOF label provenance is incompatible.")
+
+    sources = {left for left, _ in matrix.pair_references}
+    components_by_source: dict[str, set[str]] = {source: set() for source in sources}
+    for (source, _), item in zip(matrix.pair_references, ordered_labels, strict=True):
+        components_by_source[source].update(item.entity_component_digests)
+        components_by_source[source].update(item.household_component_digests)
+    if set(source_group_digests) != sources:
+        raise PipelineError("ML-PIPE-090", "Grouped OOF label provenance is incompatible.")
+    for source, components in source_group_digests.items():
+        if (
+            not components
+            or len(components) != len(set(components))
+            or any(component not in components_by_source[source] for component in components)
+        ):
+            raise PipelineError("ML-PIPE-090", "Grouped OOF label provenance is incompatible.")
+        for component in components:
+            _require_digest(component, code="ML-PIPE-090")
+
+    parent = list(range(matrix.pair_count))
+
+    def find(index: int) -> int:
+        while parent[index] != index:
+            parent[index] = parent[parent[index]]
+            index = parent[index]
+        return index
+
+    def union(left: int, right: int) -> None:
+        left_root, right_root = find(left), find(right)
+        if left_root != right_root:
+            parent[max(left_root, right_root)] = min(left_root, right_root)
+
+    owner_by_source: dict[str, int] = {}
+    owner_by_component: dict[str, int] = {}
+    for index, (source, _) in enumerate(matrix.pair_references):
+        union(index, owner_by_source.setdefault(source, index))
+        for component in source_group_digests[source]:
+            union(index, owner_by_component.setdefault(component, index))
+
+    grouped: dict[int, list[int]] = {}
+    for index in range(matrix.pair_count):
+        grouped.setdefault(find(index), []).append(index)
+    groups = list(grouped.values())
+    if len(groups) < fold_count:
+        raise PipelineError("ML-PIPE-090", "Grouped OOF requires at least one group per fold.")
+
+    rng = np.random.default_rng(random_seed)
+    shuffled = [groups[index] for index in rng.permutation(len(groups))]
+    shuffled.sort(key=len, reverse=True)
+    folds: list[list[int]] = [[] for _ in range(fold_count)]
+    for group in shuffled:
+        destination = min(range(fold_count), key=lambda index: (len(folds[index]), index))
+        folds[destination].extend(group)
+    fold_arrays = tuple(np.asarray(sorted(fold), dtype=np.int64) for fold in folds)
+    all_indices = np.arange(matrix.pair_count, dtype=np.int64)
+    for holdout in fold_arrays:
+        train = np.setdiff1d(all_indices, holdout)
+        if len(holdout) == 0 or len(train) == 0 or len(np.unique(matrix.labels[train])) != 2:
+            raise PipelineError("ML-PIPE-090", "Grouped OOF cannot preserve training classes.")
+
+    group_assignment_digest = _canonical_digest(
+        [
+            {
+                "fold": fold_index,
+                "source_group_digests": sorted(
+                    {
+                        component
+                        for row_index in holdout.tolist()
+                        for component in source_group_digests[matrix.pair_references[row_index][0]]
+                    }
+                ),
+            }
+            for fold_index, holdout in enumerate(fold_arrays)
+        ]
+    )
+    return fold_arrays, len(groups), group_assignment_digest
+
+
+def _score_fitted_model(
+    *,
+    matrix: BoostedFeatureMatrix,
+    artifact: FittedModelArtifact,
+    fitted_models: dict[str, FittedModelArtifact],
+) -> NDArray[np.float64]:
+    if isinstance(artifact, XGBoostModelArtifact):
+        return XGBoostPairClassifier._predict(matrix=matrix, model=artifact)
+    if isinstance(artifact, LightGBMModelArtifact):
+        return LightGBMPairClassifier._predict(matrix=matrix, model=artifact)
+    if isinstance(artifact, PyTorchModelArtifact):
+        return PyTorchPairMatcher._predict(matrix=matrix, model=artifact)
+    if isinstance(artifact, StackingModelArtifact):
+        base_scores: dict[str, NDArray[np.float64]] = {}
+        for model_id in artifact.base_model_ids:
+            base = fitted_models.get(model_id)
+            if base is None or isinstance(
+                base,
+                (ReferenceFeatureScoreArtifact, SplinkNativeModelArtifact),
+            ):
+                raise PipelineError(
+                    "ML-PIPE-065",
+                    "A stacking inference bundle lacks a replayable base artifact.",
+                )
+            base_scores[model_id] = _score_fitted_model(
+                matrix=matrix,
+                artifact=base,
+                fitted_models=fitted_models,
+            )
+        return StackingPairClassifier().predict(base_scores=base_scores, model=artifact)
+    raise PipelineError(
+        "ML-PIPE-075",
+        "Native baseline scoring requires exact score evidence from the native scorer.",
+    )
+
+
+def _apply_calibrator(
+    scores: NDArray[np.float64], artifact: CalibratorArtifact
+) -> NDArray[np.float64]:
+    if artifact.method == "sigmoid":
+        return SigmoidCalibrator.apply(scores, artifact)
+    if artifact.method == "beta":
+        return BetaCalibrator.apply(scores, artifact)
+    return IsotonicCalibrator.apply(scores, artifact)
 
 
 @dataclass(frozen=True, slots=True, repr=False)
@@ -160,6 +331,7 @@ class ReferenceFeatureScoreArtifact:
 
 type FittedBaseArtifact = (
     ReferenceFeatureScoreArtifact
+    | SplinkNativeModelArtifact
     | XGBoostModelArtifact
     | LightGBMModelArtifact
     | PyTorchModelArtifact
@@ -172,6 +344,7 @@ def _base_artifact_descriptor(artifact: FittedBaseArtifact) -> dict[str, str]:
         artifact,
         (
             ReferenceFeatureScoreArtifact,
+            SplinkNativeModelArtifact,
             XGBoostModelArtifact,
             LightGBMModelArtifact,
             PyTorchModelArtifact,
@@ -189,7 +362,11 @@ def _base_artifact_descriptor(artifact: FittedBaseArtifact) -> dict[str, str]:
     return {
         "model_id": artifact.model_id,
         "model_version": artifact.model_version,
-        "model_digest": artifact.model_digest,
+        "model_digest": (
+            artifact.artifact_digest
+            if isinstance(artifact, SplinkNativeModelArtifact)
+            else artifact.model_digest
+        ),
         "feature_schema_digest": artifact.feature_schema_digest,
         "configuration_digest": artifact.configuration_digest,
         "artifact_type": type(artifact).__name__,
@@ -226,8 +403,11 @@ class StackingInferenceArtifactBundle:
         ):
             raise PipelineError("ML-PIPE-066", "A stacking inference artifact bundle is invalid.")
         if any(
-            isinstance(item, ReferenceFeatureScoreArtifact)
-            and item.scoring_rule != "mean_feature_clip"
+            isinstance(item, SplinkNativeModelArtifact)
+            or (
+                isinstance(item, ReferenceFeatureScoreArtifact)
+                and item.scoring_rule != "mean_feature_clip"
+            )
             for item in self.base_artifacts
         ):
             raise PipelineError(
@@ -292,6 +472,7 @@ class StackingInferenceArtifactBundle:
 
 
 type ChampionInferenceArtifact = FittedBaseArtifact | StackingInferenceArtifactBundle
+type FittedRankingArtifact = XGBoostRankingArtifact | LightGBMRankingArtifact
 
 
 @dataclass(frozen=True, slots=True, repr=False)
@@ -305,7 +486,11 @@ class PortfolioTournamentResult:
     oof_manifests: tuple[OutOfFoldPredictionManifest, ...]
     validation_reports: dict[str, PairValidationReport]
     recipe: PipelineRecipeArtifact
-    ranking_artifact: Any | None = None
+    ranking_artifact: FittedRankingArtifact | Any | None = None
+    ranking_validation_reports: dict[str, RankingValidationReport] = field(default_factory=dict)
+    locked_test_report: PairValidationReport | None = None
+    test_partition_used_for_selection: Literal[False] = False
+    test_partition_used_for_calibration: Literal[False] = False
     tournament_digest: str = ""
 
     def __post_init__(self) -> None:
@@ -329,6 +514,10 @@ class PortfolioTournamentResult:
             "calibrator_digest": self.calibrator_artifact.calibrator_digest,
             "oof_manifest_count": len(self.oof_manifests),
             "candidate_count": len(self.validation_reports),
+            "ranking_candidate_count": len(self.ranking_validation_reports),
+            "locked_test_evaluated": self.locked_test_report is not None,
+            "test_partition_used_for_selection": self.test_partition_used_for_selection,
+            "test_partition_used_for_calibration": self.test_partition_used_for_calibration,
             "recipe_id": self.recipe.recipe_id,
             "recipe_digest": self.recipe.recipe_digest,
             "approval_status": self.recipe.approval_status.value,
@@ -346,9 +535,13 @@ class ModelPortfolioRunner:
         self,
         *,
         portfolio: ModelPortfolioDeclaration,
+        models_config: ModelsConfig,
+        training_label_batch: VerifiedLabelBatch,
+        training_source_group_digests: Mapping[str, tuple[str, ...]],
         training_matrix: BoostedLabelledMatrix,
         validation_matrix: BoostedLabelledMatrix,
         calibration_matrix: BoostedLabelledMatrix,
+        locked_test_matrix: BoostedLabelledMatrix | None = None,
         disjointness: PartitionDisjointnessReport,
         split_manifest_digest: str,
         configuration_digest: str,
@@ -367,10 +560,13 @@ class ModelPortfolioRunner:
         operational_validation: OperationalValidationStatus = (
             OperationalValidationStatus.NOT_ESTABLISHED
         ),
-        fs_training_scores: NDArray[np.float64] | None = None,
-        fs_validation_scores: NDArray[np.float64] | None = None,
-        fs_calibration_scores: NDArray[np.float64] | None = None,
-        fs_evidence_digest: str | None = None,
+        fs_training_evidence: PairScoreEvidenceBatch | None = None,
+        fs_validation_evidence: PairScoreEvidenceBatch | None = None,
+        fs_calibration_evidence: PairScoreEvidenceBatch | None = None,
+        fs_test_evidence: PairScoreEvidenceBatch | None = None,
+        fs_model_artifact: ReferenceFeatureScoreArtifact | SplinkNativeModelArtifact | None = None,
+        ranking_training_matrix: BoostedLabelledMatrix | None = None,
+        ranking_validation_matrix: BoostedLabelledMatrix | None = None,
     ) -> PortfolioTournamentResult:
         """Run complete side-by-side tournament across all portfolio candidates."""
         if k_folds < 2:
@@ -385,25 +581,42 @@ class ModelPortfolioRunner:
             raise PipelineError(
                 "ML-PIPE-043", "Calibration matrix must belong to calibration partition."
             )
+        if locked_test_matrix is not None and locked_test_matrix.partition != "test":
+            raise PipelineError("ML-PIPE-072", "Locked test matrix must belong to test partition.")
+        if ranking_training_matrix is not None and ranking_training_matrix.partition != "training":
+            raise PipelineError("ML-PIPE-073", "Ranking training requires training labels.")
+        if (
+            ranking_validation_matrix is not None
+            and ranking_validation_matrix.partition != "validation"
+        ):
+            raise PipelineError("ML-PIPE-074", "Ranking selection requires validation labels.")
 
         sel_config = selection_config or ModelSelectionConfig(
             primary_metric="average_precision",
         )
 
         active_store = self._store or DuckDBStore()
+        boosted_configs = {model.model_id: model for model in models_config.all_boosted_trees()}
+        neural_configs = {model.model_id: model for model in models_config.all_neural_models()}
+        ensemble_configs = {model.model_id: model for model in models_config.ensembles}
 
         fitted_models: dict[str, FittedModelArtifact] = {}
         oof_scores: dict[str, NDArray[np.float64]] = {}
         oof_manifests: list[OutOfFoldPredictionManifest] = []
         validation_scores: dict[str, NDArray[np.float64]] = {}
         calibration_scores: dict[str, NDArray[np.float64]] = {}
+        fs_locked_test_scores: NDArray[np.float64] | None = None
 
         # 1. K-Fold Out-of-fold partitioning on the training split
         n_samples = training_matrix.pair_count
-        indices = np.arange(n_samples)
-        rng = np.random.default_rng(random_seed)
-        shuffled_indices = rng.permutation(indices)
-        fold_slices = np.array_split(shuffled_indices, k_folds)
+        indices = np.arange(n_samples, dtype=np.int64)
+        fold_slices, oof_group_count, oof_group_assignment_digest = _grouped_oof_folds(
+            matrix=training_matrix,
+            labels=training_label_batch,
+            source_group_digests=training_source_group_digests,
+            fold_count=k_folds,
+            random_seed=random_seed,
+        )
 
         # Base candidate training and OOF score collection
         for candidate in portfolio.pair_candidates:
@@ -411,86 +624,74 @@ class ModelPortfolioRunner:
                 continue
 
             if candidate.family == "fellegi_sunter":
-                # Fellegi-Sunter baseline scores
-                if fs_training_scores is not None and fs_validation_scores is not None:
-                    train_sc = np.asarray(fs_training_scores, dtype=np.float64)
-                    val_sc = np.asarray(fs_validation_scores, dtype=np.float64)
-                    cal_sc = (
-                        np.asarray(fs_calibration_scores, dtype=np.float64)
-                        if fs_calibration_scores is not None
-                        else np.zeros(calibration_matrix.pair_count, dtype=np.float64)
+                if (
+                    fs_training_evidence is None
+                    or fs_validation_evidence is None
+                    or fs_calibration_evidence is None
+                    or fs_model_artifact is None
+                ):
+                    raise PipelineError(
+                        "ML-PIPE-070",
+                        "The portfolio baseline requires native or explicitly bound "
+                        "score evidence.",
                     )
-                    scoring_rule: Literal["mean_feature_clip", "external_scores_only"] = (
-                        "external_scores_only"
-                    )
-                    source_evidence_digest = (
-                        fs_evidence_digest
-                        or hashlib.sha256(
-                            b"".join(
-                                (
-                                    train_sc.tobytes(),
-                                    val_sc.tobytes(),
-                                    cal_sc.tobytes(),
-                                )
-                            )
-                        ).hexdigest()
-                    )
-                else:
-                    # Synthetic/feature-based proxy for reference baseline
-                    train_sc = np.clip(np.mean(training_matrix.features, axis=1), 0.0, 1.0)
-                    val_sc = np.clip(np.mean(validation_matrix.features, axis=1), 0.0, 1.0)
-                    cal_sc = np.clip(np.mean(calibration_matrix.features, axis=1), 0.0, 1.0)
-                    scoring_rule = "mean_feature_clip"
-                    source_evidence_digest = fs_evidence_digest or _canonical_digest(
-                        {
-                            "model_id": candidate.model_id,
-                            "family": "fellegi_sunter",
-                            "scoring_rule": scoring_rule,
-                            "feature_schema_digest": feature_schema_digest,
-                        }
-                    )
-
-                reference_artifact = ReferenceFeatureScoreArtifact.create(
-                    model_id=candidate.model_id,
-                    feature_schema_digest=feature_schema_digest,
-                    configuration_digest=configuration_digest,
-                    source_evidence_digest=source_evidence_digest,
-                    scoring_rule=scoring_rule,
+                fs_artifact_digest = (
+                    fs_model_artifact.artifact_digest
+                    if isinstance(fs_model_artifact, SplinkNativeModelArtifact)
+                    else fs_model_artifact.model_digest
                 )
-                fitted_models[candidate.model_id] = reference_artifact
-                oof_scores[candidate.model_id] = train_sc
+                fs_partition_evidence = [
+                    (fs_training_evidence, training_matrix),
+                    (fs_validation_evidence, validation_matrix),
+                    (fs_calibration_evidence, calibration_matrix),
+                ]
+                if locked_test_matrix is not None:
+                    if fs_test_evidence is None:
+                        raise PipelineError(
+                            "ML-PIPE-070",
+                            "Locked test evaluation requires native baseline score evidence.",
+                        )
+                    fs_partition_evidence.append((fs_test_evidence, locked_test_matrix))
+                for evidence, matrix in fs_partition_evidence:
+                    evidence.assert_model_binding(
+                        model_id=fs_model_artifact.model_id,
+                        model_version=fs_model_artifact.model_version,
+                        model_artifact_digest=fs_artifact_digest,
+                        configuration_digest=configuration_digest,
+                        feature_schema_digest=fs_model_artifact.feature_schema_digest,
+                        pair_digests=matrix.pair_digests,
+                    )
+                train_sc = fs_training_evidence.scores
+                val_sc = fs_validation_evidence.scores
+                cal_sc = fs_calibration_evidence.scores
+                if fs_test_evidence is not None:
+                    fs_locked_test_scores = fs_test_evidence.scores
+                if (
+                    train_sc.shape != (training_matrix.pair_count,)
+                    or val_sc.shape != (validation_matrix.pair_count,)
+                    or cal_sc.shape != (calibration_matrix.pair_count,)
+                    or fs_model_artifact.model_id != candidate.model_id
+                    or fs_model_artifact.configuration_digest != configuration_digest
+                ):
+                    raise PipelineError(
+                        "ML-PIPE-070",
+                        "The portfolio baseline score evidence is incompatible.",
+                    )
+                fitted_models[candidate.model_id] = fs_model_artifact
                 validation_scores[candidate.model_id] = val_sc
                 calibration_scores[candidate.model_id] = cal_sc
 
-                oof_manifests.append(
-                    OutOfFoldPredictionManifest(
-                        model_id=candidate.model_id,
-                        model_version=reference_artifact.model_version,
-                        model_artifact_digest=reference_artifact.model_digest,
-                        feature_schema_digest=feature_schema_digest,
-                        label_authority_digest=training_matrix.label_authority_digest,
-                        split_manifest_digest=split_manifest_digest,
-                        fold_count=k_folds,
-                        pair_count=n_samples,
-                        prediction_digest=hashlib.sha256(train_sc.tobytes()).hexdigest(),
-                    )
-                )
-
             elif candidate.family == "xgboost":
                 xgb_classifier = XGBoostPairClassifier(active_store)
-                xgb_config = BoostedTreeModelConfig(
-                    model_id=candidate.model_id,
-                    implementation="xgboost_classifier",
-                    n_estimators=50,
-                    max_depth=4,
-                    learning_rate=0.1,
-                )
+                xgb_config = boosted_configs.get(candidate.model_id)
+                if xgb_config is None or xgb_config.implementation != "xgboost_classifier":
+                    raise PipelineError("ML-PIPE-071", "A configured pair model is missing.")
 
                 # Generate out-of-fold predictions
                 oof_vec = np.zeros(n_samples, dtype=np.float64)
                 for fold_idx in range(k_folds):
                     val_idx = fold_slices[fold_idx]
-                    train_idx = np.setdiff1d(shuffled_indices, val_idx)
+                    train_idx = np.setdiff1d(indices, val_idx)
 
                     fold_train_features = training_matrix.features[train_idx]
                     fold_train_labels = training_matrix.labels[train_idx]
@@ -553,8 +754,10 @@ class ModelPortfolioRunner:
                         label_authority_digest=training_matrix.label_authority_digest,
                         split_manifest_digest=split_manifest_digest,
                         fold_count=k_folds,
+                        group_count=oof_group_count,
                         pair_count=n_samples,
                         prediction_digest=hashlib.sha256(oof_vec.tobytes()).hexdigest(),
+                        group_assignment_digest=oof_group_assignment_digest,
                     )
                 )
 
@@ -582,18 +785,14 @@ class ModelPortfolioRunner:
 
             elif candidate.family == "lightgbm":
                 lgb_classifier = LightGBMPairClassifier(self._store)
-                lgb_config = BoostedTreeModelConfig(
-                    model_id=candidate.model_id,
-                    implementation="lightgbm_classifier",
-                    n_estimators=50,
-                    max_depth=4,
-                    learning_rate=0.1,
-                )
+                lgb_config = boosted_configs.get(candidate.model_id)
+                if lgb_config is None or lgb_config.implementation != "lightgbm_classifier":
+                    raise PipelineError("ML-PIPE-071", "A configured pair model is missing.")
 
                 oof_vec = np.zeros(n_samples, dtype=np.float64)
                 for fold_idx in range(k_folds):
                     val_idx = fold_slices[fold_idx]
-                    train_idx = np.setdiff1d(shuffled_indices, val_idx)
+                    train_idx = np.setdiff1d(indices, val_idx)
 
                     fold_train_features = training_matrix.features[train_idx]
                     fold_train_labels = training_matrix.labels[train_idx]
@@ -654,8 +853,10 @@ class ModelPortfolioRunner:
                         label_authority_digest=training_matrix.label_authority_digest,
                         split_manifest_digest=split_manifest_digest,
                         fold_count=k_folds,
+                        group_count=oof_group_count,
                         pair_count=n_samples,
                         prediction_digest=hashlib.sha256(oof_vec.tobytes()).hexdigest(),
+                        group_assignment_digest=oof_group_assignment_digest,
                     )
                 )
 
@@ -682,15 +883,14 @@ class ModelPortfolioRunner:
 
             elif candidate.family == "pytorch":
                 pt_matcher = PyTorchPairMatcher(self._store)
-                pt_config = NeuralModelConfig(
-                    model_id=candidate.model_id,
-                    implementation="pytorch_pair_mlp",
-                )
+                pt_config = neural_configs.get(candidate.model_id)
+                if pt_config is None:
+                    raise PipelineError("ML-PIPE-071", "A configured pair model is missing.")
 
                 oof_vec = np.zeros(n_samples, dtype=np.float64)
                 for fold_idx in range(k_folds):
                     val_idx = fold_slices[fold_idx]
-                    train_idx = np.setdiff1d(shuffled_indices, val_idx)
+                    train_idx = np.setdiff1d(indices, val_idx)
 
                     fold_train_features = training_matrix.features[train_idx]
                     fold_train_labels = training_matrix.labels[train_idx]
@@ -751,8 +951,10 @@ class ModelPortfolioRunner:
                         label_authority_digest=training_matrix.label_authority_digest,
                         split_manifest_digest=split_manifest_digest,
                         fold_count=k_folds,
+                        group_count=oof_group_count,
                         pair_count=n_samples,
                         prediction_digest=hashlib.sha256(oof_vec.tobytes()).hexdigest(),
+                        group_assignment_digest=oof_group_assignment_digest,
                     )
                 )
 
@@ -782,7 +984,18 @@ class ModelPortfolioRunner:
             if candidate.enabled and candidate.family == "stacking":
                 stacking_classifier = StackingPairClassifier(self._store)
                 base_ids = candidate.base_model_ids
+                stacking_config = ensemble_configs.get(candidate.model_id)
+                if stacking_config is None or n_samples > stacking_config.maximum_training_pairs:
+                    raise PipelineError("ML-PIPE-071", "A configured ensemble model is missing.")
                 for b_id in base_ids:
+                    if isinstance(
+                        fitted_models.get(b_id),
+                        (ReferenceFeatureScoreArtifact, SplinkNativeModelArtifact),
+                    ):
+                        raise PipelineError(
+                            "ML-PIPE-044",
+                            "A non-OOF baseline cannot be used as a stacking base model.",
+                        )
                     if b_id not in oof_scores:
                         raise PipelineError(
                             "ML-PIPE-044",
@@ -830,14 +1043,33 @@ class ModelPortfolioRunner:
             val_reports[candidate.model_id] = report
 
             model_obj = fitted_models[candidate.model_id]
+            model_evidence_digest = (
+                model_obj.artifact_digest
+                if isinstance(model_obj, SplinkNativeModelArtifact)
+                else model_obj.model_digest
+            )
+            model_feature_schema_digest = (
+                model_obj.feature_schema_digest
+                if isinstance(
+                    model_obj,
+                    (
+                        ReferenceFeatureScoreArtifact,
+                        SplinkNativeModelArtifact,
+                        XGBoostModelArtifact,
+                        LightGBMModelArtifact,
+                        PyTorchModelArtifact,
+                    ),
+                )
+                else training_matrix.feature_schema_digest
+            )
 
             eval_candidates.append(
                 ModelEvaluationCandidate(
                     model_family=candidate.family,
                     model_id=candidate.model_id,
                     model_version=model_obj.model_version,
-                    evidence_digest=model_obj.model_digest,
-                    feature_schema_digest=feature_schema_digest,
+                    evidence_digest=model_evidence_digest,
+                    feature_schema_digest=model_feature_schema_digest,
                     validation_label_authority_digest=validation_matrix.label_authority_digest,
                     partition_manifest_digest=disjointness.manifest_digest,
                     average_precision=report.average_precision,
@@ -865,6 +1097,7 @@ class ModelPortfolioRunner:
                     base_artifact,
                     (
                         ReferenceFeatureScoreArtifact,
+                        SplinkNativeModelArtifact,
                         XGBoostModelArtifact,
                         LightGBMModelArtifact,
                         PyTorchModelArtifact,
@@ -895,7 +1128,7 @@ class ModelPortfolioRunner:
             source_model_id=champ_id,
             source_model_version=champion_selection.selected_model_version,
             source_evidence_digest=champion_selection.selected_evidence_digest,
-            feature_schema_digest=feature_schema_digest,
+            feature_schema_digest=champion_selection.selected_feature_schema_digest,
             label_authority_digest=calibration_matrix.label_authority_digest,
             partition_manifest_digest=disjointness.manifest_digest,
             champion_selection_digest=champion_selection.selection_digest,
@@ -907,7 +1140,135 @@ class ModelPortfolioRunner:
             methods=calibrator_methods,
         )
 
-        # 6. Emitting immutable pipeline recipe artifact
+        # 6. Evaluate the frozen champion on locked test labels. These values are
+        # intentionally unavailable until after selection and calibration are complete.
+        locked_test_report: PairValidationReport | None = None
+        if locked_test_matrix is not None:
+            if isinstance(
+                selected_artifact, (ReferenceFeatureScoreArtifact, SplinkNativeModelArtifact)
+            ):
+                if fs_locked_test_scores is None:
+                    raise PipelineError(
+                        "ML-PIPE-075",
+                        "Native baseline test scoring requires native score evidence.",
+                    )
+                locked_test_raw = fs_locked_test_scores
+            else:
+                locked_test_raw = _score_fitted_model(
+                    matrix=_feature_view(locked_test_matrix),
+                    artifact=selected_artifact,
+                    fitted_models=fitted_models,
+                )
+            locked_test_probabilities = _apply_calibrator(
+                locked_test_raw,
+                calibrator_artifact,
+            )
+            locked_test_report = replace(
+                evaluate_binary_scores(
+                    labels=locked_test_matrix.labels,
+                    scores=locked_test_probabilities,
+                    diagnostic_threshold=0.5,
+                    evaluation_scope="synthetic_mechanical_evaluation",
+                    partition_manifest_digest=disjointness.manifest_digest,
+                ),
+                calibration_status="calibrated_on_protected_partition",
+            )
+
+        # 7. Train configured rankers on training only and select using validation only.
+        ranker_reports: dict[str, RankingValidationReport] = {}
+        if portfolio.ranking_candidates:
+            if ranking_artifact is not None or ranking_artifact_digest is not None:
+                raise PipelineError("ML-PIPE-076", "Ranking evidence path is ambiguous.")
+            if ranking_training_matrix is None or ranking_validation_matrix is None:
+                raise PipelineError(
+                    "ML-PIPE-077",
+                    "Configured rankers require protected training and validation matrices.",
+                )
+            ranking_configs = {
+                model.model_id: model for model in models_config.all_ranking_models()
+            }
+            fitted_rankers: dict[str, FittedRankingArtifact] = {}
+            for ranking_candidate in portfolio.ranking_candidates:
+                if not ranking_candidate.enabled:
+                    continue
+                ranking_config = ranking_configs.get(ranking_candidate.model_id)
+                if (
+                    ranking_config is None
+                    or ranking_config.implementation != ranking_candidate.implementation
+                    or ranking_config.query_side != ranking_candidate.query_side
+                    or ranking_config.top_k != ranking_candidate.top_k
+                ):
+                    raise PipelineError("ML-PIPE-078", "A configured ranker is missing.")
+                train_rank = build_ranking_matrix(
+                    ranking_training_matrix,
+                    query_side=ranking_config.query_side,
+                )
+                validation_rank = build_ranking_matrix(
+                    ranking_validation_matrix,
+                    query_side=ranking_config.query_side,
+                )
+                fitted_ranker: FittedRankingArtifact
+                if ranking_candidate.family == "xgboost":
+                    fitted_xgb_ranker = XGBoostCandidateRanker.fit(
+                        matrix=train_rank,
+                        model=ranking_config,
+                        random_seed=random_seed,
+                        configuration_digest=configuration_digest,
+                    )
+                    rank_scores = XGBoostCandidateRanker.score(
+                        matrix=validation_rank,
+                        model=fitted_xgb_ranker,
+                    )
+                    fitted_ranker = fitted_xgb_ranker
+                else:
+                    fitted_lgb_ranker = LightGBMRanker.fit(
+                        matrix=train_rank,
+                        model=ranking_config,
+                        random_seed=random_seed,
+                        configuration_digest=configuration_digest,
+                    )
+                    rank_scores = LightGBMRanker.score(
+                        matrix=validation_rank,
+                        model=fitted_lgb_ranker,
+                    )
+                    fitted_ranker = fitted_lgb_ranker
+                true_pair_digests = frozenset(
+                    digest
+                    for digest, relevance in zip(
+                        validation_rank.pair_digests,
+                        validation_rank.relevance,
+                        strict=True,
+                    )
+                    if relevance > 0.0
+                )
+                eligible_query_keys = tuple(sorted(set(validation_rank.query_keys)))
+                ranker_reports[ranking_candidate.model_id] = evaluate_ranking(
+                    scores=rank_scores,
+                    true_pair_digests=true_pair_digests,
+                    eligible_query_keys=eligible_query_keys,
+                    k_values=tuple(sorted({1, ranking_candidate.top_k})),
+                )
+                fitted_rankers[ranking_candidate.model_id] = fitted_ranker
+            if not fitted_rankers:
+                raise PipelineError("ML-PIPE-079", "The ranking portfolio has no candidate.")
+            executable_rankers = {
+                model_id: artifact
+                for model_id, artifact in fitted_rankers.items()
+                if artifact.query_side == "source"
+            }
+            if executable_rankers:
+                selected_ranker_id = min(
+                    executable_rankers,
+                    key=lambda model_id: (
+                        -ranker_reports[model_id].mean_reciprocal_rank,
+                        -ranker_reports[model_id].top1_fraction,
+                        model_id,
+                    ),
+                )
+                ranking_artifact = executable_rankers[selected_ranker_id]
+                ranking_artifact_digest = ranking_artifact.artifact_digest
+
+        # 8. Emit immutable pipeline recipe artifact.
         recipe_id = f"recipe_{portfolio.portfolio_id}"
         recipe = PipelineRecipeArtifact(
             recipe_id=recipe_id,
@@ -916,7 +1277,7 @@ class ModelPortfolioRunner:
             assignment_constraint=assignment_constraint,
             configuration_digest=configuration_digest,
             candidate_plan_digest=candidate_plan_digest,
-            feature_schema_digest=feature_schema_digest,
+            feature_schema_digest=champion_selection.selected_feature_schema_digest,
             champion_model_id=champion_selection.selected_model_id,
             champion_model_version=champion_selection.selected_model_version,
             champion_artifact_digest=recipe_champion_artifact_digest,
@@ -939,6 +1300,8 @@ class ModelPortfolioRunner:
             validation_reports=val_reports,
             recipe=recipe,
             ranking_artifact=ranking_artifact,
+            ranking_validation_reports=ranker_reports,
+            locked_test_report=locked_test_report,
         )
 
 

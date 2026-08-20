@@ -173,9 +173,10 @@ The initial baseline uses `implementation: splink_duckdb` and records:
 
 The engine-owned reference estimator produces `model_posterior_uncalibrated` evidence. The Splink adapter compiles the safe configuration and verifies candidate parity. Neither path has decision authority.
 
-### Boosted-tree pair classifier
+### Boosted-tree pair classifiers
 
-The initial supervised model uses `implementation: xgboost_classifier` with:
+Singular `boosted_tree` remains backward compatible. Plural `boosted_trees` accepts bounded
+`xgboost_classifier` and `lightgbm_classifier` candidates with:
 
 - eligible verified labels only;
 - bounded deterministic hard-negative selection;
@@ -185,9 +186,10 @@ The initial supervised model uses `implementation: xgboost_classifier` with:
 
 The score remains uncalibrated evidence until the protected calibration stage.
 
-### Candidate ranker
+### Candidate rankers
 
-The initial ranker uses `implementation: xgboost_ranker` and declares:
+Singular `ranking` remains backward compatible. Plural `ranking_models` accepts bounded
+`xgboost_ranker` and `lightgbm_ranker` candidates and declares:
 
 - `query_side`;
 - `top_k`;
@@ -195,10 +197,22 @@ The initial ranker uses `implementation: xgboost_ranker` and declares:
 - bounded deterministic training controls.
 
 Ranker outputs contain scores, ranks, top-K membership, model identity, and artifact provenance only. They cannot contain relationship statuses, assignment authority, or merge instructions.
+The current source-to-target recipe can execute only `query_side: source`; target-query
+artifacts are trained and reported but rejected at this inference boundary.
 
 ### Neural matcher
 
-`pytorch_pair_mlp` remains an optional, disabled future implementation. It is not required for the synthetic MVP.
+Plural `neural_models` accepts optional `pytorch_pair_mlp` candidates with bounded `epochs`,
+`learning_rate`, `weight_decay`, `maximum_training_pairs`, `device: cpu`, `n_threads`, and
+`deterministic_mode`. The matcher consumes comparison features only. It has no raw-text,
+identity, relationship-decision, or merge authority.
+
+### Stacking and portfolio selection
+
+Plural `ensembles` accepts `stacking_logistic` with explicit replayable supervised
+`base_model_ids`. Native Splink cannot be assigned a false OOF claim or used as a generic
+feature-matrix stacking base. `models.portfolio` binds the mandatory baseline, enabled pair
+and ranking candidate IDs, challenger budget, and no-authority rules under schema version 1.
 
 ## Champion–challenger selection
 
@@ -210,7 +224,9 @@ model_selection:
   test_partition_may_select_model: false
 ```
 
-The validation partition compares Fellegi–Sunter and XGBoost aggregate evidence. The test partition cannot select a model. Selection artifacts retain model identities, evidence digests, label authority, partition evidence, metrics, and a deterministic selection digest.
+The validation partition compares every eligible configured candidate. The test partition
+cannot select a model. Selection artifacts retain model identities, evidence digests, label
+authority, partition evidence, metrics, and a deterministic selection digest.
 
 ## Calibration
 
@@ -222,7 +238,10 @@ calibration:
   require_independent_partition: true
 ```
 
-Supported methods are sigmoid and isotonic. Calibration uses only the protected calibration partition and writes native JSON payload/manifest artifacts with tamper detection. A calibrated probability still has `decision_authority: evidence_only` until the separate decision stage.
+Supported methods are sigmoid, isotonic, and Beta. Calibration uses only the protected
+calibration partition and writes native JSON payload/manifest artifacts with tamper detection.
+A calibrated probability still has `decision_authority: evidence_only` until the separate
+decision stage.
 
 ## Assignment
 

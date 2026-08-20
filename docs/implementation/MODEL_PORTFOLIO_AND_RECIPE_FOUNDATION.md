@@ -48,11 +48,10 @@ merge authority                      -> none
 
 No recipe creates a consolidated master record.
 
-## Next integration
+## I1B integration status
 
-1. expose plural candidates through a versioned project-configuration schema;
-2. generate immutable stage artifacts and out-of-fold prediction manifests;
-3. implement protected portfolio training and validation-only selection;
-4. bind the selected champion, calibrator, ranker, assignment, and decision policy into a recipe;
-5. implement a separate recipe-driven inference runner with optional challenger shadow scoring;
-6. retain explicit local approval and locked-test evidence before inference use.
+Plural candidates are exposed through the backward-compatible configuration schema and execute
+in the I1B generated-synthetic workflow. The runner produces group-protected OOF manifests,
+validation-only selection, calibration-only fitting, locked-test evaluation, strict artifact
+reload, recipe-v1 binding, and typed recipe replay. Operational approval and optional shadow
+challenger scoring remain separate future work; synthetic execution cannot supply either.

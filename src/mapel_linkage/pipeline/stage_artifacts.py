@@ -136,8 +136,13 @@ class OutOfFoldPredictionManifest(ArtifactNode):
     label_authority_digest: Digest
     split_manifest_digest: Digest
     fold_count: Annotated[StrictInt, Field(ge=2, le=100)]
+    group_count: Annotated[StrictInt, Field(ge=2)]
     pair_count: Annotated[StrictInt, Field(gt=0)]
     prediction_digest: Digest
+    group_assignment_digest: Digest
+    grouping_method: Literal["source_entity_household_connected_components"] = (
+        "source_entity_household_connected_components"
+    )
     partition: Literal["training_oof"] = "training_oof"
     test_partition_used: Literal[False] = False
     calibration_partition_used: Literal[False] = False
@@ -163,8 +168,11 @@ class OutOfFoldPredictionManifest(ArtifactNode):
             "label_authority_digest": self.label_authority_digest,
             "split_manifest_digest": self.split_manifest_digest,
             "fold_count": self.fold_count,
+            "group_count": self.group_count,
             "pair_count": self.pair_count,
             "prediction_digest": self.prediction_digest,
+            "group_assignment_digest": self.group_assignment_digest,
+            "grouping_method": self.grouping_method,
             "partition": self.partition,
             "test_partition_used": self.test_partition_used,
             "calibration_partition_used": self.calibration_partition_used,

@@ -40,6 +40,12 @@ def test_capability_registry_distinguishes_components_from_workflows() -> None:
     assert by_id["splink_native_model_lifecycle"].component_status is ComponentStatus.IMPLEMENTED
     assert by_id["splink_native_model_lifecycle"].workflow_status is WorkflowStatus.INTEGRATED
     assert (
+        by_id["configuration_driven_model_portfolio"].workflow_status is WorkflowStatus.INTEGRATED
+    )
+    assert by_id["lightgbm_pair_classifier"].workflow_status is WorkflowStatus.INTEGRATED
+    assert by_id["lightgbm_candidate_ranker"].workflow_status is WorkflowStatus.INTEGRATED
+    assert by_id["pytorch_tabular_matcher"].workflow_status is WorkflowStatus.INTEGRATED
+    assert (
         by_id["splink_native_model_lifecycle"].runtime_verification
         is RuntimeVerificationStatus.CORE_CI
     )
@@ -62,7 +68,10 @@ def test_capability_summary_is_aggregate_only() -> None:
     summary = capability_summary()
 
     assert summary["capability_count"] == len(capabilities())
-    assert summary["integrated_synthetic_workflow"] == "two_source_link_only_one_to_one"
+    assert (
+        summary["integrated_synthetic_workflow"]
+        == "two_source_link_only_one_to_one_configured_portfolio"
+    )
     assert summary["operational_validation"] == "not_established"
     assert summary["merge_authority"] == "none"
     assert "record" not in repr(summary).lower()

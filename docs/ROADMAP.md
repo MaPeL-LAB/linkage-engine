@@ -30,81 +30,68 @@ configuration-driven CLI. The normative status table is
 M2 is merged and CI-verified as software behaviour on generated synthetic data. It is not
 operationally validated.
 
-## Implemented components awaiting general orchestration
+## Integrated milestones and bounded residuals
 
 ### M3 — adjudication and label lifecycle
 
-Implemented components include bounded review import, disagreement handling, active-learning
-ordering, eligibility evaluation, and controlled construction of verified label batches.
-
-Remaining integration work:
-
-- append-only project-level audit persistence;
-- explicit CLI import, consensus, promotion, and retraining commands;
-- partition-manifest compatibility at the orchestration boundary;
-- reviewer-role and protocol configuration;
-- no automatic retraining after adjudication.
+The append-only adjudication ledger, bounded review import, disagreement handling,
+multi-reviewer consensus, label-promotion controls, and active-learning ordering are integrated
+and core-CI verified. Automatic retraining remains prohibited. Operational reviewer roles,
+protocol approval, and any real-data retraining decision remain local governance work rather
+than repository-granted authority.
 
 ### M4 — extended linkage modes
 
-Implemented components include many-to-one, one-to-many, unconstrained assignment, and
-single-source deduplication primitives.
-
-Remaining integration work:
-
-- full `dedupe_only` runner;
-- full `link_and_dedupe` runner;
-- mode-specific candidate, comparison, decision, review, and evaluation artifacts;
-- configuration-driven dispatch and synthetic end-to-end acceptance tests.
+Many-to-one, one-to-many, unconstrained assignment, single-source deduplication, and combined
+link-and-dedupe workflows are integrated and core-CI verified. The bounded complete CLI
+orchestrator remains the generated-synthetic, two-source `link_only`, `one_to_one` workflow;
+the capability matrix, rather than that CLI boundary, is authoritative for the other shipped
+workflow APIs.
 
 ### M5 — broader model portfolio
 
-Implemented components include LightGBM pair classification and ranking, Beta calibration,
-and a stacking meta-learner. Plural configuration, bounded portfolio declarations, immutable
-stage artifacts, and protected out-of-fold manifests are integrated.
+I1B integrates the mandatory native Splink baseline with configured XGBoost, LightGBM,
+PyTorch, stacking, XGBoost ranking, and LightGBM ranking candidates. The synthetic workflow
+uses source-side entity/household-connected OOF groups for supervised stacking inputs,
+validation-only champion/ranker selection, calibration-only fitting, and locked-test
+evaluation after the champion and calibrator are frozen. It persists and strictly reloads the
+champion bundle, calibrator, executable source-query ranker, and recipe-v1 binding before two
+disjoint decision-partition replays. Target-query rankers are trained and reported but cannot
+be silently used by the source-to-target assignment contract.
 
-Remaining integration work:
-
-- general portfolio training and artifact-to-artifact stage execution;
-- model cards, promotion policy, and immutable selection rationale;
-- independent calibration-method selection without locked-test access;
-- workflow integration for LightGBM, stacking, and PyTorch challengers.
+Operational model cards, promotion, threshold approval, and real-population validation remain
+local human decisions. Native Splink is never treated as a generic boosted-feature or stacking
+base artifact.
 
 ### M6 — optional neural matcher
 
-The feature-based PyTorch matcher and controlled artifacts are implemented.
-
-Remaining integration work:
-
-- complete bounded training configuration;
-- portfolio/challenger orchestration;
-- calibration and promotion policy;
-- device and reproducibility reporting in approved recipe artifacts.
+The feature-based PyTorch matcher has bounded epochs, learning rate, weight decay, training
+pair budget, CPU-device, thread, and deterministic-mode configuration. Its protected
+tournament, immutable artifact reload, calibration, and recipe-bound synthetic replay path is
+integrated and executed by all-models CI. It has no raw-text, identity, decision, or merge
+authority.
 
 ### M7 — multi-source entity resolution
 
-Implemented components include source-aware evidence graphs, correlation clustering,
-constrained agglomerative clustering, connected-component baselines, cannot-link enforcement,
-crosswalk export, BCubed metrics, purity, pairwise metrics, and violation diagnostics.
+Source-aware N-dataset entity resolution and global crosswalk workflow integration are
+core-CI verified. Correlation clustering, constrained agglomerative clustering, BCubed,
+purity, pairwise metrics, cannot-link enforcement, and violation diagnostics remain declared
+as component-only where the capability matrix says so. Building a production N-source graph
+from locally approved pairwise recipes remains outside the complete synthetic CLI and does not
+gain merge authority.
 
-Remaining integration work:
+## I1A/I1B — orchestration and configured model portfolio
 
-- N-source configuration and source-pair recipe planning;
-- pairwise calibrated-evidence compatibility checks;
-- graph construction from approved pairwise artifacts;
-- cluster-level decisions and restricted conflict review;
-- end-to-end multi-source synthetic acceptance tests.
-
-## Current cross-cutting target: I1 general orchestration
-
-I1 establishes:
+I1 now establishes, for the bounded generated-synthetic two-source workflow:
 
 - immutable artifact-to-artifact stage execution;
 - protected portfolio training and out-of-fold stacking evidence;
-- separate train, select, calibrate, approve, and infer commands;
+- protected train, select, calibrate, locked-test, persist/reload, and infer boundaries;
 - approved-recipe new-data inference;
 - shadow challengers with no decision authority;
-- general orchestration for M3 through M7.
+- configuration-driven native and optional-model portfolio execution.
+
+This does not claim one general CLI for every M3–M7 capability or any operational approval.
 
 See
 [`architecture/ADR-0004-CAPABILITY-STATUS-AND-PIPELINE-INTEGRATION.md`](architecture/ADR-0004-CAPABILITY-STATUS-AND-PIPELINE-INTEGRATION.md).
@@ -129,21 +116,17 @@ performance claim without benchmark evidence.
 
 ## B1 — synthetic benchmark evidence library
 
-B1 is the next advisor evidence-generation milestone:
-
-- freeze scenario, profile, recipe-fingerprint, metric, failure, and registry schemas;
-- implement the designed experimental matrix and scenario-family taxonomy;
-- execute the bounded model portfolio across instances and replicates;
-- retain successes, failures, timeouts, ineligible recipes, and abstentions;
-- populate an aggregate synthetic registry;
-- pre-specify held-out scenario families and unseen corruption mechanisms;
-- produce a registry coverage and readiness report.
-
-The current repository contains the registry contracts but no populated benchmark corpus.
+B1 is integrated: the repository includes the parametric scenario generator, benchmark
+portfolio runner, failure/status contracts, and file-backed aggregate registry persistence.
+Generated registries are synthetic evidence and are not an operational corpus or a claim of
+population fidelity. A specific locally generated registry still needs adequate scenario
+coverage before an advisor may rely on it.
 
 ## I2B — similarity and coverage advisor
 
-Deferred until B1 coverage is sufficient. Scope:
+I2B is integrated with nearest-family retrieval, weighted distance, coverage and
+out-of-distribution checks, performance-distribution aggregation, uncertainty, and
+abstention. It must abstain when the supplied registry lacks adequate coverage.
 
 ```text
 observable feature standardisation
@@ -158,14 +141,16 @@ Family counts such as 50–100 are planning ranges, not automatic validity gates
 
 ## I2C — learned meta-ranking advisor
 
-Deferred until I2B is independently validated and the recipe-by-family evidence matrix has
-adequate overlap. Group-held-out learning-to-rank must outperform transparent retrieval without
-violating hard constraints.
+I2C is integrated as a learned meta-regressor with conformal uncertainty and similarity
+fallback. Its presence does not establish that a particular registry has adequate overlap or
+that learned ranking outperforms transparent retrieval for an operational population.
 
 ## I2D — active benchmark planning
 
-Deferred until learned-advisor uncertainty is calibrated. The planner must target genuine
-coverage gaps and demonstrate prospective reduction in uncertainty or recommendation regret.
+I2D is integrated with snapshot-bound active synthetic benchmark planning, explicit human
+execution approval, append-only evidence checks, and advisory refit. It cannot execute a
+benchmark, promote a recipe, classify a relationship, or establish operational validity on
+its own.
 
 ## M8 — release hardening
 
