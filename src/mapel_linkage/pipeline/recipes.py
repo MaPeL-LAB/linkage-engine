@@ -13,6 +13,7 @@ from mapel_linkage.domain.errors import PipelineError
 
 _DIGEST_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 _IDENTIFIER_PATTERN = re.compile(r"^[A-Za-z][A-Za-z0-9_.-]{0,127}$")
+_SYNTHETIC_ATTESTATION_ISSUER = object()
 
 type AssignmentConstraint = Literal[
     "one_to_one",
@@ -42,6 +43,7 @@ class RecipeExecutionMode(StrEnum):
 
     DEVELOPMENT = "development"
     SHADOW = "shadow"
+    SYNTHETIC_INFERENCE = "synthetic_inference"
     INFERENCE = "inference"
 
 
@@ -50,6 +52,142 @@ class OperationalValidationStatus(StrEnum):
 
     NOT_ESTABLISHED = "not_established"
     LOCALLY_ESTABLISHED = "locally_established"
+
+
+@dataclass(frozen=True, slots=True, init=False, repr=False)
+class SyntheticInferenceAttestation:
+    """Opaque, aggregate-only authorization for one package-generated synthetic input.
+
+    Instances are issued by the package inference API after it has regenerated and verified a
+    :class:`~mapel_linkage.synthetic.SyntheticBundle`. Recipe approval alone never issues this
+    capability, and the capability carries no relationship, assignment, or merge authority.
+    """
+
+    schema_version: Literal["1"]
+    data_origin: Literal["package_generated_synthetic"]
+    data_policy: Literal["synthetic_only"]
+    operational_validity: Literal["not_established"]
+    decision_authority: Literal["none"]
+    assignment_authority: Literal["none"]
+    merge_authority: Literal["none"]
+    synthetic_bundle_digest: str
+    inference_input_digest: str
+    source_record_count: int
+    pair_count: int
+    _issuer: object
+
+    def __new__(cls) -> SyntheticInferenceAttestation:
+        raise TypeError(
+            "SyntheticInferenceAttestation instances are issued by the package inference API."
+        )
+
+    @classmethod
+    def _issue(
+        cls,
+        *,
+        synthetic_bundle_digest: str,
+        inference_input_digest: str,
+        source_record_count: int,
+        pair_count: int,
+    ) -> SyntheticInferenceAttestation:
+        """Issue an attestation after package-owned synthetic provenance verification."""
+        instance = object.__new__(cls)
+        object.__setattr__(instance, "schema_version", "1")
+        object.__setattr__(instance, "data_origin", "package_generated_synthetic")
+        object.__setattr__(instance, "data_policy", "synthetic_only")
+        object.__setattr__(instance, "operational_validity", "not_established")
+        object.__setattr__(instance, "decision_authority", "none")
+        object.__setattr__(instance, "assignment_authority", "none")
+        object.__setattr__(instance, "merge_authority", "none")
+        object.__setattr__(instance, "synthetic_bundle_digest", synthetic_bundle_digest)
+        object.__setattr__(instance, "inference_input_digest", inference_input_digest)
+        object.__setattr__(instance, "source_record_count", source_record_count)
+        object.__setattr__(instance, "pair_count", pair_count)
+        object.__setattr__(instance, "_issuer", _SYNTHETIC_ATTESTATION_ISSUER)
+        instance.assert_valid_contract()
+        return instance
+
+    def assert_valid_contract(self) -> None:
+        """Reject forged, malformed, or authority-bearing attestations without echoing values."""
+        if (
+            getattr(self, "_issuer", None) is not _SYNTHETIC_ATTESTATION_ISSUER
+            or getattr(self, "schema_version", None) != "1"
+            or getattr(self, "data_origin", None) != "package_generated_synthetic"
+            or getattr(self, "data_policy", None) != "synthetic_only"
+            or getattr(self, "operational_validity", None) != "not_established"
+            or getattr(self, "decision_authority", None) != "none"
+            or getattr(self, "assignment_authority", None) != "none"
+            or getattr(self, "merge_authority", None) != "none"
+            or getattr(self, "source_record_count", 0) < 1
+            or getattr(self, "pair_count", 0) < 1
+        ):
+            raise PipelineError(
+                "ML-RECIPE-014",
+                "The synthetic inference attestation is invalid or exceeds its authority.",
+            )
+        try:
+            _require_digest(self.synthetic_bundle_digest)
+            _require_digest(self.inference_input_digest)
+        except PipelineError:
+            raise PipelineError(
+                "ML-RECIPE-014",
+                "The synthetic inference attestation is invalid or exceeds its authority.",
+            ) from None
+
+    def assert_authorizes(
+        self,
+        *,
+        inference_input_digest: str,
+        source_record_count: int,
+        pair_count: int,
+    ) -> None:
+        """Require an exact, value-hidden binding to the current inference input."""
+        self.assert_valid_contract()
+        if (
+            self.inference_input_digest != inference_input_digest
+            or self.source_record_count != source_record_count
+            or self.pair_count != pair_count
+        ):
+            raise PipelineError(
+                "ML-RECIPE-015",
+                "The synthetic inference attestation does not authorize this input.",
+            )
+
+    @property
+    def attestation_digest(self) -> str:
+        """Return a stable aggregate digest for audit linkage."""
+        payload = {
+            "schema_version": self.schema_version,
+            "data_origin": self.data_origin,
+            "data_policy": self.data_policy,
+            "operational_validity": self.operational_validity,
+            "decision_authority": self.decision_authority,
+            "assignment_authority": self.assignment_authority,
+            "merge_authority": self.merge_authority,
+            "synthetic_bundle_digest": self.synthetic_bundle_digest,
+            "inference_input_digest": self.inference_input_digest,
+            "source_record_count": self.source_record_count,
+            "pair_count": self.pair_count,
+        }
+        encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        return hashlib.sha256(encoded).hexdigest()
+
+    def safe_summary(self) -> dict[str, str | int]:
+        """Return only aggregate authority and provenance metadata."""
+        return {
+            "attestation_digest": self.attestation_digest,
+            "data_origin": self.data_origin,
+            "data_policy": self.data_policy,
+            "operational_validity": self.operational_validity,
+            "decision_authority": self.decision_authority,
+            "assignment_authority": self.assignment_authority,
+            "merge_authority": self.merge_authority,
+            "source_record_count": self.source_record_count,
+            "pair_count": self.pair_count,
+        }
+
+    def __repr__(self) -> str:
+        return "<SyntheticInferenceAttestation aggregate-only>"
 
 
 def _require_identifier(value: str) -> None:
@@ -142,8 +280,21 @@ class PipelineRecipeArtifact:
         encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
         return hashlib.sha256(encoded).hexdigest()
 
-    def assert_usable_for(self, mode: RecipeExecutionMode) -> None:
-        """Reject execution modes that exceed the recipe's approval authority."""
+    def assert_usable_for(
+        self,
+        mode: RecipeExecutionMode,
+        *,
+        synthetic_attestation: SyntheticInferenceAttestation | None = None,
+    ) -> None:
+        """Reject modes exceeding recipe approval and synthetic input authority."""
+        if (
+            mode is not RecipeExecutionMode.SYNTHETIC_INFERENCE
+            and synthetic_attestation is not None
+        ):
+            raise PipelineError(
+                "ML-RECIPE-016",
+                "A synthetic inference attestation cannot authorize this execution mode.",
+            )
         if mode is RecipeExecutionMode.DEVELOPMENT:
             return
         if mode is RecipeExecutionMode.SHADOW:
@@ -152,6 +303,23 @@ class PipelineRecipeArtifact:
                     "ML-RECIPE-004",
                     "A draft pipeline recipe cannot execute in shadow mode.",
                 )
+            return
+        if mode is RecipeExecutionMode.SYNTHETIC_INFERENCE:
+            if (
+                self.approval_status is not RecipeApprovalStatus.SYNTHETIC_VALIDATED
+                or self.operational_validation is not OperationalValidationStatus.NOT_ESTABLISHED
+            ):
+                raise PipelineError(
+                    "ML-RECIPE-013",
+                    "Synthetic inference requires synthetic validation and cannot claim "
+                    "operational validity.",
+                )
+            if synthetic_attestation is None:
+                raise PipelineError(
+                    "ML-RECIPE-014",
+                    "Synthetic inference requires a package-issued input attestation.",
+                )
+            synthetic_attestation.assert_valid_contract()
             return
         if (
             self.approval_status is not RecipeApprovalStatus.APPROVED_FOR_INFERENCE
@@ -185,4 +353,5 @@ __all__ = [
     "PipelineRecipeArtifact",
     "RecipeApprovalStatus",
     "RecipeExecutionMode",
+    "SyntheticInferenceAttestation",
 ]

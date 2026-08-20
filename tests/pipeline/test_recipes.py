@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
 
 from mapel_linkage.domain.errors import PipelineError
@@ -9,6 +11,7 @@ from mapel_linkage.pipeline import (
     RecipeApprovalStatus,
     RecipeExecutionMode,
 )
+from mapel_linkage.pipeline.recipes import SyntheticInferenceAttestation
 
 
 def digest(character: str) -> str:
@@ -64,15 +67,28 @@ def test_draft_recipe_is_development_only() -> None:
     with pytest.raises(PipelineError) as inference_error:
         draft.assert_usable_for(RecipeExecutionMode.INFERENCE)
     assert inference_error.value.code == "ML-RECIPE-005"
+    with pytest.raises(PipelineError) as synthetic_error:
+        draft.assert_usable_for(RecipeExecutionMode.SYNTHETIC_INFERENCE)
+    assert synthetic_error.value.code == "ML-RECIPE-013"
 
 
-def test_synthetic_validated_recipe_may_run_in_shadow_only() -> None:
+def test_synthetic_validated_recipe_requires_package_attestation_for_synthetic_inference() -> None:
     validated = recipe(approval_status=RecipeApprovalStatus.SYNTHETIC_VALIDATED)
 
     validated.assert_usable_for(RecipeExecutionMode.SHADOW)
+    with pytest.raises(PipelineError) as synthetic_error:
+        validated.assert_usable_for(RecipeExecutionMode.SYNTHETIC_INFERENCE)
+    assert synthetic_error.value.code == "ML-RECIPE-014"
     with pytest.raises(PipelineError) as inference_error:
         validated.assert_usable_for(RecipeExecutionMode.INFERENCE)
     assert inference_error.value.code == "ML-RECIPE-005"
+
+
+def test_synthetic_attestation_has_no_public_constructor() -> None:
+    constructor: Any = SyntheticInferenceAttestation
+
+    with pytest.raises(TypeError, match="issued by the package inference API"):
+        constructor()
 
 
 def test_inference_approval_requires_local_operational_validation() -> None:
@@ -89,3 +105,6 @@ def test_locally_validated_approved_recipe_may_run_inference() -> None:
     )
 
     approved.assert_usable_for(RecipeExecutionMode.INFERENCE)
+    with pytest.raises(PipelineError) as synthetic_error:
+        approved.assert_usable_for(RecipeExecutionMode.SYNTHETIC_INFERENCE)
+    assert synthetic_error.value.code == "ML-RECIPE-013"

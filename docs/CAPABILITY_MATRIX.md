@@ -39,7 +39,7 @@ No current capability has established operational validation.
 | `synthetic_benchmark_registry` | B1 | implemented | workflow_integrated | core_ci | Parametric scenario generator, benchmark portfolio runner, and file-backed registry persistence. |
 | `stage2_similarity_advisor` | I2B | implemented | workflow_integrated | core_ci | Nearest scenario family retrieval, weighted distance computation, out-of-distribution thresholding, empirical performance distribution aggregation, and strict advisory invariants. |
 | `stage3_meta_ranking_advisor` | I2C | implemented | workflow_integrated | core_ci | Learned meta-regressor with conformal uncertainty intervals and similarity fallback. |
-| `linkage_strategy_advisor` | I2D | planned | not_integrated | not_verified | Active benchmark planning and multi-stage empirical meta-learning remain evidence-gated. |
+| `linkage_strategy_advisor` | I2D | implemented | workflow_integrated | core_ci | Snapshot-bound active synthetic benchmark planning, explicit human execution approval, append-only evidence checks, and advisory meta-model refit; operational validity remains not established. |
 
 ## Current integrated workflow
 

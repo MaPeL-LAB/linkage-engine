@@ -121,6 +121,24 @@ unless independently verified under the label-provenance policy.
 Repository visibility is not a data-security control. The synthetic-only boundary applies
 whether GitHub visibility is public or private.
 
+## Canonical synthetic lifecycle demonstration
+
+The import-safe [`examples/e2e_linkage_lifecycle.py`](examples/e2e_linkage_lifecycle.py)
+connects synthetic generation, preflight profiling, the advisory-only Stage-3 meta-ranker,
+protected model-portfolio training and calibration, review ordering, human consensus and
+partition-disjoint label promotion, immutable recipe IO, synthetic-only new-data inference,
+and aggregate multi-source evaluation. It never establishes operational validity.
+
+Run the focused lifecycle and tests with the canonical Python 3.12 environment:
+
+```bash
+scripts/run_e2e_lifecycle.sh
+```
+
+For a long verification run outside Codex, add `--full`. Inspect the exact commands without
+writing files with `--dry-run`; use `--python PATH` or `--output-dir DIR` to override the safe
+defaults.
+
 See:
 
 - [`docs/governance/PRIVACY_THREAT_MODEL.md`](docs/governance/PRIVACY_THREAT_MODEL.md)
@@ -182,6 +200,23 @@ A recommendation is not a `PipelineRecipeArtifact`, cannot approve a model, cann
 test partition, and has no identity, assignment, threshold, or merge authority. See
 [`docs/architecture/ADR-0005-LINKAGE-STRATEGY-ADVISOR.md`](
 docs/architecture/ADR-0005-LINKAGE-STRATEGY-ADVISOR.md).
+
+## Active synthetic benchmark planning
+
+Stage 4 computes aggregate coverage density over package-owned synthetic corruption axes and can
+produce a bounded, snapshot-bound experiment plan when similarity evidence is out of distribution,
+conformal intervals are wide, the meta-ranker abstains, or catalogue coverage is incomplete.
+
+```text
+mapel-linkage profile-job --config CONFIG --project-root ROOT > target-profile.json
+mapel-linkage plan-benchmarks --registry-dir DIR --target-profile target-profile.json
+```
+
+The CLI plans only. Execution requires a separate plan-bound human approval contract, protects
+prospectively held-out mechanisms, rejects stale registries and duplicate run IDs, and uses only the
+package-owned deterministic synthetic generator. Plans and refitted meta-models remain
+`advisory_only`; automatic model promotion and all decision, assignment, and merge authority remain
+prohibited. Synthetic benchmark evidence does not establish operational validity.
 
 ## Command line
 

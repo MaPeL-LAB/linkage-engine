@@ -402,6 +402,17 @@ class BenchmarkScenarioGenerator:
             raise KeyError(f"Unknown scenario instance ID: {instance_id}")
         return self._instances[instance_id][0]
 
+    def get_latent_spec(self, instance_id: str) -> ScenarioLatentSpec:
+        """Return the immutable package-owned simulator specification for planning only.
+
+        Latent values remain outside persisted benchmark manifests and advisor feature
+        vectors. This accessor lets experimental-design code stratify the package-owned
+        synthetic catalogue without generating or exposing record-level material.
+        """
+        if instance_id not in self._instances:
+            raise KeyError(f"Unknown scenario instance ID: {instance_id}")
+        return self._instances[instance_id][1]
+
     def list_instances(self, family_id: str | None = None) -> tuple[ScenarioInstanceManifest, ...]:
         if family_id is not None:
             return tuple(

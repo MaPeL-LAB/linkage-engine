@@ -4,10 +4,11 @@ from __future__ import annotations
 
 import csv
 import hashlib
+import hmac
 import json
 from collections import Counter
 from collections.abc import Sequence
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -64,11 +65,234 @@ from mapel_linkage.models.neural import (
     PyTorchModelArtifact,
     PyTorchPairMatcher,
 )
+from mapel_linkage.pipeline.portfolio_runner import (
+    ReferenceFeatureScoreArtifact,
+    StackingInferenceArtifactBundle,
+)
 from mapel_linkage.pipeline.recipe_io import deserialize_pipeline_recipe
 from mapel_linkage.pipeline.recipes import (
     PipelineRecipeArtifact,
     RecipeExecutionMode,
+    SyntheticInferenceAttestation,
 )
+from mapel_linkage.synthetic import (
+    SyntheticBundle,
+    SyntheticGenerationConfig,
+    generate_synthetic_bundle,
+)
+
+
+def _canonical_digest(payload: object) -> str:
+    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _synthetic_bundle_digest(bundle: SyntheticBundle) -> str:
+    """Hash a generated bundle without returning or logging its record-level values."""
+    return _canonical_digest(
+        {
+            "provenance": asdict(bundle.provenance),
+            "source_a": [record.as_mapping() for record in bundle.source_a],
+            "source_b": [record.as_mapping() for record in bundle.source_b],
+            "truth": [record.as_mapping() for record in bundle.truth],
+        }
+    )
+
+
+def _verified_package_bundle_digest(bundle: SyntheticBundle) -> str:
+    """Regenerate a claimed bundle and reject any non-package or modified content."""
+    try:
+        if not isinstance(bundle, SyntheticBundle):
+            raise TypeError
+        provenance = bundle.provenance
+        regenerated = generate_synthetic_bundle(
+            SyntheticGenerationConfig(
+                seed=provenance.seed,
+                entity_count=provenance.entity_count,
+                left_only_count=provenance.left_only_count,
+                right_only_count=provenance.right_only_count,
+                duplicate_count=provenance.duplicate_count,
+                competing_candidate_count=provenance.competing_candidate_count,
+                source_a_missing_rate=provenance.source_a_missing_rate,
+                source_b_missing_rate=provenance.source_b_missing_rate,
+                source_b_typo_rate=provenance.source_b_typo_rate,
+                source_b_date_shift_rate=provenance.source_b_date_shift_rate,
+            )
+        )
+        bundle_digest = _synthetic_bundle_digest(bundle)
+        regenerated_digest = _synthetic_bundle_digest(regenerated)
+    except (AttributeError, TypeError, ValueError):
+        raise PipelineError(
+            "ML-PIPE-059",
+            "Synthetic inference requires an unmodified package-generated bundle.",
+        ) from None
+    if bundle_digest != regenerated_digest:
+        raise PipelineError(
+            "ML-PIPE-059",
+            "Synthetic inference requires an unmodified package-generated bundle.",
+        )
+    return bundle_digest
+
+
+def _selected_evidence_digest(
+    *,
+    pair_references: tuple[tuple[str, str], ...],
+    raw_scores: NDArray[np.float64] | Sequence[float] | None,
+    feature_matrix: BoostedFeatureMatrix | None,
+) -> tuple[str, str]:
+    """Bind the exact selected evidence path without retaining values in the contract."""
+    if raw_scores is not None:
+        try:
+            values = np.asarray(raw_scores, dtype="<f8")
+        except (TypeError, ValueError):
+            raise PipelineError(
+                "ML-PIPE-061",
+                "Synthetic inference evidence is invalid.",
+            ) from None
+        if (
+            values.ndim != 1
+            or values.shape[0] != len(pair_references)
+            or not np.all(np.isfinite(values))
+        ):
+            raise PipelineError("ML-PIPE-061", "Synthetic inference evidence is invalid.")
+        digest = hashlib.sha256()
+        digest.update(b"raw_scores\x00")
+        digest.update(str(values.shape).encode("ascii"))
+        digest.update(values.tobytes(order="C"))
+        return "raw_scores", digest.hexdigest()
+
+    if feature_matrix is None:
+        raise PipelineError("ML-PIPE-061", "Synthetic inference evidence is invalid.")
+    values = np.asarray(feature_matrix.features, dtype="<f8")
+    if (
+        feature_matrix.pair_references != pair_references
+        or values.ndim != 2
+        or values.shape[0] != len(pair_references)
+        or not np.all(np.isfinite(values))
+    ):
+        raise PipelineError("ML-PIPE-061", "Synthetic inference evidence is invalid.")
+    digest = hashlib.sha256()
+    digest.update(b"feature_matrix\x00")
+    digest.update(str(values.shape).encode("ascii"))
+    digest.update(feature_matrix.feature_schema_digest.encode("ascii"))
+    digest.update("\x00".join(feature_matrix.feature_names).encode("utf-8"))
+    digest.update(values.tobytes(order="C"))
+    return "feature_matrix", digest.hexdigest()
+
+
+def _inference_input_digest(
+    *,
+    source_record_keys: tuple[str, ...],
+    pair_references: tuple[tuple[str, str], ...],
+    raw_scores: NDArray[np.float64] | Sequence[float] | None,
+    feature_matrix: BoostedFeatureMatrix | None,
+    source_dataset_id: str,
+    target_dataset_id: str,
+) -> str:
+    evidence_kind, evidence_digest = _selected_evidence_digest(
+        pair_references=pair_references,
+        raw_scores=raw_scores,
+        feature_matrix=feature_matrix,
+    )
+    return _canonical_digest(
+        {
+            "source_dataset_id": source_dataset_id,
+            "target_dataset_id": target_dataset_id,
+            "source_record_digests": [
+                hashlib.sha256(f"source\x00{key}".encode()).hexdigest()
+                for key in source_record_keys
+            ],
+            "pair_digests": [pair_digest(left, right) for left, right in pair_references],
+            "evidence_kind": evidence_kind,
+            "evidence_digest": evidence_digest,
+        }
+    )
+
+
+def attest_generated_synthetic_inference(
+    *,
+    bundle: SyntheticBundle,
+    source_record_keys: tuple[str, ...],
+    pair_references: tuple[tuple[str, str], ...],
+    raw_scores: NDArray[np.float64] | Sequence[float] | None = None,
+    feature_matrix: BoostedFeatureMatrix | None = None,
+    source_dataset_id: str = "source_a",
+    target_dataset_id: str = "source_b",
+) -> SyntheticInferenceAttestation:
+    """Authorize one exact inference input from a verified package-generated bundle.
+
+    The returned object is an aggregate, in-memory capability. It cannot establish operational
+    validity and carries no recommendation, relationship, assignment, or merge authority.
+    """
+    bundle_digest = _verified_package_bundle_digest(bundle)
+    datasets = {
+        "source_a": frozenset(record.record_key for record in bundle.source_a),
+        "source_b": frozenset(record.record_key for record in bundle.source_b),
+    }
+    if (
+        source_dataset_id not in datasets
+        or target_dataset_id not in datasets
+        or source_dataset_id == target_dataset_id
+        or len(source_record_keys) != len(set(source_record_keys))
+    ):
+        raise PipelineError(
+            "ML-PIPE-060",
+            "Synthetic inference references are outside the verified generated bundle.",
+        )
+    source_keys = datasets[source_dataset_id]
+    target_keys = datasets[target_dataset_id]
+    supplied_sources = frozenset(source_record_keys)
+    if (
+        not source_record_keys
+        or not pair_references
+        or not supplied_sources.issubset(source_keys)
+        or any(
+            left not in supplied_sources or right not in target_keys
+            for left, right in pair_references
+        )
+    ):
+        raise PipelineError(
+            "ML-PIPE-060",
+            "Synthetic inference references are outside the verified generated bundle.",
+        )
+    input_digest = _inference_input_digest(
+        source_record_keys=source_record_keys,
+        pair_references=pair_references,
+        raw_scores=raw_scores,
+        feature_matrix=feature_matrix,
+        source_dataset_id=source_dataset_id,
+        target_dataset_id=target_dataset_id,
+    )
+    return SyntheticInferenceAttestation._issue(
+        synthetic_bundle_digest=bundle_digest,
+        inference_input_digest=input_digest,
+        source_record_count=len(source_record_keys),
+        pair_count=len(pair_references),
+    )
+
+
+def _resolve_recipe(recipe: PipelineRecipeArtifact | str | Path) -> PipelineRecipeArtifact:
+    """Resolve an artifact, JSON payload, or path without probing JSON as a path."""
+    if isinstance(recipe, PipelineRecipeArtifact):
+        return recipe
+    if isinstance(recipe, Path):
+        try:
+            if not recipe.is_file():
+                raise PipelineError("ML-PIPE-058", "The pipeline recipe path is not a file.")
+            payload = recipe.read_text(encoding="utf-8")
+        except OSError:
+            raise PipelineError("ML-PIPE-058", "The pipeline recipe path is invalid.") from None
+        return deserialize_pipeline_recipe(payload)
+
+    if recipe.lstrip().startswith("{"):
+        return deserialize_pipeline_recipe(recipe)
+    try:
+        recipe_path = Path(recipe)
+        if recipe_path.is_file():
+            return deserialize_pipeline_recipe(recipe_path.read_text(encoding="utf-8"))
+    except OSError:
+        raise PipelineError("ML-PIPE-058", "The pipeline recipe path is invalid.") from None
+    return deserialize_pipeline_recipe(recipe)
 
 
 def _default_decision_policy() -> DecisionPolicyConfig:
@@ -95,6 +319,7 @@ class ApprovedRecipeInferenceResult:
     relationship_status_counts: dict[str, int]
     decisions: tuple[RelationshipDecision, ...] = field(repr=False)
     assignment_result: AssignmentResult = field(repr=False)
+    synthetic_attestation_digest: str | None = None
     output_path: Path | None = field(default=None, repr=False)
     inference_digest: str = ""
 
@@ -106,6 +331,7 @@ class ApprovedRecipeInferenceResult:
                 "pair_count": self.pair_count,
                 "status_counts": self.relationship_status_counts,
                 "assignment_digest": self.assignment_result.assignment_digest,
+                "synthetic_attestation_digest": self.synthetic_attestation_digest,
             }
             digest = hashlib.sha256(
                 json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
@@ -124,6 +350,7 @@ class ApprovedRecipeInferenceResult:
             "assignment_method": self.assignment_result.solver,
             "real_assignment_count": self.assignment_result.real_assignment_count,
             "no_match_count": self.assignment_result.no_match_count,
+            "synthetic_attestation_digest": self.synthetic_attestation_digest,
             "inference_digest": self.inference_digest,
             "output_written": self.output_path is not None,
         }
@@ -146,6 +373,8 @@ class ApprovedRecipeInferenceRunner:
         decision_policy: DecisionPolicyConfig | None = None,
         ranking_artifact: Any | None = None,
         execution_mode: RecipeExecutionMode = RecipeExecutionMode.INFERENCE,
+        synthetic_attestation: SyntheticInferenceAttestation | None = None,
+        synthetic_bundle: SyntheticBundle | None = None,
         source_dataset_id: str = "source",
         target_dataset_id: str = "target",
         output_decisions_path: str | Path | None = None,
@@ -154,20 +383,58 @@ class ApprovedRecipeInferenceRunner:
     ) -> ApprovedRecipeInferenceResult:
         """Run deterministic inference using frozen recipe artifacts."""
         # 1. Resolve and validate recipe artifact
-        recipe_obj: PipelineRecipeArtifact
-        if isinstance(recipe, (str, Path)):
-            path_or_str = str(recipe)
-            if Path(path_or_str).is_file():
-                recipe_obj = deserialize_pipeline_recipe(
-                    Path(path_or_str).read_text(encoding="utf-8")
-                )
-            else:
-                recipe_obj = deserialize_pipeline_recipe(path_or_str)
-        else:
-            recipe_obj = recipe
+        recipe_obj = _resolve_recipe(recipe)
 
-        # 2. Check approval authority for requested execution mode
-        recipe_obj.assert_usable_for(execution_mode)
+        # 2. Check approval authority and the package-issued synthetic input capability
+        if execution_mode is RecipeExecutionMode.SYNTHETIC_INFERENCE and (
+            synthetic_attestation is None or synthetic_bundle is None
+        ):
+            raise PipelineError(
+                "ML-PIPE-062",
+                "Synthetic inference requires a package-issued input attestation.",
+            )
+        recipe_obj.assert_usable_for(
+            execution_mode,
+            synthetic_attestation=synthetic_attestation,
+        )
+        if execution_mode is RecipeExecutionMode.SYNTHETIC_INFERENCE:
+            assert synthetic_attestation is not None
+            assert synthetic_bundle is not None
+            expected_attestation = attest_generated_synthetic_inference(
+                bundle=synthetic_bundle,
+                source_record_keys=source_record_keys,
+                pair_references=pair_references,
+                raw_scores=raw_scores,
+                feature_matrix=feature_matrix,
+                source_dataset_id=source_dataset_id,
+                target_dataset_id=target_dataset_id,
+            )
+            if not hmac.compare_digest(
+                synthetic_attestation.attestation_digest,
+                expected_attestation.attestation_digest,
+            ):
+                raise PipelineError(
+                    "ML-RECIPE-015",
+                    "The synthetic inference attestation does not authorize this input.",
+                )
+            input_digest = _inference_input_digest(
+                source_record_keys=source_record_keys,
+                pair_references=pair_references,
+                raw_scores=raw_scores,
+                feature_matrix=feature_matrix,
+                source_dataset_id=source_dataset_id,
+                target_dataset_id=target_dataset_id,
+            )
+            synthetic_attestation.assert_authorizes(
+                inference_input_digest=input_digest,
+                source_record_count=len(source_record_keys),
+                pair_count=len(pair_references),
+            )
+        elif synthetic_bundle is not None:
+            raise PipelineError(
+                "ML-RECIPE-016",
+                "A synthetic inference bundle cannot authorize this execution mode.",
+            )
 
         # 3. Validate calibrator artifact matches recipe digest
         if calibrator_artifact.calibrator_digest != recipe_obj.calibrator_digest:
@@ -181,6 +448,11 @@ class ApprovedRecipeInferenceRunner:
         if raw_scores is not None:
             scores_array = np.asarray(raw_scores, dtype=np.float64)
         elif feature_matrix is not None and champion_model_artifact is not None:
+            cls._assert_champion_artifact_matches_recipe(
+                recipe=recipe_obj,
+                feature_matrix=feature_matrix,
+                model_artifact=champion_model_artifact,
+            )
             scores_array = cls._score_with_model(
                 feature_matrix=feature_matrix,
                 model_artifact=champion_model_artifact,
@@ -311,8 +583,58 @@ class ApprovedRecipeInferenceRunner:
             relationship_status_counts=status_dict,
             decisions=decisions,
             assignment_result=assignment_res,
+            synthetic_attestation_digest=(
+                synthetic_attestation.attestation_digest
+                if synthetic_attestation is not None
+                else None
+            ),
             output_path=output_file,
         )
+
+    @staticmethod
+    def _assert_champion_artifact_matches_recipe(
+        *,
+        recipe: PipelineRecipeArtifact,
+        feature_matrix: BoostedFeatureMatrix,
+        model_artifact: Any,
+    ) -> None:
+        """Bind executable fitted artifacts to the immutable recipe and feature schema."""
+        if isinstance(model_artifact, StackingModelArtifact):
+            raise PipelineError(
+                "ML-PIPE-064",
+                "Stacking inference requires the recipe-bound fitted artifact bundle.",
+            )
+        if not isinstance(
+            model_artifact,
+            (
+                ReferenceFeatureScoreArtifact,
+                StackingInferenceArtifactBundle,
+                XGBoostModelArtifact,
+                LightGBMModelArtifact,
+                PyTorchModelArtifact,
+            ),
+        ):
+            raise PipelineError(
+                "ML-PIPE-064",
+                "The fitted champion artifact does not match the pipeline recipe.",
+            )
+        artifact_schema = model_artifact.feature_schema_digest
+        if (
+            model_artifact.model_id != recipe.champion_model_id
+            or model_artifact.model_version != recipe.champion_model_version
+            or not hmac.compare_digest(
+                model_artifact.model_digest,
+                recipe.champion_artifact_digest,
+            )
+            or artifact_schema != recipe.feature_schema_digest
+            or feature_matrix.feature_schema_digest != recipe.feature_schema_digest
+            or model_artifact.configuration_digest != recipe.configuration_digest
+            or model_artifact.decision_authority != "evidence_only"
+        ):
+            raise PipelineError(
+                "ML-PIPE-064",
+                "The fitted champion artifact does not match the pipeline recipe.",
+            )
 
     @staticmethod
     def _score_with_model(
@@ -321,22 +643,55 @@ class ApprovedRecipeInferenceRunner:
         model_artifact: Any,
     ) -> NDArray[np.float64]:
         """Score candidate feature matrix using typed model artifact."""
+        if isinstance(model_artifact, StackingInferenceArtifactBundle):
+            base_scores: dict[str, NDArray[np.float64]] = {}
+            for base_artifact in model_artifact.base_artifacts:
+                base_scores[base_artifact.model_id] = (
+                    ApprovedRecipeInferenceRunner._score_base_artifact(
+                        feature_matrix=feature_matrix,
+                        model_artifact=base_artifact,
+                    )
+                )
+            return StackingPairClassifier().predict(
+                base_scores=base_scores,
+                model=model_artifact.stacking_artifact,
+            )
+        if isinstance(model_artifact, StackingModelArtifact):
+            raise PipelineError(
+                "ML-PIPE-064",
+                "Stacking inference requires the recipe-bound fitted artifact bundle.",
+            )
+        return ApprovedRecipeInferenceRunner._score_base_artifact(
+            feature_matrix=feature_matrix,
+            model_artifact=model_artifact,
+        )
+
+    @staticmethod
+    def _score_base_artifact(
+        *,
+        feature_matrix: BoostedFeatureMatrix,
+        model_artifact: Any,
+    ) -> NDArray[np.float64]:
+        """Score one recipe-verified base artifact without granting decision authority."""
+        if isinstance(model_artifact, ReferenceFeatureScoreArtifact):
+            if model_artifact.scoring_rule != "mean_feature_clip":
+                raise PipelineError(
+                    "ML-PIPE-065",
+                    "A stacking base artifact cannot be replayed for inference.",
+                )
+            scores = np.clip(np.mean(feature_matrix.features, axis=1), 0.0, 1.0)
+            scores.setflags(write=False)
+            return scores
         if isinstance(model_artifact, XGBoostModelArtifact):
             return XGBoostPairClassifier._predict(matrix=feature_matrix, model=model_artifact)
-        elif isinstance(model_artifact, LightGBMModelArtifact):
+        if isinstance(model_artifact, LightGBMModelArtifact):
             return LightGBMPairClassifier._predict(matrix=feature_matrix, model=model_artifact)
-        elif isinstance(model_artifact, PyTorchModelArtifact):
+        if isinstance(model_artifact, PyTorchModelArtifact):
             return PyTorchPairMatcher._predict(matrix=feature_matrix, model=model_artifact)
-        elif isinstance(model_artifact, StackingModelArtifact):
-            # For stacking, features must be base model predictions
-            return StackingPairClassifier().predict(
-                base_scores=feature_matrix.features, model=model_artifact
-            )
-        else:
-            raise PipelineError(
-                "ML-PIPE-055",
-                f"Unsupported model artifact type: {type(model_artifact)}",
-            )
+        raise PipelineError(
+            "ML-PIPE-055",
+            "The fitted model artifact type is unsupported.",
+        )
 
     @staticmethod
     def export_decisions(
@@ -387,6 +742,8 @@ def infer_with_approved_recipe(
     decision_policy: DecisionPolicyConfig | None = None,
     ranking_artifact: Any | None = None,
     execution_mode: RecipeExecutionMode = RecipeExecutionMode.INFERENCE,
+    synthetic_attestation: SyntheticInferenceAttestation | None = None,
+    synthetic_bundle: SyntheticBundle | None = None,
     source_dataset_id: str = "source",
     target_dataset_id: str = "target",
     output_decisions_path: str | Path | None = None,
@@ -405,6 +762,8 @@ def infer_with_approved_recipe(
         decision_policy=decision_policy,
         ranking_artifact=ranking_artifact,
         execution_mode=execution_mode,
+        synthetic_attestation=synthetic_attestation,
+        synthetic_bundle=synthetic_bundle,
         source_dataset_id=source_dataset_id,
         target_dataset_id=target_dataset_id,
         output_decisions_path=output_decisions_path,
@@ -416,5 +775,7 @@ def infer_with_approved_recipe(
 __all__ = [
     "ApprovedRecipeInferenceResult",
     "ApprovedRecipeInferenceRunner",
+    "SyntheticInferenceAttestation",
+    "attest_generated_synthetic_inference",
     "infer_with_approved_recipe",
 ]

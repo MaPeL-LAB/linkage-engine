@@ -33,7 +33,7 @@ def test_capability_registry_distinguishes_components_from_workflows() -> None:
     assert by_id["one_to_many_assignment"].workflow_status is WorkflowStatus.INTEGRATED
     assert by_id["unconstrained_assignment"].workflow_status is WorkflowStatus.INTEGRATED
     assert by_id["stage3_meta_ranking_advisor"].workflow_status is WorkflowStatus.INTEGRATED
-    assert by_id["linkage_strategy_advisor"].workflow_status is WorkflowStatus.NOT_INTEGRATED
+    assert by_id["linkage_strategy_advisor"].workflow_status is WorkflowStatus.INTEGRATED
     assert by_id["link_and_dedupe"].component_status is ComponentStatus.IMPLEMENTED
     assert by_id["approved_recipe_inference"].component_status is ComponentStatus.IMPLEMENTED
     assert by_id["approved_recipe_inference"].workflow_status is WorkflowStatus.INTEGRATED

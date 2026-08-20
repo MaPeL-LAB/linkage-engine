@@ -94,6 +94,19 @@ class LearnedMetaRankerModel:
     trained_run_count: int = 0
     trained_family_count: int = 0
 
+    @property
+    def model_digest(self) -> str:
+        """Return a stable aggregate model digest without exposing training rows."""
+        payload = {
+            "weights": self.weights.tolist() if self.weights is not None else None,
+            "intercept": self.intercept,
+            "conformal_residual_quantile": self.conformal_residual_quantile,
+            "coverage_level": self.coverage_level,
+            "trained_run_count": self.trained_run_count,
+            "trained_family_count": self.trained_family_count,
+        }
+        return _policy_digest(payload)
+
     def fit(
         self,
         X: np.ndarray,
@@ -109,6 +122,7 @@ class LearnedMetaRankerModel:
             self.intercept = float(np.mean(y)) if len(y) > 0 else 0.5
             self.conformal_residual_quantile = 0.20
             self.coverage_level = coverage_level
+            self.trained_run_count = n_samples
             return
 
         X_bias = np.hstack([np.ones((n_samples, 1)), X])
@@ -164,6 +178,7 @@ class MetaRankingLinkageAdvisor:
         self.max_ood_distance = max_ood_distance
         self.conformal_coverage = conformal_coverage
         self._family_vectors = extract_family_meta_features(self.generator)
+        self.last_fitted_model: LearnedMetaRankerModel | None = None
 
     def advise(
         self,
@@ -173,6 +188,7 @@ class MetaRankingLinkageAdvisor:
         profile: PreflightTaskProfile | None = None,
     ) -> MetaRankingAdvisoryReport:
         """Produce a Stage-3 Learned Meta-Ranking Advisory Report."""
+        self.last_fitted_model = None
         if context.test_partition_used:
             raise AdvisorError(
                 "ML-ADVISOR-001",
@@ -298,6 +314,8 @@ class MetaRankingLinkageAdvisor:
 
         meta_model = LearnedMetaRankerModel()
         meta_model.fit(X_train, y_train, coverage_level=self.conformal_coverage)
+        meta_model.trained_family_count = len(families_in_runs)
+        self.last_fitted_model = meta_model
 
         task_cont = _continuous_features_list(task_vector)
         X_test_list = [task_cont + _candidate_feature_vector(c) for c in eligible_candidates]

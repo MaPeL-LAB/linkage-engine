@@ -30,12 +30,14 @@ from mapel_linkage.configuration import (
     write_configuration_json_schema,
 )
 from mapel_linkage.configuration.compiler import ExecutionPlan
-from mapel_linkage.domain.errors import LinkageRuntimeError
+from mapel_linkage.domain.errors import AdvisorError, LinkageRuntimeError
 from mapel_linkage.governance.errors import SafeError, SafeErrorCode
 from mapel_linkage.pipeline import SyntheticVerticalSliceRunner
 from mapel_linkage.pipeline.local_workspace import initialise_local_project, run_doctor
 from mapel_linkage.profiling import build_preflight_task_profile
+from mapel_linkage.profiling.contracts import PreflightTaskProfile
 from mapel_linkage.recommendation import (
+    ActiveBenchmarkPlanner,
     AdvisorContext,
     MetaRankingLinkageAdvisor,
     RecommendationIntent,
@@ -191,6 +193,19 @@ def build_parser() -> argparse.ArgumentParser:
         help="Number of replicates per instance.",
     )
     seed_bm.set_defaults(handler=_seed_benchmarks)
+
+    plan_bm = subparsers.add_parser(
+        "plan-benchmarks",
+        help="Plan bounded synthetic benchmark experiments for aggregate evidence gaps.",
+    )
+    plan_bm.add_argument("--registry-dir", metavar="DIR", required=True)
+    plan_bm.add_argument(
+        "--target-profile",
+        metavar="PROFILE",
+        default=None,
+        help="Optional privacy-safe PreflightTaskProfile JSON file.",
+    )
+    plan_bm.set_defaults(handler=_plan_benchmarks)
 
     import_rev = subparsers.add_parser(
         "import-reviews",
@@ -388,7 +403,9 @@ def _profile_job(namespace: argparse.Namespace) -> int:
             file=sys.stderr,
         )
         return 2
-    print(json.dumps(profile.safe_summary(), sort_keys=True))
+    payload = profile.model_dump(mode="json")
+    payload["profile_digest"] = profile.profile_digest
+    print(json.dumps(payload, sort_keys=True))
     return 0
 
 
@@ -533,6 +550,62 @@ def _seed_benchmarks(namespace: argparse.Namespace) -> int:
             sort_keys=True,
         )
     )
+    return 0
+
+
+def _load_planning_target_profile(path: Path) -> PreflightTaskProfile:
+    if path.is_symlink() or not path.is_file():
+        raise AdvisorError(
+            "ML-ADVISOR-051",
+            "The target profile must be a regular non-symlink JSON file.",
+        )
+    if path.stat().st_size > 1_048_576:
+        raise AdvisorError(
+            "ML-ADVISOR-052",
+            "The target profile exceeds the one-megabyte aggregate input limit.",
+        )
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise AdvisorError(
+            "ML-ADVISOR-055",
+            "The target profile must contain one aggregate JSON object.",
+        )
+    declared_digest = payload.pop("profile_digest", None)
+    profile = PreflightTaskProfile.model_validate(payload)
+    if declared_digest is not None and declared_digest != profile.profile_digest:
+        raise AdvisorError(
+            "ML-ADVISOR-056",
+            "The target profile integrity digest does not match its aggregate content.",
+        )
+    return profile
+
+
+def _plan_benchmarks(namespace: argparse.Namespace) -> int:
+    registry_path = Path(namespace.registry_dir)
+    if registry_path.is_symlink() or (registry_path.exists() and not registry_path.is_dir()):
+        print(
+            "ERROR ML-ADVISOR-053: The benchmark registry must be a non-symlink directory.",
+            file=sys.stderr,
+        )
+        return 2
+    try:
+        registry = BenchmarkRegistry(registry_path)
+        target_profile = (
+            _load_planning_target_profile(Path(namespace.target_profile))
+            if namespace.target_profile
+            else None
+        )
+        plan = ActiveBenchmarkPlanner(registry).plan(target_profile=target_profile)
+    except LinkageRuntimeError as error:
+        print(f"ERROR {error.code}: {error.public_message}", file=sys.stderr)
+        return 2
+    except (json.JSONDecodeError, OSError, UnicodeError, ValidationError, ValueError):
+        print(
+            "ERROR ML-ADVISOR-054: Benchmark planning inputs could not be validated safely.",
+            file=sys.stderr,
+        )
+        return 2
+    print(json.dumps(plan.safe_summary(), sort_keys=True))
     return 0
 
 

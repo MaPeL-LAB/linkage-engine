@@ -39,6 +39,12 @@ def _digest_object(payload: object) -> str:
     return hashlib.sha256(encoded).hexdigest()
 
 
+def _stable_instance_seed(instance_id: str) -> int:
+    """Derive a process-independent unsigned 32-bit seed component."""
+    digest = hashlib.sha256(instance_id.encode("utf-8")).digest()
+    return int.from_bytes(digest[:4], byteorder="big", signed=False)
+
+
 class BenchmarkRecipe(BaseModel):
     """Declarative specification for a candidate linkage recipe."""
 
@@ -671,8 +677,16 @@ class BenchmarkPortfolioRunner:
         recipes: Iterable[BenchmarkRecipe] | None = None,
         replicates: int = 1,
         base_seed: int = 20260816,
+        replicate_start: int = 0,
     ) -> tuple[BenchmarkRunResult, ...]:
         """Execute the portfolio across requested families/instances and replicates."""
+        if not 1 <= replicates <= 10_000:
+            raise ValueError("Benchmark replicate count must be between 1 and 10000.")
+        if not 0 <= replicate_start <= 9_999_999:
+            raise ValueError("Benchmark replicate start must be between 0 and 9999999.")
+        if not 0 <= base_seed <= 4_294_967_295:
+            raise ValueError("Benchmark base seed must be an unsigned 32-bit integer.")
+
         all_family_ids = {fam.family_id for fam in generator.list_families()}
         target_families = set(families) if families else all_family_ids
 
@@ -690,9 +704,10 @@ class BenchmarkPortfolioRunner:
 
         for inst_manifest in target_instances:
             for rep_idx in range(replicates):
-                replicate_id = f"replicate.{rep_idx:03d}"
-                instance_seed = abs(hash(inst_manifest.instance_id))
-                seed = (base_seed + rep_idx * 1000 + instance_seed) % 4294967295
+                replicate_number = replicate_start + rep_idx
+                replicate_id = f"replicate.{replicate_number:07d}"
+                instance_seed = _stable_instance_seed(inst_manifest.instance_id)
+                seed = (base_seed + replicate_number * 1000 + instance_seed) % 4_294_967_296
                 bundle = generator.generate(inst_manifest.instance_id, seed=seed)
 
                 for recipe in target_recipes:

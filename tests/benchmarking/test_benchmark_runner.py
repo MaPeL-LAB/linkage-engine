@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+import os
+import subprocess
+import sys
+
 from mapel_linkage.benchmarking.contracts import BenchmarkRunStatus
 from mapel_linkage.benchmarking.generator import BenchmarkScenarioGenerator
 from mapel_linkage.benchmarking.runner import BenchmarkPortfolioRunner
@@ -141,3 +145,30 @@ def test_portfolio_runner_multi_replicates() -> None:
 
     assert len(success_runs) > 0
     assert len(ineligible_runs) > 0  # Mode mismatch or missing runtime
+
+
+def test_portfolio_seed_is_stable_across_python_hash_seeds() -> None:
+    script = (
+        "from mapel_linkage.benchmarking.generator import BenchmarkScenarioGenerator; "
+        "from mapel_linkage.benchmarking.runner import BenchmarkPortfolioRunner; "
+        "g=BenchmarkScenarioGenerator(); r=BenchmarkPortfolioRunner(); "
+        "recipe=(r.list_recipes()[0],); "
+        "result=r.run_portfolio(g, instances=('instance.typo_low',), recipes=recipe, "
+        "replicates=1, base_seed=20260816); "
+        "print(result[0].record.random_seed)"
+    )
+    observed: list[str] = []
+    for python_hash_seed in ("1", "987654"):
+        environment = os.environ.copy()
+        environment["PYTHONHASHSEED"] = python_hash_seed
+        environment["MAPEL_TEST_DATA_POLICY"] = "synthetic_only"
+        completed = subprocess.run(
+            [sys.executable, "-c", script],
+            check=True,
+            capture_output=True,
+            text=True,
+            env=environment,
+        )
+        observed.append(completed.stdout.strip())
+
+    assert len(set(observed)) == 1

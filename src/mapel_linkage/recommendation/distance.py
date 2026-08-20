@@ -301,12 +301,8 @@ def extract_family_meta_features(
 
         instance_vectors: list[TaskMetaFeatureVector] = []
         for inst in instances:
-            spec = getattr(gen, "_instances", {}).get(inst.instance_id, (None, None))[1]
-            if spec is not None:
-                instance_vectors.append(TaskMetaFeatureVector.from_latent_spec(spec))
-            else:
-                profile = gen.build_task_profile(inst.instance_id)
-                instance_vectors.append(TaskMetaFeatureVector.from_profile(profile))
+            spec = gen.get_latent_spec(inst.instance_id)
+            instance_vectors.append(TaskMetaFeatureVector.from_latent_spec(spec))
 
         if not instance_vectors:
             continue

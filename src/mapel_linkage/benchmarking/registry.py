@@ -42,6 +42,10 @@ class BenchmarkRegistry:
 
     def __init__(self, root_directory: Path | str) -> None:
         self.root_directory = Path(root_directory)
+        if self.root_directory.is_symlink():
+            raise ValueError("Benchmark registry roots cannot be symbolic links.")
+        if self.root_directory.exists() and not self.root_directory.is_dir():
+            raise ValueError("Benchmark registry roots must be directories.")
         self.families_dir = self.root_directory / "families"
         self.instances_dir = self.root_directory / "instances"
         self.runs_dir = self.root_directory / "runs"
@@ -61,11 +65,22 @@ class BenchmarkRegistry:
             self.snapshots_dir,
             self.reports_dir,
         ):
+            if d.is_symlink():
+                raise ValueError("Benchmark registry managed directories cannot be symbolic links.")
+            if d.exists() and not d.is_dir():
+                raise ValueError("Benchmark registry managed paths must be directories.")
             d.mkdir(parents=True, exist_ok=True)
 
     def save_family(self, manifest: ScenarioFamilyManifest) -> Path:
         self.families_dir.mkdir(parents=True, exist_ok=True)
         dest = self.families_dir / f"{manifest.family_id}.json"
+        if dest.exists():
+            existing = ScenarioFamilyManifest.model_validate_json(dest.read_text(encoding="utf-8"))
+            if existing.family_digest != manifest.family_digest:
+                raise FileExistsError(
+                    "A different scenario-family manifest already exists for this ID."
+                )
+            return dest
         dest.write_text(
             json.dumps(manifest.model_dump(mode="json"), indent=2, sort_keys=True) + "\n",
             encoding="utf-8",
@@ -91,6 +106,15 @@ class BenchmarkRegistry:
     def save_instance(self, manifest: ScenarioInstanceManifest) -> Path:
         self.instances_dir.mkdir(parents=True, exist_ok=True)
         dest = self.instances_dir / f"{manifest.instance_id}.json"
+        if dest.exists():
+            existing = ScenarioInstanceManifest.model_validate_json(
+                dest.read_text(encoding="utf-8")
+            )
+            if existing.instance_digest != manifest.instance_digest:
+                raise FileExistsError(
+                    "A different scenario-instance manifest already exists for this ID."
+                )
+            return dest
         dest.write_text(
             json.dumps(manifest.model_dump(mode="json"), indent=2, sort_keys=True) + "\n",
             encoding="utf-8",
@@ -121,6 +145,14 @@ class BenchmarkRegistry:
     ) -> Path:
         self.runs_dir.mkdir(parents=True, exist_ok=True)
         dest = self.runs_dir / f"{record.run_id}.json"
+        if dest.exists():
+            raise FileExistsError("A benchmark run record already exists for this run ID.")
+        metrics_dest = self.metrics_dir / f"{record.run_id}.json"
+        failure_dest = self.failures_dir / f"{record.run_id}.json"
+        if metrics is not None and metrics_dest.exists():
+            raise FileExistsError("Aggregate metrics already exist for this benchmark run ID.")
+        if failure is not None and failure_dest.exists():
+            raise FileExistsError("Failure evidence already exists for this benchmark run ID.")
         dest.write_text(
             json.dumps(record.model_dump(mode="json"), indent=2, sort_keys=True) + "\n",
             encoding="utf-8",
@@ -173,6 +205,8 @@ class BenchmarkRegistry:
     def save_failure_record(self, failure: BenchmarkFailureRecord) -> Path:
         self.failures_dir.mkdir(parents=True, exist_ok=True)
         dest = self.failures_dir / f"{failure.run_id}.json"
+        if dest.exists():
+            raise FileExistsError("Failure evidence already exists for this benchmark run ID.")
         dest.write_text(
             json.dumps(failure.model_dump(mode="json"), indent=2, sort_keys=True) + "\n",
             encoding="utf-8",

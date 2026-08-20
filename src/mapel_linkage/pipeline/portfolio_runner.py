@@ -5,8 +5,8 @@ from __future__ import annotations
 import hashlib
 import json
 from collections.abc import Sequence
-from dataclasses import dataclass
-from typing import Any
+from dataclasses import dataclass, field
+from typing import Any, Literal
 
 import numpy as np
 from numpy.typing import NDArray
@@ -33,13 +33,17 @@ from mapel_linkage.io.duckdb_store import DuckDBStore
 from mapel_linkage.models.boosted import (
     BoostedFeatureMatrix,
     BoostedLabelledMatrix,
+    LightGBMModelArtifact,
     LightGBMPairClassifier,
+    XGBoostModelArtifact,
     XGBoostPairClassifier,
 )
 from mapel_linkage.models.ensembles import (
+    StackingModelArtifact,
     StackingPairClassifier,
 )
 from mapel_linkage.models.neural import (
+    PyTorchModelArtifact,
     PyTorchPairMatcher,
 )
 from mapel_linkage.pipeline.model_portfolio import (
@@ -61,13 +65,242 @@ def _canonical_digest(payload: object) -> str:
     return hashlib.sha256(encoded).hexdigest()
 
 
+def _require_digest(value: str, *, code: str = "ML-PIPE-064") -> None:
+    if len(value) != 64 or any(character not in "0123456789abcdef" for character in value):
+        raise PipelineError(code, "A fitted inference artifact digest is invalid.")
+
+
+@dataclass(frozen=True, slots=True, repr=False)
+class ReferenceFeatureScoreArtifact:
+    """Immutable replay contract for the feature-based reference-score baseline."""
+
+    model_id: str
+    model_version: Literal["m2-reference-feature-score-v1"]
+    model_digest: str
+    feature_schema_digest: str
+    configuration_digest: str
+    source_evidence_digest: str
+    scoring_rule: Literal["mean_feature_clip", "external_scores_only"]
+    probability_status: Literal["model_score_uncalibrated"] = "model_score_uncalibrated"
+    calibration_status: Literal["not_calibrated"] = "not_calibrated"
+    decision_authority: Literal["evidence_only"] = "evidence_only"
+    merge_authority: Literal["none"] = "none"
+    real_data_validation_status: Literal["not_established"] = "not_established"
+
+    def __post_init__(self) -> None:
+        for digest in (
+            self.feature_schema_digest,
+            self.configuration_digest,
+            self.source_evidence_digest,
+            self.model_digest,
+        ):
+            _require_digest(digest)
+        expected = _canonical_digest(
+            {
+                "model_id": self.model_id,
+                "model_version": self.model_version,
+                "feature_schema_digest": self.feature_schema_digest,
+                "configuration_digest": self.configuration_digest,
+                "source_evidence_digest": self.source_evidence_digest,
+                "scoring_rule": self.scoring_rule,
+                "decision_authority": self.decision_authority,
+                "merge_authority": self.merge_authority,
+            }
+        )
+        if self.model_digest != expected:
+            raise PipelineError("ML-PIPE-064", "A fitted inference artifact digest is invalid.")
+
+    @classmethod
+    def create(
+        cls,
+        *,
+        model_id: str,
+        feature_schema_digest: str,
+        configuration_digest: str,
+        source_evidence_digest: str,
+        scoring_rule: Literal["mean_feature_clip", "external_scores_only"],
+    ) -> ReferenceFeatureScoreArtifact:
+        model_version: Literal["m2-reference-feature-score-v1"] = "m2-reference-feature-score-v1"
+        payload = {
+            "model_id": model_id,
+            "model_version": model_version,
+            "feature_schema_digest": feature_schema_digest,
+            "configuration_digest": configuration_digest,
+            "source_evidence_digest": source_evidence_digest,
+            "scoring_rule": scoring_rule,
+            "decision_authority": "evidence_only",
+            "merge_authority": "none",
+        }
+        return cls(
+            model_id=model_id,
+            model_version=model_version,
+            model_digest=_canonical_digest(payload),
+            feature_schema_digest=feature_schema_digest,
+            configuration_digest=configuration_digest,
+            source_evidence_digest=source_evidence_digest,
+            scoring_rule=scoring_rule,
+        )
+
+    def safe_summary(self) -> dict[str, str]:
+        """Return aggregate metadata without feature values or record references."""
+        return {
+            "model_id": self.model_id,
+            "model_version": self.model_version,
+            "model_digest": self.model_digest,
+            "feature_schema_digest": self.feature_schema_digest,
+            "scoring_rule": self.scoring_rule,
+            "decision_authority": self.decision_authority,
+            "merge_authority": self.merge_authority,
+            "real_data_validation_status": self.real_data_validation_status,
+        }
+
+    def __repr__(self) -> str:
+        return "<ReferenceFeatureScoreArtifact aggregate-only>"
+
+
+type FittedBaseArtifact = (
+    ReferenceFeatureScoreArtifact
+    | XGBoostModelArtifact
+    | LightGBMModelArtifact
+    | PyTorchModelArtifact
+)
+type FittedModelArtifact = FittedBaseArtifact | StackingModelArtifact
+
+
+def _base_artifact_descriptor(artifact: FittedBaseArtifact) -> dict[str, str]:
+    if not isinstance(
+        artifact,
+        (
+            ReferenceFeatureScoreArtifact,
+            XGBoostModelArtifact,
+            LightGBMModelArtifact,
+            PyTorchModelArtifact,
+        ),
+    ):
+        raise PipelineError(
+            "ML-PIPE-065",
+            "A stacking inference bundle contains an unsupported base artifact.",
+        )
+    if artifact.decision_authority != "evidence_only":
+        raise PipelineError(
+            "ML-PIPE-065",
+            "A stacking inference bundle contains an unsupported base artifact.",
+        )
+    return {
+        "model_id": artifact.model_id,
+        "model_version": artifact.model_version,
+        "model_digest": artifact.model_digest,
+        "feature_schema_digest": artifact.feature_schema_digest,
+        "configuration_digest": artifact.configuration_digest,
+        "artifact_type": type(artifact).__name__,
+    }
+
+
+@dataclass(frozen=True, slots=True, repr=False)
+class StackingInferenceArtifactBundle:
+    """Exact fitted stacking and base artifacts, hidden behind aggregate provenance."""
+
+    stacking_artifact: StackingModelArtifact = field(repr=False)
+    base_artifacts: tuple[FittedBaseArtifact, ...] = field(repr=False)
+    feature_schema_digest: str
+    bundle_digest: str = ""
+    probability_status: Literal["model_score_uncalibrated"] = "model_score_uncalibrated"
+    calibration_status: Literal["not_calibrated"] = "not_calibrated"
+    decision_authority: Literal["evidence_only"] = "evidence_only"
+    assignment_authority: Literal["none"] = "none"
+    merge_authority: Literal["none"] = "none"
+    operational_validity: Literal["not_established"] = "not_established"
+
+    def __post_init__(self) -> None:
+        _require_digest(self.feature_schema_digest, code="ML-PIPE-066")
+        if self.stacking_artifact.decision_authority != "evidence_only":
+            raise PipelineError("ML-PIPE-066", "A stacking inference artifact bundle is invalid.")
+        descriptors = tuple(_base_artifact_descriptor(item) for item in self.base_artifacts)
+        base_ids = tuple(item["model_id"] for item in descriptors)
+        if base_ids != self.stacking_artifact.base_model_ids:
+            raise PipelineError("ML-PIPE-066", "A stacking inference artifact bundle is invalid.")
+        if any(
+            item["feature_schema_digest"] != self.feature_schema_digest
+            or item["configuration_digest"] != self.stacking_artifact.configuration_digest
+            for item in descriptors
+        ):
+            raise PipelineError("ML-PIPE-066", "A stacking inference artifact bundle is invalid.")
+        if any(
+            isinstance(item, ReferenceFeatureScoreArtifact)
+            and item.scoring_rule != "mean_feature_clip"
+            for item in self.base_artifacts
+        ):
+            raise PipelineError(
+                "ML-PIPE-066",
+                "A stacking inference artifact bundle lacks a replayable base artifact.",
+            )
+        expected = _canonical_digest(
+            {
+                "stacking_model_id": self.stacking_artifact.model_id,
+                "stacking_model_version": self.stacking_artifact.model_version,
+                "stacking_model_digest": self.stacking_artifact.model_digest,
+                "configuration_digest": self.stacking_artifact.configuration_digest,
+                "feature_schema_digest": self.feature_schema_digest,
+                "base_artifacts": descriptors,
+                "probability_status": self.probability_status,
+                "calibration_status": self.calibration_status,
+                "decision_authority": self.decision_authority,
+                "assignment_authority": self.assignment_authority,
+                "merge_authority": self.merge_authority,
+                "operational_validity": self.operational_validity,
+            }
+        )
+        if self.bundle_digest and self.bundle_digest != expected:
+            raise PipelineError("ML-PIPE-066", "A stacking inference artifact bundle is invalid.")
+        object.__setattr__(self, "bundle_digest", expected)
+
+    @property
+    def model_id(self) -> str:
+        return self.stacking_artifact.model_id
+
+    @property
+    def model_version(self) -> str:
+        return self.stacking_artifact.model_version
+
+    @property
+    def model_digest(self) -> str:
+        """Use the bundle digest as the recipe-bound champion artifact digest."""
+        return self.bundle_digest
+
+    @property
+    def configuration_digest(self) -> str:
+        return self.stacking_artifact.configuration_digest
+
+    def safe_summary(self) -> dict[str, str | int]:
+        """Return aggregate provenance without fitted model payloads or base identities."""
+        return {
+            "model_id": self.model_id,
+            "model_version": self.model_version,
+            "bundle_digest": self.bundle_digest,
+            "feature_schema_digest": self.feature_schema_digest,
+            "base_artifact_count": len(self.base_artifacts),
+            "probability_status": self.probability_status,
+            "calibration_status": self.calibration_status,
+            "decision_authority": self.decision_authority,
+            "assignment_authority": self.assignment_authority,
+            "merge_authority": self.merge_authority,
+            "operational_validity": self.operational_validity,
+        }
+
+    def __repr__(self) -> str:
+        return "<StackingInferenceArtifactBundle aggregate-only>"
+
+
+type ChampionInferenceArtifact = FittedBaseArtifact | StackingInferenceArtifactBundle
+
+
 @dataclass(frozen=True, slots=True, repr=False)
 class PortfolioTournamentResult:
     """Outcome of side-by-side model portfolio tournament execution."""
 
     portfolio: ModelPortfolioDeclaration
     champion_selection: ChampionSelection
-    champion_model_artifact: Any
+    champion_model_artifact: ChampionInferenceArtifact = field(repr=False)
     calibrator_artifact: CalibratorArtifact
     oof_manifests: tuple[OutOfFoldPredictionManifest, ...]
     validation_reports: dict[str, PairValidationReport]
@@ -159,7 +392,7 @@ class ModelPortfolioRunner:
 
         active_store = self._store or DuckDBStore()
 
-        fitted_models: dict[str, Any] = {}
+        fitted_models: dict[str, FittedModelArtifact] = {}
         oof_scores: dict[str, NDArray[np.float64]] = {}
         oof_manifests: list[OutOfFoldPredictionManifest] = []
         validation_scores: dict[str, NDArray[np.float64]] = {}
@@ -187,21 +420,44 @@ class ModelPortfolioRunner:
                         if fs_calibration_scores is not None
                         else np.zeros(calibration_matrix.pair_count, dtype=np.float64)
                     )
+                    scoring_rule: Literal["mean_feature_clip", "external_scores_only"] = (
+                        "external_scores_only"
+                    )
+                    source_evidence_digest = (
+                        fs_evidence_digest
+                        or hashlib.sha256(
+                            b"".join(
+                                (
+                                    train_sc.tobytes(),
+                                    val_sc.tobytes(),
+                                    cal_sc.tobytes(),
+                                )
+                            )
+                        ).hexdigest()
+                    )
                 else:
                     # Synthetic/feature-based proxy for reference baseline
                     train_sc = np.clip(np.mean(training_matrix.features, axis=1), 0.0, 1.0)
                     val_sc = np.clip(np.mean(validation_matrix.features, axis=1), 0.0, 1.0)
                     cal_sc = np.clip(np.mean(calibration_matrix.features, axis=1), 0.0, 1.0)
+                    scoring_rule = "mean_feature_clip"
+                    source_evidence_digest = fs_evidence_digest or _canonical_digest(
+                        {
+                            "model_id": candidate.model_id,
+                            "family": "fellegi_sunter",
+                            "scoring_rule": scoring_rule,
+                            "feature_schema_digest": feature_schema_digest,
+                        }
+                    )
 
-                fs_digest = fs_evidence_digest or _canonical_digest(
-                    {"model_id": candidate.model_id, "family": "fellegi_sunter"}
+                reference_artifact = ReferenceFeatureScoreArtifact.create(
+                    model_id=candidate.model_id,
+                    feature_schema_digest=feature_schema_digest,
+                    configuration_digest=configuration_digest,
+                    source_evidence_digest=source_evidence_digest,
+                    scoring_rule=scoring_rule,
                 )
-                fitted_models[candidate.model_id] = {
-                    "model_id": candidate.model_id,
-                    "family": "fellegi_sunter",
-                    "model_digest": fs_digest,
-                    "model_version": "v1",
-                }
+                fitted_models[candidate.model_id] = reference_artifact
                 oof_scores[candidate.model_id] = train_sc
                 validation_scores[candidate.model_id] = val_sc
                 calibration_scores[candidate.model_id] = cal_sc
@@ -209,8 +465,8 @@ class ModelPortfolioRunner:
                 oof_manifests.append(
                     OutOfFoldPredictionManifest(
                         model_id=candidate.model_id,
-                        model_version="v1",
-                        model_artifact_digest=fs_digest,
+                        model_version=reference_artifact.model_version,
+                        model_artifact_digest=reference_artifact.model_digest,
                         feature_schema_digest=feature_schema_digest,
                         label_authority_digest=training_matrix.label_authority_digest,
                         split_manifest_digest=split_manifest_digest,
@@ -574,22 +830,13 @@ class ModelPortfolioRunner:
             val_reports[candidate.model_id] = report
 
             model_obj = fitted_models[candidate.model_id]
-            model_ver = getattr(model_obj, "model_version", "v1")
-            model_dig = getattr(
-                model_obj,
-                "model_digest",
-                _canonical_digest({"model_id": candidate.model_id}),
-            )
-            if isinstance(model_obj, dict):
-                model_ver = model_obj.get("model_version", "v1")
-                model_dig = model_obj.get("model_digest", "")
 
             eval_candidates.append(
                 ModelEvaluationCandidate(
                     model_family=candidate.family,
                     model_id=candidate.model_id,
-                    model_version=model_ver,
-                    evidence_digest=model_dig,
+                    model_version=model_obj.model_version,
+                    evidence_digest=model_obj.model_digest,
                     feature_schema_digest=feature_schema_digest,
                     validation_label_authority_digest=validation_matrix.label_authority_digest,
                     partition_manifest_digest=disjointness.manifest_digest,
@@ -607,7 +854,35 @@ class ModelPortfolioRunner:
         )
 
         champ_id = champion_selection.selected_model_id
-        champ_artifact = fitted_models[champ_id]
+        selected_artifact = fitted_models[champ_id]
+        recipe_champion_artifact_digest = champion_selection.selected_evidence_digest
+        champion_artifact: ChampionInferenceArtifact
+        if isinstance(selected_artifact, StackingModelArtifact):
+            base_artifacts: list[FittedBaseArtifact] = []
+            for base_id in selected_artifact.base_model_ids:
+                base_artifact = fitted_models.get(base_id)
+                if not isinstance(
+                    base_artifact,
+                    (
+                        ReferenceFeatureScoreArtifact,
+                        XGBoostModelArtifact,
+                        LightGBMModelArtifact,
+                        PyTorchModelArtifact,
+                    ),
+                ):
+                    raise PipelineError(
+                        "ML-PIPE-065",
+                        "A stacking inference bundle contains an unsupported base artifact.",
+                    )
+                base_artifacts.append(base_artifact)
+            champion_artifact = StackingInferenceArtifactBundle(
+                stacking_artifact=selected_artifact,
+                base_artifacts=tuple(base_artifacts),
+                feature_schema_digest=feature_schema_digest,
+            )
+            recipe_champion_artifact_digest = champion_artifact.bundle_digest
+        else:
+            champion_artifact = selected_artifact
 
         # 5. Calibration fitting on protected calibration partition
         cal_score_batch = PairScoreBatch(
@@ -644,7 +919,7 @@ class ModelPortfolioRunner:
             feature_schema_digest=feature_schema_digest,
             champion_model_id=champion_selection.selected_model_id,
             champion_model_version=champion_selection.selected_model_version,
-            champion_artifact_digest=champion_selection.selected_evidence_digest,
+            champion_artifact_digest=recipe_champion_artifact_digest,
             calibrator_digest=calibrator_artifact.calibrator_digest,
             ranking_artifact_digest=ranking_artifact_digest,
             decision_policy_digest=decision_policy_digest,
@@ -658,7 +933,7 @@ class ModelPortfolioRunner:
         return PortfolioTournamentResult(
             portfolio=portfolio,
             champion_selection=champion_selection,
-            champion_model_artifact=champ_artifact,
+            champion_model_artifact=champion_artifact,
             calibrator_artifact=calibrator_artifact,
             oof_manifests=tuple(oof_manifests),
             validation_reports=val_reports,
@@ -670,4 +945,6 @@ class ModelPortfolioRunner:
 __all__ = [
     "ModelPortfolioRunner",
     "PortfolioTournamentResult",
+    "ReferenceFeatureScoreArtifact",
+    "StackingInferenceArtifactBundle",
 ]

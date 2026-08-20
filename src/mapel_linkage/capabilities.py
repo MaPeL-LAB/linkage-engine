@@ -327,10 +327,12 @@ _CAPABILITIES: Final[tuple[Capability, ...]] = (
         "linkage_strategy_advisor",
         "Evidence-Based Linkage Strategy Advisor",
         "I2D",
-        ComponentStatus.PLANNED,
-        WorkflowStatus.NOT_INTEGRATED,
-        RuntimeVerificationStatus.NOT_VERIFIED,
-        "Active benchmark planning and multi-stage empirical meta-learning remain evidence-gated.",
+        ComponentStatus.IMPLEMENTED,
+        WorkflowStatus.INTEGRATED,
+        RuntimeVerificationStatus.CORE_CI,
+        "Snapshot-bound active synthetic benchmark planning, explicit human execution approval, "
+        "append-only evidence checks, and advisory meta-model refit; operational validity remains "
+        "not established.",
     ),
 )
 

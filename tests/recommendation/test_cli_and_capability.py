@@ -27,8 +27,9 @@ def test_stage1_advisor_capability_is_integrated_without_overstating_later_stage
     assert registry.workflow_status is WorkflowStatus.INTEGRATED
 
     learned = by_id["linkage_strategy_advisor"]
-    assert learned.component_status is ComponentStatus.PLANNED
-    assert learned.workflow_status is WorkflowStatus.NOT_INTEGRATED
+    assert learned.component_status is ComponentStatus.IMPLEMENTED
+    assert learned.workflow_status is WorkflowStatus.INTEGRATED
+    assert learned.runtime_verification is RuntimeVerificationStatus.CORE_CI
 
 
 def test_profile_job_cli_emits_safe_aggregate_json(capsys: pytest.CaptureFixture[str]) -> None:
