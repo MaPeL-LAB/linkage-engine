@@ -67,7 +67,7 @@ dab718bf7f15680d6b0b735297276a774a3f9c7a2dd7681742aeacb01793fd8b     14272  docs
 263bcc5b2625dbda641ebe47e1c774adbe659ab30e7ba2c5313a309b86ae6352      9690  docs/research/RESEARCH_SYNTHESIS.md
 750035d43667bdd379c78e2f85eb1e01a000041621e964e8b269d2779edabd0e      7397  docs/research/SOFTWARE_LANDSCAPE.md
 5ec5ea9d7ec70cd6d11c4b7b7244dd0e97299ff257b81ce0dbf7705137130361      1071  docs/research/SOURCE_PROVENANCE.md
-1934b2a16cfdd29267a20b3957d134fd74c2f64a67b3a226b156dae053c8990c      2226  pyproject.toml
+3f181ba56f3f40ef2d65d36cdeb16bfe703c5d047e9c5f99bdda0fbec8364930      2142  pyproject.toml
 e8d4dd5de5cd1ed12015d4e81cbdde895ea457d4d2b301d4b817d134c737e002       398  schemas/README.md
 a2737ca5457d7e2f10c7e9114a19da5e800d72bee92f95f0574a16fbd22e3143     50979  schemas/linkage-config.schema.json
 45b8748463cecfd085247b49c7f3a44573ea052184021ba31e07a1965a508626      1175  scripts/bootstrap_local.ps1
@@ -92,7 +92,7 @@ f93db23fbe623418f859a4c5330f0be49c9a023d090f80b2af9089c397812cfe      9707  src/
 c766f1a8bc7a1697ce432af685595dd589879b5fcd3d2a1ccdc48fbe2867912a      1109  src/mapel_linkage/assignment/__init__.py
 063f0dc0fbc441896ecc88f8d151d4e8b108ab324dbfad08dd2df0887e716e87     12771  src/mapel_linkage/assignment/contracts.py
 16ddebd00c8ef2b59133ddb3fa57f523e278e71f81b247370e2603e4a885c27f     30478  src/mapel_linkage/assignment/deduplication.py
-3a040774acd91d3cc97dac6fd112b310cce9382c1f5fbecb72a5ad142765fa02     34812  src/mapel_linkage/assignment/solvers.py
+ce8cc044e6b51e9e677d2acd36691d5be41e8d0e96a20821027a1fd987fab808     34748  src/mapel_linkage/assignment/solvers.py
 8a9f480461275065b778ad49ca15631ae28a12ce3b92dc13b123a7ec46627b20      1389  src/mapel_linkage/benchmarking/__init__.py
 36430e55c5bf050a56b7cd34ed9dd04da7b46c2e5535284bc9a7a6423685bbd2     14905  src/mapel_linkage/benchmarking/contracts.py
 671081446a9e1afc957b5fad7cb1951fcf3bd0846884fa7f793f901f67c7136d     24868  src/mapel_linkage/benchmarking/generator.py
@@ -191,11 +191,11 @@ fc6d0ded4a7be963e010d3e1e90605f2440c1fe8b0d9458a0228db584c5e9a99     22237  src/
 e838c730b6ef1bca827ae95615c6b5c9baa04211bd479d52ca881c516bd718ac      3885  src/mapel_linkage/validation/assignment_metrics.py
 e7d74efccf426a48d26516663451dc913bf03f902476c4a2294128644bd9a857      5594  src/mapel_linkage/validation/candidate_metrics.py
 4b721addf3e719dd4a28864fc95298e50f92cbee3b61b22fd33e278ffb2f5821      2216  src/mapel_linkage/validation/decision_metrics.py
-7e5140303351597da893bd7b39a5a5f613d02535b42f391c3d8242ba8ce51974      6394  src/mapel_linkage/validation/pair_metrics.py
+2cfaa4a4e8b753bd5dfb5f88ffe59fec2dd7d73d159989f125479f5304bfd5ad      6362  src/mapel_linkage/validation/pair_metrics.py
 73645c94aa6235af83e7b81899b3d7fc380aca8d0c6509ef5b6c4c0dc5f8a703      3300  src/mapel_linkage/validation/ranking_metrics.py
 5d693f2fe8f96f1af414ca341749d947bc1436553651d9e67f9880afbeed31f7      1516  src/mapel_linkage/validation/reporting.py
-9e7cd5e4b141c2ba6872efbfe690f531e0c8858ce06f02e07569d902cc0b2cd6     10840  src/mapel_linkage/validation/splitting.py
-75507accbd6eecdfa006c2ecf01cd773134909ae7cc673d23239e543ee4598d7      7654  src/mapel_linkage/validation/stratified_metrics.py
+df2a1c3677682e0997b736960b2f9fe5a0ac08efa436a1bad1ccfe465a1d71b9     10808  src/mapel_linkage/validation/splitting.py
+2f8f8f073ee800e5dbd496556b8e7a5c1fa8cf4fd563034395be23123df4022b      7622  src/mapel_linkage/validation/stratified_metrics.py
 c9e9adf5491534d6dce1bab771d854cb56e8a4918df03aaf1361d4f9a0507703      7261  src/mapel_linkage/validation/threshold_metrics.py
 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855         0  tests/__init__.py
 ac40e2f066bf25708ba56eb789b5a7c86ed5c02a154538f1f32dda2bd6b6c344      6916  tests/adjudication/test_active_learning.py
@@ -274,7 +274,7 @@ dac69565a6060e678eb74c1af2447976a551472b7cf792cf69371ceabb66c1f5      3264  test
 46251855b153e94e2bc15a1e94a0a1707213f21cf93991959ddc757a6327e737      2990  tests/profiling/test_task_profiles.py
 054e16df06f1a56629404c2e4b99025e257da89d89ecc213f38a0f12a667b228      2938  tests/recommendation/test_cli_and_capability.py
 6154bd233c2fdcd60922e30fa6e56914c0d2abb3b115ffb7f3d7bef6fba94703      4473  tests/recommendation/test_distance.py
-250f6f607a0bc6c7d5c871c9501644a5013e134d50f1ea35cc74c700b561f6f2      5014  tests/recommendation/test_meta_ranker.py
+26e8aeba76a9228b9f14de18ab715f9012c48ca49da4f54975b8842af607e074      5050  tests/recommendation/test_meta_ranker.py
 bca17ba74ed4c68bede9b844a47c405fce20e39394b0f6b490fe3f2904337801      7138  tests/recommendation/test_similarity_advisor.py
 b83be72bbad65bfc5fa9a801c0fdae787bcf654439672910e42e64cc2a6d20b8      4598  tests/recommendation/test_stage1_advisor.py
 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855         0  tests/synthetic/__init__.py
