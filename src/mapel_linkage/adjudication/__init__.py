@@ -9,6 +9,7 @@ from mapel_linkage.adjudication.active_learning import (
     calculate_margin_score,
     calculate_uncertainty_score,
     prioritize_review_queue,
+    sample_active_learning_queue,
     score_review_entry,
 )
 from mapel_linkage.adjudication.adjudication_runner import (
@@ -94,6 +95,7 @@ __all__ = [
     "prioritize_review_queue",
     "promote_to_verified_batch",
     "resolve_pair_consensus",
+    "sample_active_learning_queue",
     "score_review_entry",
     "write_review_queue",
 ]

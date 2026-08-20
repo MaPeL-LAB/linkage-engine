@@ -13,7 +13,9 @@ from mapel_linkage.recommendation.contracts import (
     EmpiricalMetricDistribution,
     EvidenceContribution,
     EvidenceScope,
+    MetaRankingAdvisoryReport,
     PipelineRecommendation,
+    PredictedCandidateUtility,
     RankingStrategy,
     RecommendationIntent,
     RuntimeDependency,
@@ -31,6 +33,10 @@ from mapel_linkage.recommendation.eligibility import (
     EligibilityDecision,
     EligibilityReason,
     evaluate_candidate,
+)
+from mapel_linkage.recommendation.meta_ranker import (
+    LearnedMetaRankerModel,
+    MetaRankingLinkageAdvisor,
 )
 from mapel_linkage.recommendation.similarity_advisor import (
     SimilarityLinkageAdvisor,
@@ -54,8 +60,12 @@ __all__ = [
     "EmpiricalMetricDistribution",
     "EvidenceContribution",
     "EvidenceScope",
+    "LearnedMetaRankerModel",
     "MetaFeatureDistanceComputer",
+    "MetaRankingAdvisoryReport",
+    "MetaRankingLinkageAdvisor",
     "PipelineRecommendation",
+    "PredictedCandidateUtility",
     "RankingStrategy",
     "RecommendationIntent",
     "RuntimeDependency",

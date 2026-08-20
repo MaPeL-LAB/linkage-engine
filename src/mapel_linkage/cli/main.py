@@ -12,8 +12,10 @@ from pydantic import ValidationError
 from mapel_linkage import __version__
 from mapel_linkage.adjudication import (
     AdjudicationWorkflowRunner,
+    ReviewQueueEntry,
     import_adjudications_from_csv,
     import_adjudications_from_jsonl,
+    sample_active_learning_queue,
 )
 from mapel_linkage.benchmarking import (
     BenchmarkPortfolioRunner,
@@ -35,6 +37,7 @@ from mapel_linkage.pipeline.local_workspace import initialise_local_project, run
 from mapel_linkage.profiling import build_preflight_task_profile
 from mapel_linkage.recommendation import (
     AdvisorContext,
+    MetaRankingLinkageAdvisor,
     RecommendationIntent,
     RuntimeDependency,
     SimilarityLinkageAdvisor,
@@ -129,7 +132,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     recommend.add_argument(
         "--method",
-        choices=("structural", "similarity"),
+        choices=("structural", "similarity", "meta-ranker"),
         default="structural",
         help="Advisor recommendation method.",
     )
@@ -137,9 +140,23 @@ def build_parser() -> argparse.ArgumentParser:
         "--registry-dir",
         metavar="DIR",
         default=None,
-        help="Path to BenchmarkRegistry directory for similarity advisor.",
+        help="Path to BenchmarkRegistry directory for similarity/meta-ranker advisor.",
     )
     recommend.set_defaults(handler=_recommend_pipeline)
+
+    sample_queue = subparsers.add_parser(
+        "sample-review-queue",
+        help="Prioritize and sample a bounded review queue using active learning.",
+    )
+    sample_queue.add_argument("--input-queue", metavar="FILE", required=True)
+    sample_queue.add_argument("--output", metavar="OUTPUT", required=True)
+    sample_queue.add_argument(
+        "--strategy",
+        choices=("uncertainty", "margin", "committee", "hybrid"),
+        default="uncertainty",
+    )
+    sample_queue.add_argument("--budget", type=int, default=50)
+    sample_queue.set_defaults(handler=_sample_review_queue)
 
     benchmark = subparsers.add_parser(
         "run-benchmark",
@@ -407,7 +424,17 @@ def _recommend_pipeline(namespace: argparse.Namespace) -> int:
             benchmark_family_count=0,
         )
         method = getattr(namespace, "method", "structural")
-        if method == "similarity":
+        if method == "meta-ranker":
+            registry = (
+                BenchmarkRegistry(Path(namespace.registry_dir))
+                if getattr(namespace, "registry_dir", None)
+                else None
+            )
+            advisor_meta = MetaRankingLinkageAdvisor(registry=registry)
+            report_meta = advisor_meta.advise(plan, context=context, profile=profile)
+            print(json.dumps(report_meta.safe_summary(), sort_keys=True))
+            return 0
+        elif method == "similarity":
             registry = (
                 BenchmarkRegistry(Path(namespace.registry_dir))
                 if getattr(namespace, "registry_dir", None)
@@ -433,6 +460,60 @@ def _recommend_pipeline(namespace: argparse.Namespace) -> int:
             file=sys.stderr,
         )
         return 2
+
+
+def _sample_review_queue(namespace: argparse.Namespace) -> int:
+    in_path = Path(namespace.input_queue)
+    out_path = Path(namespace.output)
+    budget = max(0, int(namespace.budget))
+    strategy = namespace.strategy
+
+    entries: list[ReviewQueueEntry] = []
+    for line in in_path.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        data = json.loads(line)
+        entries.append(
+            ReviewQueueEntry(
+                relationship_id=data["relationship_id"],
+                source_record_ref=data.get("source_record_ref", ""),
+                target_record_ref=data.get("target_record_ref"),
+                relationship_status=data.get("relationship_status", "review_required"),
+                calibrated_probability=data.get("calibrated_probability"),
+                candidate_rank=data.get("candidate_rank"),
+                probability_margin=data.get("probability_margin", 0.0),
+                review_reason_codes=tuple(data.get("review_reason_codes", ("review_required",))),
+                model_version=data.get("model_version", "v1.0"),
+                decision_rule_id=data.get("decision_rule_id", "rule"),
+                assignment_method=data.get("assignment_method", "ortools"),
+                run_id=data.get("run_id", "run_01"),
+            )
+        )
+
+    sampled = sample_active_learning_queue(entries, budget=budget, strategy=strategy)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_lines = [
+        json.dumps(
+            {
+                "relationship_id": e.relationship_id,
+                "relationship_status": e.relationship_status,
+                "candidate_rank": e.candidate_rank,
+                "calibrated_probability": e.calibrated_probability,
+                "probability_margin": e.probability_margin,
+                "review_reason_codes": list(e.review_reason_codes),
+                "model_version": e.model_version,
+                "decision_rule_id": e.decision_rule_id,
+                "assignment_method": e.assignment_method,
+                "run_id": e.run_id,
+            },
+            sort_keys=True,
+        )
+        + "\n"
+        for e in sampled.entries
+    ]
+    out_path.write_text("".join(out_lines), encoding="utf-8")
+    print(json.dumps(sampled.safe_summary(), sort_keys=True))
+    return 0
 
 
 def _seed_benchmarks(namespace: argparse.Namespace) -> int:

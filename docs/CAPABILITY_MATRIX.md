@@ -19,10 +19,10 @@ No current capability has established operational validation.
 | `beta_calibration` | M5 | implemented | workflow_integrated | core_ci | Configurable alternative using the protected calibration partition. |
 | `one_to_one_assignment` | M2 | implemented | workflow_integrated | core_ci | OR-Tools is the primary solver; SciPy provides a small-problem reference. |
 | `adjudication_audit_ledger` | M3 | implemented | workflow_integrated | core_ci | Immutable append-only audit ledger, multi-reviewer consensus, and label promotion workflow integrated. |
-| `active_learning_queue` | M3 | implemented | component_only | core_ci | Ordering authority only; unknown pairs are not silently relabelled. |
-| `many_to_one_assignment` | M4 | implemented | component_only | core_ci | Solver and invariant tests exist; general orchestration is pending. |
-| `one_to_many_assignment` | M4 | implemented | component_only | core_ci | Solver and invariant tests exist; general orchestration is pending. |
-| `unconstrained_assignment` | M4 | implemented | component_only | core_ci | Pairwise selection exists without bypassing the decision-policy boundary. |
+| `active_learning_queue` | M3 | implemented | workflow_integrated | core_ci | Active-learning review ordering across uncertainty, margin, committee, and hybrid modes. |
+| `many_to_one_assignment` | M4 | implemented | workflow_integrated | core_ci | Greedy many-to-one assignment workflow integrated. |
+| `one_to_many_assignment` | M4 | implemented | workflow_integrated | core_ci | Greedy one-to-many assignment workflow integrated. |
+| `unconstrained_assignment` | M4 | implemented | workflow_integrated | core_ci | Threshold-based unconstrained assignment workflow integrated. |
 | `single_source_deduplication` | M4 | implemented | workflow_integrated | core_ci | Pair canonicalisation and single-source deduplication workflow integrated. |
 | `link_and_dedupe` | M4 | implemented | workflow_integrated | core_ci | Two-source linkage with intra-source duplicate clustering workflow integrated. |
 | `lightgbm_pair_classifier` | M5 | implemented | component_only | all_models_ci | Optional dependency; dedicated all-models CI must execute the runtime path. |
@@ -38,7 +38,8 @@ No current capability has established operational validation.
 | `stage1_linkage_strategy_advisor` | I2A | implemented | workflow_integrated | core_ci | Configuration-only profiling, hard eligibility, structural Pareto shortlisting, transparent explanations, and explicit empirical abstention. |
 | `synthetic_benchmark_registry` | B1 | implemented | workflow_integrated | core_ci | Parametric scenario generator, benchmark portfolio runner, and file-backed registry persistence. |
 | `stage2_similarity_advisor` | I2B | implemented | workflow_integrated | core_ci | Nearest scenario family retrieval, weighted distance computation, out-of-distribution thresholding, empirical performance distribution aggregation, and strict advisory invariants. |
-| `linkage_strategy_advisor` | I2C-I2D | planned | not_integrated | not_verified | Learned meta-ranking and active benchmark planning remain evidence-gated future stages. |
+| `stage3_meta_ranking_advisor` | I2C | implemented | workflow_integrated | core_ci | Learned meta-regressor with conformal uncertainty intervals and similarity fallback. |
+| `linkage_strategy_advisor` | I2D | planned | not_integrated | not_verified | Active benchmark planning and multi-stage empirical meta-learning remain evidence-gated. |
 
 ## Current integrated workflow
 

@@ -401,6 +401,64 @@ class SimilarityAdvisoryReport(RecommendationNode):
         }
 
 
+class PredictedCandidateUtility(RecommendationNode):
+    """Calibrated meta-model predicted utility with conformal interval bounds."""
+
+    candidate_id: Identifier
+    predicted_utility: Annotated[StrictFloat, Field(ge=0.0, le=1.0)]
+    uncertainty_lower_bound: Annotated[StrictFloat, Field(ge=0.0, le=1.0)]
+    uncertainty_upper_bound: Annotated[StrictFloat, Field(ge=0.0, le=1.0)]
+    conformal_coverage_level: Annotated[StrictFloat, Field(ge=0.5, le=0.99)] = 0.90
+
+
+class MetaRankingAdvisoryReport(RecommendationNode):
+    """Stage-3 Learned Meta-Ranking Strategy Advisory Report."""
+
+    report_schema_version: Literal["1"] = "1"
+    report_id: Identifier
+    recommendation: PipelineRecommendation
+    predicted_candidate_utilities: dict[str, PredictedCandidateUtility] = Field(
+        default_factory=dict
+    )
+    meta_model_type: str = "ridge_meta_ranker_v1"
+    meta_model_trained_runs: int = 0
+    fallback_to_similarity: StrictBool = False
+    fallback_reason: str | None = None
+    recommendation_authority: Literal["advisory_only"] = "advisory_only"
+    decision_authority: Literal["none"] = "none"
+    assignment_authority: Literal["none"] = "none"
+    merge_authority: Literal["none"] = "none"
+    automatic_promotion: Literal["prohibited"] = "prohibited"
+    operational_validity: Literal["not_established"] = "not_established"
+
+    @property
+    def report_digest(self) -> str:
+        payload = self.model_dump(mode="json")
+        encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        return hashlib.sha256(encoded).hexdigest()
+
+    def safe_summary(self) -> dict[str, object]:
+        return {
+            "report_schema_version": self.report_schema_version,
+            "report_id": self.report_id,
+            "report_digest": self.report_digest,
+            "recommendation_id": self.recommendation.recommendation_id,
+            "meta_model_type": self.meta_model_type,
+            "meta_model_trained_runs": self.meta_model_trained_runs,
+            "fallback_to_similarity": self.fallback_to_similarity,
+            "fallback_reason": self.fallback_reason,
+            "predicted_candidate_utilities": {
+                k: v.model_dump(mode="json") for k, v in self.predicted_candidate_utilities.items()
+            },
+            "recommendation": self.recommendation.safe_summary(),
+            "recommendation_authority": self.recommendation_authority,
+            "decision_authority": self.decision_authority,
+            "assignment_authority": self.assignment_authority,
+            "merge_authority": self.merge_authority,
+            "operational_validity": self.operational_validity,
+        }
+
+
 __all__ = [
     "AbstentionReason",
     "CandidateExplanation",
@@ -410,7 +468,9 @@ __all__ = [
     "EmpiricalMetricDistribution",
     "EvidenceContribution",
     "EvidenceScope",
+    "MetaRankingAdvisoryReport",
     "PipelineRecommendation",
+    "PredictedCandidateUtility",
     "RankingStrategy",
     "RecommendationIntent",
     "RuntimeDependency",
