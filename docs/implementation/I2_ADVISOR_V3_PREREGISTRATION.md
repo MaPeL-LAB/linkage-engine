@@ -9,6 +9,12 @@ v3 unit. The canonical outcome-free binding is
 
 The design contains 84 new families and 336 instances, with exactly four instances per family:
 
+The corpus has since completed under this immutable v3 protocol. Its original all-role evidence
+readiness gate failed closed. The separately disclosed post-corpus, pre-qualification remediation is
+documented in
+[`I2_ADVISOR_V31_REMEDIATION.md`](I2_ADVISOR_V31_REMEDIATION.md); it does not rewrite this
+preregistration or authorize qualification.
+
 | Role | Families | Purpose |
 |---|---:|---|
 | Meta-training | 48 | Fit Stage 2 utility summaries and the Stage 3 ridge model |

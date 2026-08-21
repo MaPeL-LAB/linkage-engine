@@ -97,13 +97,21 @@ The I2 advisory stack is integrated with coverage checks, uncertainty, fallback,
 and explicit human approval boundaries. It cannot approve models, thresholds, assignments,
 relationship statuses, or merges.
 
-The next empirical round is prospectively fixed as advisor-v3: 84 new family-level units across
-meta-training, conformal, locked, and OOD roles, with mechanism-aware observable synthetic
-profiles and a separate later qualification approval. Its 10-worker resumable corpus driver is
-`scripts/run_advisor_v3_corpus.sh`. Execution approval binds aggregate readiness and exact
-source/dependency/environment provenance digests, which every worker recomputes before use. Runtime
-mechanism-profile production and operational validity remain unestablished. See
-[`docs/implementation/I2_ADVISOR_V3_PREREGISTRATION.md`](docs/implementation/I2_ADVISOR_V3_PREREGISTRATION.md).
+Advisor-v3 completed 84 family-level units across meta-training, conformal, locked, and OOD roles
+under its prospective mechanism-aware design. Its original all-role adapter readiness gate failed
+closed. Advisor-v3.1 now defines a disclosed post-corpus, pre-qualification role-specific evidence
+amendment: all three recipe utilities remain mandatory for meta-training, conformal, and locked
+families, while OOD evaluation requires only observable mechanism profiles and preregistered
+distance geometry. OOD recipe metrics are prohibited qualification inputs. The v3 registry remains
+immutable; a distinct governance-only registry binds its frozen approval, original provenance,
+terminal readiness, exact snapshot, recomputed observable geometry, and the separate current
+source/dependency/environment analysis-provenance digest. The amendment transparently uses
+adapter-status and failure-code metadata but no performance metric values. No second heavy corpus is
+required, and qualification still requires a later reviewed evaluator and explicit approval.
+Runtime mechanism-profile production and operational validity remain unestablished. See
+[`docs/implementation/I2_ADVISOR_V3_PREREGISTRATION.md`](docs/implementation/I2_ADVISOR_V3_PREREGISTRATION.md)
+and
+[`docs/implementation/I2_ADVISOR_V31_REMEDIATION.md`](docs/implementation/I2_ADVISOR_V31_REMEDIATION.md).
 
 See
 [`docs/architecture/ADR-0004-CAPABILITY-STATUS-AND-PIPELINE-INTEGRATION.md`](docs/architecture/ADR-0004-CAPABILITY-STATUS-AND-PIPELINE-INTEGRATION.md).

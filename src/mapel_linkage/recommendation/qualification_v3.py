@@ -197,6 +197,56 @@ def advisor_v3_evaluation_algorithm_digest() -> str:
     )
 
 
+def advisor_v31_evaluation_algorithm_digest() -> str:
+    """Bind the post-corpus, pre-qualification role-specific evidence amendment."""
+
+    return _digest(
+        {
+            "algorithm_id": "advisor_v31_family_qualification_algorithm_amendment_v1",
+            "base_evaluation_algorithm_digest": advisor_v3_evaluation_algorithm_digest(),
+            "amendment_scope": "qualification_input_evidence_contract_only",
+            "family_is_statistical_unit": True,
+            "recipe_utility_required_roles": (
+                "meta_training",
+                "conformal",
+                "locked_evaluation",
+            ),
+            "recipe_utility_required_cells": (
+                "72_families_x_4_instances_x_5_replicates_x_3_recipes"
+            ),
+            "missing_or_non_success_required_role_cell": "fail_closed",
+            "ood_holdout_evidence": {
+                "required": (
+                    "12_complete_observable_mechanism_profiles",
+                    "preregistered_training_conformal_distance_geometry",
+                ),
+                "recipe_utility_requirement": "none",
+                "recipe_metric_use_for_fit_threshold_or_qualification": "prohibited",
+                "adapter_status_use": "aggregate_diagnostic_integrity_only",
+            },
+            "unchanged": (
+                "family_roles",
+                "catalogue",
+                "seeds",
+                "replicates",
+                "utility_policy",
+                "performance_thresholds",
+                "distance_threshold",
+                "locked_and_ood_human_approval_gate",
+                "no_automatic_promotion",
+            ),
+            "source_registry": "immutable_advisor_v3_execution_v1",
+            "remediation_registry": "governance_only_digest_bound_reference",
+            "amendment_trigger_metadata": ("adapter_status_and_failure_code_metadata"),
+            "adapter_status_metadata_accessed_to_select_amendment": True,
+            "failure_code_metadata_accessed_to_select_amendment": True,
+            "performance_metric_values_accessed_to_select_amendment": False,
+            "qualification_execution_availability": "not_implemented_until_separate_review",
+            "automatic_promotion": False,
+        }
+    )
+
+
 class AdvisorV3QualificationPolicy(BaseModel):
     """Fixed v3 thresholds declared before any v3 locked or OOD result exists."""
 
@@ -288,4 +338,5 @@ class AdvisorV3QualificationPolicy(BaseModel):
 __all__ = [
     "AdvisorV3QualificationPolicy",
     "advisor_v3_evaluation_algorithm_digest",
+    "advisor_v31_evaluation_algorithm_digest",
 ]

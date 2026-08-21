@@ -32,6 +32,8 @@ def test_public_api_top_level_exports() -> None:
     assert hasattr(benchmark_pkg, "build_benchmark_shard_plan")
     assert hasattr(benchmark_pkg, "execute_advisor_corpus_shard")
     assert hasattr(benchmark_pkg, "audit_advisor_corpus")
+    assert hasattr(benchmark_pkg, "audit_advisor_v31_remediation")
+    assert hasattr(benchmark_pkg, "inspect_frozen_advisor_v3_corpus")
 
 
 def test_splink_runtime_metadata_and_ci_constraint_are_exactly_aligned() -> None:

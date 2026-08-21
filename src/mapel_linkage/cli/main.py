@@ -6,6 +6,7 @@ import json
 import sys
 from collections.abc import Sequence
 from pathlib import Path
+from typing import Literal
 
 from pydantic import ValidationError
 
@@ -47,6 +48,9 @@ from mapel_linkage.benchmarking.advisor_v3_execution import (
     build_advisor_v3_execution_approval,
     execute_advisor_v3_corpus_shard,
     prepare_advisor_v3_execution,
+)
+from mapel_linkage.benchmarking.advisor_v31_remediation import (
+    audit_advisor_v31_remediation,
 )
 from mapel_linkage.capabilities import WorkflowStatus, capabilities, capability_summary
 from mapel_linkage.configuration import (
@@ -338,6 +342,32 @@ def build_parser() -> argparse.ArgumentParser:
     audit_v3_corpus.add_argument("--project-root", metavar="ROOT", default=".")
     audit_v3_corpus.add_argument("--approval-reference", metavar="REFERENCE", required=True)
     audit_v3_corpus.set_defaults(handler=_audit_advisor_v3_corpus)
+
+    audit_v31_remediation = subparsers.add_parser(
+        "audit-advisor-v31-remediation",
+        help="Create a governance-only v3.1 readiness bridge from immutable v3 evidence.",
+    )
+    audit_v31_remediation.add_argument(
+        "--source-registry-dir",
+        metavar="RELATIVE_DIR",
+        required=True,
+        help="Existing immutable v3 registry under private/benchmark_registry/.",
+    )
+    audit_v31_remediation.add_argument(
+        "--remediation-registry-dir",
+        metavar="RELATIVE_DIR",
+        required=True,
+        help="Distinct governance-only v3.1 registry under private/benchmark_registry/.",
+    )
+    audit_v31_remediation.add_argument("--project-root", metavar="ROOT", default=".")
+    audit_v31_remediation.add_argument(
+        "--amendment",
+        metavar="RELATIVE_JSON",
+        default="docs/evidence/advisor_v31_protocol_amendment_20260821.json",
+    )
+    audit_v31_remediation.add_argument("--approve-remediation", action="store_true")
+    audit_v31_remediation.add_argument("--approval-reference", metavar="REFERENCE", required=True)
+    audit_v31_remediation.set_defaults(handler=_audit_advisor_v31_remediation)
 
     qualify_advisor = subparsers.add_parser(
         "qualify-advisor",
@@ -1126,6 +1156,107 @@ def _audit_advisor_v3_corpus(namespace: argparse.Namespace) -> int:
             sort_keys=True,
         )
     )
+    return 0
+
+
+def _resolve_advisor_v31_registry_path(
+    namespace: argparse.Namespace,
+    *,
+    argument: Literal["source_registry_dir", "remediation_registry_dir"],
+    must_exist: bool,
+) -> Path:
+    relative = Path(str(getattr(namespace, argument)))
+    if relative.parts[:2] != ("private", "benchmark_registry"):
+        raise ValueError(
+            "Advisor-v3.1 registries must remain under the ignored "
+            "private/benchmark_registry/ envelope."
+        )
+    proxy = argparse.Namespace(project_root=namespace.project_root, registry_dir=str(relative))
+    return _resolve_advisor_registry_path(proxy, must_exist=must_exist)
+
+
+def _resolve_advisor_v31_amendment(namespace: argparse.Namespace) -> Path:
+    project_root = Path(namespace.project_root).resolve(strict=True)
+    relative = Path(namespace.amendment)
+    if (
+        relative.is_absolute()
+        or not relative.parts
+        or relative.parts[:2] != ("docs", "evidence")
+        or ".." in relative.parts
+        or relative.suffix.lower() != ".json"
+    ):
+        raise ValueError("Advisor-v3.1 amendments must be project docs/evidence JSON.")
+    candidate = project_root
+    for part in relative.parts:
+        candidate /= part
+        if candidate.is_symlink():
+            raise ValueError("Advisor-v3.1 amendment paths cannot traverse symbolic links.")
+    resolved = candidate.resolve(strict=True)
+    if not resolved.is_relative_to(project_root / "docs" / "evidence"):
+        raise ValueError("Advisor-v3.1 amendment is outside its source-controlled root.")
+    return resolved
+
+
+def _require_existing_advisor_v3_registry_layout(path: Path) -> None:
+    required_directories = (
+        "families",
+        "instances",
+        "runs",
+        "metrics",
+        "failures",
+        "snapshots",
+        "reports",
+        "governance",
+    )
+    if any(
+        (candidate := path / name).is_symlink() or not candidate.is_dir()
+        for name in required_directories
+    ):
+        raise ValueError("Advisor-v3 source registry layout is incomplete or path-unsafe.")
+
+
+def _require_disjoint_advisor_v31_registry_paths(
+    source_path: Path,
+    remediation_path: Path,
+) -> None:
+    if source_path.is_relative_to(remediation_path) or remediation_path.is_relative_to(source_path):
+        raise ValueError("Advisor-v3 and v3.1 registry paths must not overlap.")
+
+
+def _audit_advisor_v31_remediation(namespace: argparse.Namespace) -> int:
+    if not bool(namespace.approve_remediation):
+        print(
+            "ERROR ML-BENCH-V31-001: Explicit human remediation approval is required.",
+            file=sys.stderr,
+        )
+        return 2
+    try:
+        source_path = _resolve_advisor_v31_registry_path(
+            namespace,
+            argument="source_registry_dir",
+            must_exist=True,
+        )
+        remediation_path = _resolve_advisor_v31_registry_path(
+            namespace,
+            argument="remediation_registry_dir",
+            must_exist=False,
+        )
+        _require_disjoint_advisor_v31_registry_paths(source_path, remediation_path)
+        _require_existing_advisor_v3_registry_layout(source_path)
+        readiness = audit_advisor_v31_remediation(
+            source_registry=BenchmarkRegistry(source_path),
+            remediation_registry=BenchmarkRegistry(remediation_path),
+            committed_amendment_path=_resolve_advisor_v31_amendment(namespace),
+            remediation_approval_reference=str(namespace.approval_reference),
+        )
+    except (FileExistsError, FileNotFoundError, OSError, ValidationError, ValueError):
+        print(
+            "ERROR ML-BENCH-V31-002: Advisor-v3.1 remediation failed closed on missing, "
+            "stale, conflicting, path-unsafe, or tampered evidence.",
+            file=sys.stderr,
+        )
+        return 2
+    print(json.dumps(readiness.safe_summary(), sort_keys=True))
     return 0
 
 
