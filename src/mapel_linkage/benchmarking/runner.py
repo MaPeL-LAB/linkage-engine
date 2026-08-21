@@ -21,6 +21,9 @@ from typing import Annotated, Literal
 import numpy as np
 from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictStr
 
+from mapel_linkage.benchmarking.advisor_v3_label_budget import (
+    apply_advisor_v3_training_label_budget,
+)
 from mapel_linkage.benchmarking.contracts import (
     BenchmarkAggregateMetrics,
     BenchmarkFailureRecord,
@@ -44,7 +47,7 @@ from mapel_linkage.configuration.models import (
 )
 from mapel_linkage.domain.errors import LinkageRuntimeError
 from mapel_linkage.domain.sql_identifiers import quote_identifier
-from mapel_linkage.governance.labels import assert_disjoint_label_partitions
+from mapel_linkage.governance.labels import VerifiedLabelBatch, assert_disjoint_label_partitions
 from mapel_linkage.io import ColumnSpec, DuckDBStore
 from mapel_linkage.models import (
     DuckDBFellegiSunterMatcher,
@@ -531,12 +534,14 @@ class BenchmarkPortfolioRunner:
                 right=right,
                 comparisons=comparisons,
             )
-            matrices, partition_manifest_digest = self._protected_matrices(
-                store=store,
-                bundle=bundle,
-                candidate_pairs=candidate_pairs,
-                features=features,
-                seed=seed,
+            matrices, partition_manifest_digest, full_training_pair_references = (
+                self._protected_matrices(
+                    store=store,
+                    bundle=bundle,
+                    candidate_pairs=candidate_pairs,
+                    features=features,
+                    seed=seed,
+                )
             )
             training = matrices["training"]
             locked_test = matrices["test"]
@@ -550,7 +555,10 @@ class BenchmarkPortfolioRunner:
 
             if recipe.recipe_id == "recipe.fellegi_sunter_reference":
                 training_features = self._subset_features(
-                    store, features, training.pair_references, "benchmark_fs_training"
+                    store,
+                    features,
+                    full_training_pair_references,
+                    "benchmark_fs_training",
                 )
                 test_features = self._subset_features(
                     store, features, locked_test.pair_references, "benchmark_fs_test"
@@ -812,14 +820,12 @@ class BenchmarkPortfolioRunner:
         }
 
     @staticmethod
-    def _protected_matrices(
+    def _protected_label_batches(
         *,
-        store: DuckDBStore,
         bundle: BenchmarkScenarioBundle,
         candidate_pairs: tuple[tuple[str, str], ...],
-        features: ComparisonFeatureResult,
         seed: int,
-    ) -> tuple[dict[str, BoostedLabelledMatrix], str]:
+    ) -> tuple[tuple[VerifiedLabelBatch, ...], tuple[tuple[str, str], ...], str | None]:
         truth_records = tuple(
             EntityHouseholdRecord(
                 dataset_id=item.dataset_id,
@@ -852,6 +858,38 @@ class BenchmarkPortfolioRunner:
             verification_protocol="synthetic_benchmark_v2",
             source_digest=truth_digest,
         )
+        original_training = next(batch for batch in batches if batch.partition == "training")
+        full_training_pair_references = tuple(
+            (item.left_record_key, item.right_record_key) for item in original_training.labels
+        )
+        label_budget_report_digest: str | None = None
+        if bundle.instance_id.startswith("instance.advisor_v3."):
+            batches, label_budget_report = apply_advisor_v3_training_label_budget(
+                batches,
+                planned_training_label_budget=int(bundle.latent_parameters["label_volume"]),
+                random_seed=seed,
+            )
+            label_budget_report_digest = label_budget_report.report_digest
+        return batches, full_training_pair_references, label_budget_report_digest
+
+    @staticmethod
+    def _protected_matrices(
+        *,
+        store: DuckDBStore,
+        bundle: BenchmarkScenarioBundle,
+        candidate_pairs: tuple[tuple[str, str], ...],
+        features: ComparisonFeatureResult,
+        seed: int,
+    ) -> tuple[dict[str, BoostedLabelledMatrix], str, tuple[tuple[str, str], ...]]:
+        (
+            batches,
+            full_training_pair_references,
+            label_budget_report_digest,
+        ) = BenchmarkPortfolioRunner._protected_label_batches(
+            bundle=bundle,
+            candidate_pairs=candidate_pairs,
+            seed=seed,
+        )
         by_partition = {batch.partition: batch for batch in batches}
         if set(by_partition) != {"training", "validation", "calibration", "decision", "test"}:
             raise ValueError("Protected benchmark partitions are incomplete.")
@@ -865,6 +903,18 @@ class BenchmarkPortfolioRunner:
         ):
             raise ValueError("Protected benchmark training and test evidence require both classes.")
         disjointness = assert_disjoint_label_partitions(batches)
+        partition_manifest_digest = (
+            disjointness.manifest_digest
+            if label_budget_report_digest is None
+            else _digest_object(
+                {
+                    "disjointness_manifest_digest": disjointness.manifest_digest,
+                    "label_budget_report_digest": label_budget_report_digest,
+                    "label_budget_scope": "training_only",
+                    "non_training_partitions_mutated": False,
+                }
+            )
+        )
         builder = DuckDBVerifiedMatrixBuilder(store)
         return (
             {
@@ -875,7 +925,8 @@ class BenchmarkPortfolioRunner:
                 )
                 for name, batch in by_partition.items()
             },
-            disjointness.manifest_digest,
+            partition_manifest_digest,
+            full_training_pair_references,
         )
 
     @staticmethod

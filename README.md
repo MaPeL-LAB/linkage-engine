@@ -97,6 +97,14 @@ The I2 advisory stack is integrated with coverage checks, uncertainty, fallback,
 and explicit human approval boundaries. It cannot approve models, thresholds, assignments,
 relationship statuses, or merges.
 
+The next empirical round is prospectively fixed as advisor-v3: 84 new family-level units across
+meta-training, conformal, locked, and OOD roles, with mechanism-aware observable synthetic
+profiles and a separate later qualification approval. Its 10-worker resumable corpus driver is
+`scripts/run_advisor_v3_corpus.sh`. Execution approval binds aggregate readiness and exact
+source/dependency/environment provenance digests, which every worker recomputes before use. Runtime
+mechanism-profile production and operational validity remain unestablished. See
+[`docs/implementation/I2_ADVISOR_V3_PREREGISTRATION.md`](docs/implementation/I2_ADVISOR_V3_PREREGISTRATION.md).
+
 See
 [`docs/architecture/ADR-0004-CAPABILITY-STATUS-AND-PIPELINE-INTEGRATION.md`](docs/architecture/ADR-0004-CAPABILITY-STATUS-AND-PIPELINE-INTEGRATION.md).
 
