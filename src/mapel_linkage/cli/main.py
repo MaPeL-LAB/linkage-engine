@@ -23,6 +23,16 @@ from mapel_linkage.benchmarking import (
     BenchmarkScenarioGenerator,
     generate_and_run_seed_corpus,
 )
+from mapel_linkage.benchmarking.advisor_catalogue import (
+    build_advisor_corpus_design,
+    build_advisor_corpus_readiness,
+    build_benchmark_shard_plan,
+)
+from mapel_linkage.benchmarking.advisor_execution import (
+    CorpusExecutionApproval,
+    audit_advisor_corpus,
+    execute_advisor_corpus_shard,
+)
 from mapel_linkage.capabilities import WorkflowStatus, capabilities, capability_summary
 from mapel_linkage.configuration import (
     compile_config,
@@ -213,6 +223,41 @@ def build_parser() -> argparse.ArgumentParser:
         help="Optional privacy-safe PreflightTaskProfile JSON file.",
     )
     plan_bm.set_defaults(handler=_plan_benchmarks)
+
+    plan_corpus = subparsers.add_parser(
+        "plan-advisor-corpus",
+        help="Emit the aggregate advisor-v2 design, adapter readiness, and shard plan.",
+    )
+    plan_corpus.add_argument("--shards", type=int, default=32, metavar="N")
+    plan_corpus.add_argument("--replicates", type=int, default=5, metavar="N")
+    plan_corpus.set_defaults(handler=_plan_advisor_corpus)
+
+    run_corpus = subparsers.add_parser(
+        "run-advisor-corpus",
+        help="Execute or resume one explicitly approved synthetic advisor-v2 shard.",
+    )
+    run_corpus.add_argument("--registry-dir", metavar="RELATIVE_DIR", required=True)
+    run_corpus.add_argument("--project-root", metavar="ROOT", default=".")
+    run_corpus.add_argument("--shards", type=int, default=32, metavar="N")
+    run_corpus.add_argument("--shard-index", type=int, required=True, metavar="INDEX")
+    run_corpus.add_argument("--replicates", type=int, default=5, metavar="N")
+    run_corpus.add_argument(
+        "--approve-execution",
+        action="store_true",
+        help="Required explicit human approval for this synthetic heavy execution.",
+    )
+    run_corpus.add_argument("--approval-reference", metavar="REFERENCE", required=True)
+    run_corpus.set_defaults(handler=_run_advisor_corpus)
+
+    audit_corpus = subparsers.add_parser(
+        "audit-advisor-corpus",
+        help="Audit aggregate advisor-v2 completion and three-adapter cell coverage.",
+    )
+    audit_corpus.add_argument("--registry-dir", metavar="RELATIVE_DIR", required=True)
+    audit_corpus.add_argument("--project-root", metavar="ROOT", default=".")
+    audit_corpus.add_argument("--shards", type=int, default=32, metavar="N")
+    audit_corpus.add_argument("--replicates", type=int, default=5, metavar="N")
+    audit_corpus.set_defaults(handler=_audit_advisor_corpus)
 
     import_rev = subparsers.add_parser(
         "import-reviews",
@@ -652,6 +697,132 @@ def _plan_benchmarks(namespace: argparse.Namespace) -> int:
         )
         return 2
     print(json.dumps(plan.safe_summary(), sort_keys=True))
+    return 0
+
+
+def _plan_advisor_corpus(namespace: argparse.Namespace) -> int:
+    """Print aggregate design and readiness only; never generate record-level rows."""
+
+    try:
+        shard_count = int(namespace.shards)
+        design = build_advisor_corpus_design()
+        runner = BenchmarkPortfolioRunner()
+        readiness = build_advisor_corpus_readiness(
+            adapter_statuses=runner.adapter_statuses(),
+            planned_replicates_per_instance=int(namespace.replicates),
+        )
+        shard_plan = build_benchmark_shard_plan(shard_count=shard_count)
+    except (OSError, ValidationError, ValueError):
+        print(
+            "ERROR ML-BENCH-CORPUS-001: Advisor corpus planning failed safe input validation.",
+            file=sys.stderr,
+        )
+        return 2
+    print(
+        json.dumps(
+            {
+                "design": design.safe_summary(),
+                "readiness": readiness.safe_summary(),
+                "shard_plan": shard_plan.safe_summary(),
+            },
+            sort_keys=True,
+        )
+    )
+    return 0
+
+
+def _resolve_advisor_registry_path(
+    namespace: argparse.Namespace, *, must_exist: bool = False
+) -> Path:
+    raw_project_root = Path(namespace.project_root)
+    if raw_project_root.is_symlink():
+        raise ValueError("Project roots cannot be symbolic links.")
+    try:
+        project_root = raw_project_root.resolve(strict=True)
+    except OSError:
+        raise ValueError("The project root is unavailable.") from None
+    marker = project_root / "pyproject.toml"
+    if not project_root.is_dir() or marker.is_symlink() or not marker.is_file():
+        raise ValueError("The project root is not a regular package repository.")
+
+    relative = Path(namespace.registry_dir)
+    if relative.is_absolute() or not relative.parts or ".." in relative.parts:
+        raise ValueError("The benchmark registry must be project-relative.")
+    candidate = project_root
+    for part in relative.parts:
+        candidate = candidate / part
+        if candidate.is_symlink():
+            raise ValueError("Benchmark registry paths cannot traverse symbolic links.")
+    resolved = candidate.resolve(strict=False)
+    if not resolved.is_relative_to(project_root):
+        raise ValueError("The benchmark registry must remain inside the project root.")
+    if resolved.exists() and not resolved.is_dir():
+        raise ValueError("The benchmark registry must be a directory.")
+    if must_exist and not resolved.is_dir():
+        raise ValueError("The benchmark registry does not exist for audit.")
+    return resolved
+
+
+def _run_advisor_corpus(namespace: argparse.Namespace) -> int:
+    """Execute one digest-bound shard after explicit human approval."""
+
+    if not bool(namespace.approve_execution):
+        print(
+            "ERROR ML-BENCH-CORPUS-002: Explicit human execution approval is required.",
+            file=sys.stderr,
+        )
+        return 2
+    try:
+        shard_count = int(namespace.shards)
+        shard_index = int(namespace.shard_index)
+        replicates = int(namespace.replicates)
+        registry_path = _resolve_advisor_registry_path(namespace)
+        design = build_advisor_corpus_design()
+        shard_plan = build_benchmark_shard_plan(shard_count=shard_count)
+        approval = CorpusExecutionApproval(
+            approval_reference=namespace.approval_reference,
+            human_approved=True,
+            design_digest=design.design_digest,
+            shard_plan_digest=shard_plan.plan_digest,
+            replicates=replicates,
+        )
+        report = execute_advisor_corpus_shard(
+            registry=BenchmarkRegistry(registry_path),
+            shard_plan=shard_plan,
+            shard_index=shard_index,
+            approval=approval,
+            replicates=replicates,
+        )
+    except (FileExistsError, OSError, ValidationError, ValueError):
+        print(
+            "ERROR ML-BENCH-CORPUS-003: Advisor corpus execution failed closed; "
+            "retained evidence was not overwritten.",
+            file=sys.stderr,
+        )
+        return 2
+    print(json.dumps(report.safe_summary(), sort_keys=True))
+    return 0
+
+
+def _audit_advisor_corpus(namespace: argparse.Namespace) -> int:
+    """Audit retained aggregate evidence without executing benchmark adapters."""
+
+    try:
+        registry_path = _resolve_advisor_registry_path(namespace, must_exist=True)
+        shard_plan = build_benchmark_shard_plan(shard_count=int(namespace.shards))
+        readiness = audit_advisor_corpus(
+            registry=BenchmarkRegistry(registry_path),
+            shard_plan=shard_plan,
+            replicates=int(namespace.replicates),
+        )
+    except (FileExistsError, OSError, ValidationError, ValueError):
+        print(
+            "ERROR ML-BENCH-CORPUS-004: Advisor corpus audit failed closed on missing, "
+            "stale, conflicting, or tampered aggregate evidence.",
+            file=sys.stderr,
+        )
+        return 2
+    print(json.dumps(readiness.safe_summary(), sort_keys=True))
     return 0
 
 

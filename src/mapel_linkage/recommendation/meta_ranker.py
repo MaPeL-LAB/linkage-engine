@@ -11,7 +11,12 @@ from typing import Any
 
 import numpy as np
 
+from mapel_linkage.benchmarking.advisor_catalogue import (
+    advisor_v2_family_roles,
+    build_advisor_v2_generator,
+)
 from mapel_linkage.benchmarking.contracts import (
+    BenchmarkRunRecord,
     BenchmarkRunStatus,
 )
 from mapel_linkage.benchmarking.generator import (
@@ -20,6 +25,7 @@ from mapel_linkage.benchmarking.generator import (
 from mapel_linkage.benchmarking.registry import (
     BenchmarkRegistry,
 )
+from mapel_linkage.benchmarking.runner import BenchmarkPortfolioRunner
 from mapel_linkage.configuration.compiler import ExecutionPlan
 from mapel_linkage.domain.errors import AdvisorError
 from mapel_linkage.profiling import PreflightTaskProfile, build_preflight_task_profile
@@ -40,7 +46,65 @@ from mapel_linkage.recommendation.similarity_advisor import (
     SimilarityLinkageAdvisor,
 )
 
-_MIN_FAMILIES_FOR_META_LEARNING = 3
+_REQUIRED_BENCHMARK_RECIPE_TOKENS = frozenset(
+    {"fellegi_sunter", "xgboost_classifier", "xgboost_ranker"}
+)
+_MINIMUM_COMPLETE_REPLICATES = 5
+
+
+def _has_complete_required_evidence_grid(
+    records: tuple[BenchmarkRunRecord, ...],
+    *,
+    expected_instance_ids: frozenset[str],
+    recipe_token_by_digest: Mapping[str, str],
+) -> bool:
+    """Reject partial, failed, duplicate, mixed-provenance, or sparse adapter evidence."""
+
+    if len(expected_instance_ids) != 280:
+        return False
+    relevant = tuple(record for record in records if record.instance_id in expected_instance_ids)
+    if {record.instance_id for record in relevant} != expected_instance_ids:
+        return False
+    provenance = {
+        (record.engine_commit, record.dependency_lock_digest, record.environment_digest)
+        for record in relevant
+    }
+    if len(provenance) != 1:
+        return False
+
+    replicates_by_instance: dict[str, set[str]] = {
+        instance_id: set() for instance_id in expected_instance_ids
+    }
+    required_by_cell: dict[tuple[str, str], dict[str, BenchmarkRunStatus]] = {}
+    for record in relevant:
+        replicates_by_instance[record.instance_id].add(record.replicate_id)
+        token = recipe_token_by_digest.get(record.pipeline_recipe_digest)
+        if token is None:
+            continue
+        cell = required_by_cell.setdefault((record.instance_id, record.replicate_id), {})
+        if token in cell:
+            return False
+        cell[token] = record.status
+
+    replicate_sets = {tuple(sorted(values)) for values in replicates_by_instance.values()}
+    if len(replicate_sets) != 1:
+        return False
+    replicate_ids = next(iter(replicate_sets))
+    if len(replicate_ids) < _MINIMUM_COMPLETE_REPLICATES or replicate_ids != tuple(
+        f"replicate.{index:07d}" for index in range(len(replicate_ids))
+    ):
+        return False
+
+    return all(
+        set(required_by_cell.get((instance_id, replicate_id), {}))
+        == _REQUIRED_BENCHMARK_RECIPE_TOKENS
+        and all(
+            status is BenchmarkRunStatus.SUCCESS
+            for status in required_by_cell[(instance_id, replicate_id)].values()
+        )
+        for instance_id in expected_instance_ids
+        for replicate_id in replicate_ids
+    )
 
 
 def _policy_digest(payload: Mapping[str, Any]) -> str:
@@ -83,6 +147,13 @@ def _continuous_features_list(vector: TaskMetaFeatureVector) -> list[float]:
     ]
 
 
+_RECIPE_TOKEN_BY_ID = {
+    "recipe.fellegi_sunter_reference": "fellegi_sunter",
+    "recipe.xgboost_classifier": "xgboost_classifier",
+    "recipe.xgboost_ranker": "xgboost_ranker",
+}
+
+
 @dataclass
 class LearnedMetaRankerModel:
     """Ridge-regularized meta-regressor with conformal prediction intervals."""
@@ -93,6 +164,12 @@ class LearnedMetaRankerModel:
     coverage_level: float = 0.90
     trained_run_count: int = 0
     trained_family_count: int = 0
+    conformal_run_count: int = 0
+    conformal_family_count: int = 0
+    locked_evaluation_run_count: int = 0
+    locked_evaluation_family_count: int = 0
+    locked_mean_absolute_error: float | None = None
+    family_split_digest: str | None = None
 
     @property
     def model_digest(self) -> str:
@@ -104,6 +181,9 @@ class LearnedMetaRankerModel:
             "coverage_level": self.coverage_level,
             "trained_run_count": self.trained_run_count,
             "trained_family_count": self.trained_family_count,
+            "conformal_run_count": self.conformal_run_count,
+            "conformal_family_count": self.conformal_family_count,
+            "family_split_digest": self.family_split_digest,
         }
         return _policy_digest(payload)
 
@@ -112,18 +192,32 @@ class LearnedMetaRankerModel:
         X: np.ndarray,
         y: np.ndarray,
         *,
+        X_conformal: np.ndarray,
+        y_conformal: np.ndarray,
+        training_family_ids: tuple[str, ...],
+        conformal_family_ids: tuple[str, ...],
         alpha: float = 1.0,
         coverage_level: float = 0.90,
     ) -> None:
-        """Fit Ridge regression model on historical run meta-features."""
+        """Fit on training families and calibrate intervals on disjoint families."""
         n_samples, n_features = X.shape
-        if n_samples < 2:
-            self.weights = np.zeros(n_features)
-            self.intercept = float(np.mean(y)) if len(y) > 0 else 0.5
-            self.conformal_residual_quantile = 0.20
-            self.coverage_level = coverage_level
-            self.trained_run_count = n_samples
-            return
+        if (
+            n_samples < 2
+            or X_conformal.ndim != 2
+            or X_conformal.shape[1] != n_features
+            or len(y) != n_samples
+            or len(y_conformal) != X_conformal.shape[0]
+            or len(training_family_ids) != n_samples
+            or len(conformal_family_ids) != len(y_conformal)
+            or not conformal_family_ids
+        ):
+            raise ValueError("Meta-ranker family-partition evidence is incomplete.")
+        training_families = set(training_family_ids)
+        conformal_families = set(conformal_family_ids)
+        if training_families & conformal_families:
+            raise ValueError("Meta-ranker training and conformal families must be disjoint.")
+        if len(training_families) < 2 or not np.all(np.isfinite(y)) or np.ptp(y) <= 1e-12:
+            raise ValueError("Meta-ranker training evidence lacks family or utility variation.")
 
         X_bias = np.hstack([np.ones((n_samples, 1)), X])
         reg_matrix = alpha * np.eye(n_features + 1)
@@ -137,14 +231,49 @@ class LearnedMetaRankerModel:
         self.intercept = float(w[0])
         self.weights = w[1:]
 
-        predictions = X_bias @ w
-        residuals = np.abs(y - predictions)
+        conformal_predictions = X_conformal @ self.weights + self.intercept
+        residuals = np.abs(y_conformal - conformal_predictions)
 
-        k_idx = min(n_samples - 1, math.ceil((n_samples + 1) * coverage_level) - 1)
+        conformal_count = len(residuals)
+        k_idx = min(
+            conformal_count - 1,
+            math.ceil((conformal_count + 1) * coverage_level) - 1,
+        )
         sorted_res = np.sort(residuals)
         self.conformal_residual_quantile = float(sorted_res[max(0, k_idx)])
         self.coverage_level = coverage_level
         self.trained_run_count = n_samples
+        self.trained_family_count = len(training_families)
+        self.conformal_run_count = conformal_count
+        self.conformal_family_count = len(conformal_families)
+        self.family_split_digest = _policy_digest(
+            {
+                "training_families": sorted(training_families),
+                "conformal_families": sorted(conformal_families),
+            }
+        )
+
+    def evaluate_locked(
+        self,
+        X: np.ndarray,
+        y: np.ndarray,
+        *,
+        locked_family_ids: tuple[str, ...],
+        prohibited_family_ids: frozenset[str],
+    ) -> None:
+        """Mechanically evaluate only after fitting; never tune on locked families."""
+
+        if (
+            not locked_family_ids
+            or len(locked_family_ids) != len(y)
+            or X.shape[0] != len(y)
+            or set(locked_family_ids) & prohibited_family_ids
+        ):
+            raise ValueError("Locked meta-ranker evaluation families are invalid.")
+        predictions, _, _ = self.predict_utility(X)
+        self.locked_evaluation_run_count = len(y)
+        self.locked_evaluation_family_count = len(set(locked_family_ids))
+        self.locked_mean_absolute_error = float(np.mean(np.abs(y - predictions)))
 
     def predict_utility(self, X: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Predict expected utility and return (predictions, lower_bounds, upper_bounds)."""
@@ -174,10 +303,15 @@ class MetaRankingLinkageAdvisor:
     ) -> None:
         self.registry = registry
         self.distance_computer = distance_computer or MetaFeatureDistanceComputer()
-        self.generator = generator or BenchmarkScenarioGenerator()
+        self.generator = generator or build_advisor_v2_generator()
         self.max_ood_distance = max_ood_distance
         self.conformal_coverage = conformal_coverage
         self._family_vectors = extract_family_meta_features(self.generator)
+        self._recipe_token_by_digest = {
+            recipe.recipe_digest: _RECIPE_TOKEN_BY_ID[recipe.recipe_id]
+            for recipe in BenchmarkPortfolioRunner().list_recipes()
+            if recipe.recipe_id in _RECIPE_TOKEN_BY_ID
+        }
         self.last_fitted_model: LearnedMetaRankerModel | None = None
 
     def advise(
@@ -218,19 +352,65 @@ class MetaRankingLinkageAdvisor:
                 fallback_reason="No benchmark registry provided; fell back to Stage-2 similarity.",
             )
 
-        runs = [
-            r for r in self.registry.list_run_records() if r.status == BenchmarkRunStatus.SUCCESS
-        ]
-        families_in_runs = {r.family_id for r in runs}
+        all_runs = self.registry.list_run_records()
+        runs = [r for r in all_runs if r.status == BenchmarkRunStatus.SUCCESS]
+        role_by_family = dict(advisor_v2_family_roles())
+        expected_instance_ids = frozenset(
+            item.instance_id
+            for item in self.generator.list_instances()
+            if item.family_id in role_by_family
+        )
+        complete_evidence_grid = _has_complete_required_evidence_grid(
+            all_runs,
+            expected_instance_ids=expected_instance_ids,
+            recipe_token_by_digest=self._recipe_token_by_digest,
+        )
+        recipe_coverage: dict[str, set[str]] = {}
+        recipe_token_by_run_id: dict[str, str] = {}
+        for run in runs:
+            token = self._recipe_token_by_digest.get(run.pipeline_recipe_digest)
+            if token is not None:
+                recipe_coverage.setdefault(run.family_id, set()).add(token)
+                recipe_token_by_run_id[run.run_id] = token
+        overlap_families = {
+            family_id
+            for family_id, tokens in recipe_coverage.items()
+            if _REQUIRED_BENCHMARK_RECIPE_TOKENS.issubset(tokens) and family_id in role_by_family
+        }
+        train_overlap_families = {
+            family_id
+            for family_id in overlap_families
+            if role_by_family[family_id] == "meta_training"
+        }
+        conformal_overlap_families = {
+            family_id for family_id in overlap_families if role_by_family[family_id] == "conformal"
+        }
+        locked_overlap_families = {
+            family_id
+            for family_id in overlap_families
+            if role_by_family[family_id] == "locked_evaluation"
+        }
+        expected_train_families = {
+            family_id for family_id, role in role_by_family.items() if role == "meta_training"
+        }
+        expected_conformal_families = {
+            family_id for family_id, role in role_by_family.items() if role == "conformal"
+        }
+        expected_locked_families = {
+            family_id for family_id, role in role_by_family.items() if role == "locked_evaluation"
+        }
+        prospective_evidence_complete = (
+            complete_evidence_grid
+            and train_overlap_families == expected_train_families
+            and conformal_overlap_families == expected_conformal_families
+            and locked_overlap_families == expected_locked_families
+        )
 
         nearest = self.distance_computer.find_nearest_families(
             task_vector, self._family_vectors, k=1
         )
         min_dist = nearest[0][1] if nearest else 1.0
-        is_ood = (
-            min_dist > self.max_ood_distance
-            or len(families_in_runs) < _MIN_FAMILIES_FOR_META_LEARNING
-        )
+        is_ood = min_dist > self.max_ood_distance or not prospective_evidence_complete
 
         if is_ood:
             if min_dist > self.max_ood_distance:
@@ -240,8 +420,7 @@ class MetaRankingLinkageAdvisor:
                 )
             else:
                 reason = (
-                    f"Insufficient historical families "
-                    f"({len(families_in_runs)} < {_MIN_FAMILIES_FOR_META_LEARNING})"
+                    "Scenario-replicate-complete family-disjoint adapter evidence is incomplete"
                 )
             return MetaRankingAdvisoryReport(
                 report_id=f"meta_ranker_{task_profile.profile_digest[:16]}",
@@ -255,10 +434,23 @@ class MetaRankingLinkageAdvisor:
 
         eligible_candidates = sim_report.recommendation.shortlist
 
-        X_train_list: list[list[float]] = []
-        y_train_list: list[float] = []
+        X_by_role: dict[str, list[list[float]]] = {
+            "meta_training": [],
+            "conformal": [],
+            "locked_evaluation": [],
+        }
+        y_by_role: dict[str, list[float]] = {name: [] for name in X_by_role}
+        families_by_role: dict[str, list[str]] = {name: [] for name in X_by_role}
 
         for run in runs:
+            if run.family_id not in overlap_families:
+                continue
+            recipe_token = recipe_token_by_run_id.get(run.run_id)
+            if recipe_token is None:
+                continue
+            role = role_by_family[run.family_id]
+            if role == "ood_holdout":
+                continue
             fam_vec = self._family_vectors.get(run.family_id)
             if fam_vec is None:
                 continue
@@ -271,20 +463,17 @@ class MetaRankingLinkageAdvisor:
                 fam = cand_obj.pair_model_family
                 r_strat = cand_obj.ranking_strategy.value
                 matches = (
-                    (fam == "fellegi_sunter" and "fellegi" in run.run_id)
+                    (fam == "fellegi_sunter" and recipe_token == "fellegi_sunter")
                     or (
                         fam == "xgboost"
                         and r_strat == "xgboost_ranker"
-                        and "xgboost-ranker" in run.run_id
+                        and recipe_token == "xgboost_ranker"
                     )
                     or (
                         fam == "xgboost"
                         and r_strat == "model_score"
-                        and "xgboost-classifier" in run.run_id
+                        and recipe_token == "xgboost_classifier"
                     )
-                    or (fam == "lightgbm" and "lightgbm" in run.run_id)
-                    or (fam == "pytorch" and "pytorch" in run.run_id)
-                    or (fam == "stacking")
                 )
                 if not matches:
                     continue
@@ -295,10 +484,15 @@ class MetaRankingLinkageAdvisor:
                 utility = float(np.clip(0.5 * recall + 0.3 * ppv + 0.2 * (1.0 - brier), 0.0, 1.0))
 
                 feat_vec = _continuous_features_list(fam_vec) + _candidate_feature_vector(cand_obj)
-                X_train_list.append(feat_vec)
-                y_train_list.append(utility)
+                X_by_role[role].append(feat_vec)
+                y_by_role[role].append(utility)
+                families_by_role[role].append(run.family_id)
 
-        if len(X_train_list) < _MIN_FAMILIES_FOR_META_LEARNING:
+        if (
+            len(set(families_by_role["meta_training"])) < 2
+            or not families_by_role["conformal"]
+            or not families_by_role["locked_evaluation"]
+        ):
             return MetaRankingAdvisoryReport(
                 report_id=f"meta_ranker_{task_profile.profile_digest[:16]}",
                 recommendation=sim_report.recommendation,
@@ -306,15 +500,51 @@ class MetaRankingLinkageAdvisor:
                 meta_model_type="none",
                 meta_model_trained_runs=len(runs),
                 fallback_to_similarity=True,
-                fallback_reason="Insufficient training runs; fell back to Stage-2 similarity.",
+                fallback_reason=(
+                    "Family-disjoint training, conformal, and locked evidence is incomplete; "
+                    "fell back to Stage-2 similarity."
+                ),
             )
 
-        X_train = np.array(X_train_list, dtype=np.float64)
-        y_train = np.array(y_train_list, dtype=np.float64)
+        X_train = np.array(X_by_role["meta_training"], dtype=np.float64)
+        y_train = np.array(y_by_role["meta_training"], dtype=np.float64)
+        X_conformal = np.array(X_by_role["conformal"], dtype=np.float64)
+        y_conformal = np.array(y_by_role["conformal"], dtype=np.float64)
+        X_locked = np.array(X_by_role["locked_evaluation"], dtype=np.float64)
+        y_locked = np.array(y_by_role["locked_evaluation"], dtype=np.float64)
 
         meta_model = LearnedMetaRankerModel()
-        meta_model.fit(X_train, y_train, coverage_level=self.conformal_coverage)
-        meta_model.trained_family_count = len(families_in_runs)
+        try:
+            meta_model.fit(
+                X_train,
+                y_train,
+                X_conformal=X_conformal,
+                y_conformal=y_conformal,
+                training_family_ids=tuple(families_by_role["meta_training"]),
+                conformal_family_ids=tuple(families_by_role["conformal"]),
+                coverage_level=self.conformal_coverage,
+            )
+            meta_model.evaluate_locked(
+                X_locked,
+                y_locked,
+                locked_family_ids=tuple(families_by_role["locked_evaluation"]),
+                prohibited_family_ids=frozenset(
+                    families_by_role["meta_training"] + families_by_role["conformal"]
+                ),
+            )
+        except ValueError:
+            return MetaRankingAdvisoryReport(
+                report_id=f"meta_ranker_{task_profile.profile_digest[:16]}",
+                recommendation=sim_report.recommendation,
+                predicted_candidate_utilities={},
+                meta_model_type="none",
+                meta_model_trained_runs=len(runs),
+                fallback_to_similarity=True,
+                fallback_reason=(
+                    "Meta-learning evidence lacks estimable family or utility variation; "
+                    "fell back to Stage-2 similarity."
+                ),
+            )
         self.last_fitted_model = meta_model
 
         task_cont = _continuous_features_list(task_vector)
@@ -338,7 +568,7 @@ class MetaRankingLinkageAdvisor:
             recommendation=sim_report.recommendation,
             predicted_candidate_utilities=predicted_utilities,
             meta_model_type="ridge_meta_ranker_v1",
-            meta_model_trained_runs=len(runs),
+            meta_model_trained_runs=meta_model.trained_run_count,
             fallback_to_similarity=False,
             fallback_reason=None,
         )

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import math
+from dataclasses import replace
 from datetime import date
 
 import pytest
@@ -190,6 +192,7 @@ def test_reference_model_is_deterministic_normalised_and_evidence_only() -> None
 
     assert isinstance(matcher, DuckDBFellegiSunterMatcher)
     assert isinstance(second_matcher, DuckDBFellegiSunterMatcher)
+    assert artifact.model_version == "m2d-reference-v2"
     assert artifact.parameter_digest == second_artifact.parameter_digest
     assert artifact.probability_status == "model_posterior_uncalibrated"
     assert artifact.decision_authority == "evidence_only"
@@ -222,6 +225,46 @@ def test_reference_scoring_preserves_pairs_and_orders_stronger_evidence_higher()
     assert result.pair_count == features.candidate_pair_count
     assert 0.0 < mismatch_probability < exact_probability < 1.0
     assert status_rows == [("model_posterior_uncalibrated", "evidence_only")]
+
+
+def test_reference_scoring_is_stable_for_extreme_finite_evidence_weights() -> None:
+    with DuckDBStore() as store:
+        matcher, artifact, features, _ = _fit_fixture(store)
+        comparisons = {}
+        for comparison_id, parameters in artifact.comparisons.items():
+            levels = tuple(
+                replace(
+                    level,
+                    log2_bayes_factor=(
+                        0.0
+                        if level.level == parameters.missing_level
+                        else 2048.0
+                        if level.level == 1
+                        else -2048.0
+                    ),
+                )
+                for level in parameters.levels
+            )
+            comparisons[comparison_id] = replace(parameters, levels=levels)
+        extreme = replace(
+            artifact,
+            prior_probability=0.5,
+            parameter_digest="f" * 64,
+            comparisons=comparisons,
+        )
+
+        result = matcher.score(features=features, model=extreme)
+        evidence = store._connection.execute(
+            f"SELECT __ml_fs_match_weight, __ml_fs_model_probability "
+            f'FROM "{result.table.table_name}"'
+        ).fetchall()
+
+    assert len(evidence) == features.candidate_pair_count
+    assert all(math.isfinite(float(weight)) for weight, _ in evidence)
+    assert all(math.isfinite(float(probability)) for _, probability in evidence)
+    assert all(0.0 <= float(probability) <= 1.0 for _, probability in evidence)
+    assert any(float(probability) == 0.0 for _, probability in evidence)
+    assert any(float(probability) == 1.0 for _, probability in evidence)
 
 
 def test_fit_rejects_u_sample_beyond_model_budget() -> None:

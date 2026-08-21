@@ -43,6 +43,11 @@ than reading record values into model objects. The configured prior probability
 that two random records match is held fixed in this initial reference model.
 Additive smoothing prevents zero probabilities and infinite weights.
 
+Reference model version `m2d-reference-v2` also prevents scoring-time numeric transport failures:
+learned evidence constants are explicitly cast to DuckDB `DOUBLE`, posterior materialisation uses
+a stable two-tail base-2 logistic expression, and aggregate outputs are rejected unless match
+weights and probabilities are finite with probabilities inside `[0, 1]`.
+
 ## Missingness
 
 An explicit missing comparison level is neutral in the initial baseline:
@@ -123,6 +128,7 @@ M2D tests cover:
 - stronger evidence for higher-specificity levels in the synthetic fixture;
 - deterministic parameter digests;
 - score-table candidate coverage;
+- extreme finite evidence-weight stability and finite bounded posterior checks;
 - evidence-only and uncalibrated status fields;
 - pair-budget enforcement before fitting;
 - safe errors and object representations;

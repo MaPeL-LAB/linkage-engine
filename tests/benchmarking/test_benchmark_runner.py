@@ -2,13 +2,23 @@
 
 from __future__ import annotations
 
+import hashlib
 import os
 import subprocess
 import sys
 
+import numpy as np
+
+from mapel_linkage.benchmarking.advisor_catalogue import build_advisor_v2_generator
 from mapel_linkage.benchmarking.contracts import BenchmarkRunStatus
 from mapel_linkage.benchmarking.generator import BenchmarkScenarioGenerator
 from mapel_linkage.benchmarking.runner import BenchmarkPortfolioRunner
+from mapel_linkage.models.boosted.training import (
+    BoostedFeatureMatrix,
+    BoostedLabelledMatrix,
+)
+from mapel_linkage.models.ranking.contracts import RankingFeatureMatrix
+from mapel_linkage.models.ranking.training import build_ranking_scoring_matrix
 
 
 def test_runner_executes_fellegi_sunter_and_xgboost_successfully() -> None:
@@ -54,6 +64,27 @@ def test_runner_executes_fellegi_sunter_and_xgboost_successfully() -> None:
     assert res_xgb.metrics is not None
     assert res_xgb.metrics.candidate_recall > 0.5
     assert res_xgb.metrics.positive_predictive_value > 0.0
+
+
+def test_fellegi_sunter_scores_the_retained_upper_tail_regression_case() -> None:
+    runner = BenchmarkPortfolioRunner()
+    recipe = next(
+        item
+        for item in runner.list_recipes()
+        if item.recipe_id == "recipe.fellegi_sunter_reference"
+    )
+
+    result = runner.run_portfolio(
+        build_advisor_v2_generator(),
+        instances=("instance.advisor_v2.f37.p03",),
+        recipes=(recipe,),
+        replicates=1,
+        replicate_start=3,
+    )[0]
+
+    assert result.record.status is BenchmarkRunStatus.SUCCESS
+    assert result.metrics is not None
+    assert result.failure is None
 
 
 def test_runner_handles_ineligible_zero_label_gracefully() -> None:
@@ -120,6 +151,78 @@ def test_runner_executes_ranking_recipe() -> None:
     assert "1" in res.metrics.candidate_recall_at_k
     assert "5" in res.metrics.candidate_recall_at_k
     assert "10" in res.metrics.candidate_recall_at_k
+
+
+def test_scoring_and_ranking_matrices_strip_truth_fields() -> None:
+    pairs = (("left_1", "right_1"), ("left_2", "right_2"))
+    labelled = BoostedLabelledMatrix(
+        features=np.asarray([[0.1], [0.9]], dtype=np.float64),
+        pair_references=pairs,
+        pair_digests=tuple(
+            hashlib.sha256(f"{left}\x00{right}".encode()).hexdigest() for left, right in pairs
+        ),
+        feature_names=("comparison_level",),
+        feature_schema_digest="c" * 64,
+        labels=np.asarray([0, 1], dtype=np.int8),
+        partition="test",
+        label_source_kind="synthetic_truth",
+        label_authority_digest="d" * 64,
+        selection_digest="e" * 64,
+        positive_count=1,
+        negative_count=1,
+    )
+
+    scoring = BenchmarkPortfolioRunner._as_scoring_matrix(labelled)
+    ranking = build_ranking_scoring_matrix(scoring, query_side="source")
+
+    assert type(scoring) is BoostedFeatureMatrix
+    assert not hasattr(scoring, "labels")
+    assert not hasattr(scoring, "partition")
+    assert type(ranking) is RankingFeatureMatrix
+    assert not hasattr(ranking, "relevance")
+
+
+def test_metrics_are_mechanically_derived_instead_of_constant_placeholders() -> None:
+    pairs = (("left_1", "right_1"), ("left_1", "right_2"))
+    labels = np.asarray([1, 0], dtype=np.int8)
+    correct = BenchmarkPortfolioRunner._mechanical_metrics(
+        pair_references=pairs,
+        labels=labels,
+        scores=np.asarray([0.9, 0.1], dtype=np.float64),
+        candidate_recall=1.0,
+    )
+    reversed_scores = BenchmarkPortfolioRunner._mechanical_metrics(
+        pair_references=pairs,
+        labels=labels,
+        scores=np.asarray([0.1, 0.9], dtype=np.float64),
+        candidate_recall=0.5,
+    )
+
+    assert correct.sensitivity == 1.0
+    assert correct.positive_predictive_value == 1.0
+    assert correct.mean_reciprocal_rank == 1.0
+    assert reversed_scores.sensitivity == 0.0
+    assert reversed_scores.positive_predictive_value == 0.0
+    assert reversed_scores.mean_reciprocal_rank == 0.5
+    assert correct.brier_score < reversed_scores.brier_score
+
+
+def test_unimplemented_mode_adapters_abstain_without_metrics() -> None:
+    generator = BenchmarkScenarioGenerator()
+    runner = BenchmarkPortfolioRunner()
+    cases = (
+        ("instance.dedupe_standard", "recipe.single_source_dedupe"),
+        ("instance.tri_source_standard", "recipe.multi_source_resolver"),
+    )
+
+    for instance_id, recipe_id in cases:
+        bundle = generator.generate(instance_id, seed=20260816)
+        recipe = next(item for item in runner.list_recipes() if item.recipe_id == recipe_id)
+        result = runner.run_single(bundle=bundle, recipe=recipe, seed=20260816)
+        assert result.record.status == BenchmarkRunStatus.INELIGIBLE
+        assert result.record.failure_code == "ML-BENCH-INELIGIBLE-ADAPTER"
+        assert result.metrics is None
+        assert result.failure is not None
 
 
 def test_portfolio_runner_multi_replicates() -> None:

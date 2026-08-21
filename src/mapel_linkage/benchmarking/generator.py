@@ -5,6 +5,8 @@ from __future__ import annotations
 import hashlib
 import json
 import random
+import re
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 from typing import Annotated, Any, Literal
@@ -73,6 +75,16 @@ class ScenarioLatentSpec(BaseModel):
     planned_replicates: Annotated[StrictInt, Field(ge=1, le=10_000)] = 5
 
 
+class ScenarioMechanicExtension(BaseModel):
+    """Versioned mechanics added without changing legacy seed-v1 instance digests."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    mechanic_schema_version: Literal["2"] = "2"
+    unicode_transliteration_rate: Annotated[StrictFloat, Field(ge=0.0, le=1.0)] = 0.0
+    punctuation_change_rate: Annotated[StrictFloat, Field(ge=0.0, le=1.0)] = 0.0
+
+
 @dataclass(frozen=True, slots=True, repr=False)
 class BenchmarkScenarioBundle:
     """Generated datasets, truth records, and profile for one scenario instance realization."""
@@ -127,6 +139,40 @@ def _mutate_token_transposition(value: str, rng: random.Random) -> str:
     return _mutate_typo(value, rng)
 
 
+_TRANSLITERATED_SYLLABLES: Mapping[str, str] = {
+    "beka": "μπέκα",
+    "daro": "даро",
+    "feni": "фени",
+    "guma": "гума",
+    "hilo": "χίλο",
+    "jari": "джари",
+    "keto": "κέτο",
+    "luma": "лума",
+    "mavi": "мави",
+    "noro": "норо",
+    "peta": "πέτα",
+    "riso": "рисо",
+    "suna": "суна",
+    "tavi": "тави",
+    "welo": "βέλο",
+    "zari": "зари",
+}
+
+
+def _mutate_unicode_transliteration(value: str) -> str:
+    """Apply a deterministic cross-script synthetic transliteration mechanic."""
+
+    prefix, separator, suffix = value.partition("-")
+    translated = _TRANSLITERATED_SYLLABLES.get(prefix, prefix)
+    return f"{translated}{separator}{suffix}" if separator else translated
+
+
+def _mutate_punctuation(value: str) -> str:
+    """Change separators without adding any source-derived values."""
+
+    return re.sub(r"[- ]+", "'", value)
+
+
 def _sample_zipf_index(num_elements: int, s: float, rng: random.Random) -> int:
     if s <= 0.0 or num_elements <= 1:
         return rng.randrange(num_elements)
@@ -147,6 +193,7 @@ class BenchmarkScenarioGenerator:
     def __init__(self) -> None:
         self._families: dict[str, tuple[ScenarioFamilyManifest, dict[str, Any]]] = {}
         self._instances: dict[str, tuple[ScenarioInstanceManifest, ScenarioLatentSpec]] = {}
+        self._instance_extensions: dict[str, ScenarioMechanicExtension] = {}
         self._register_standard_corpus()
 
     def _register_standard_corpus(self) -> None:
@@ -358,6 +405,7 @@ class BenchmarkScenarioGenerator:
         mechanism_tags: tuple[str, ...],
         prospectively_held_out: bool = False,
         instances: tuple[ScenarioLatentSpec, ...],
+        instance_extensions: Mapping[str, ScenarioMechanicExtension] | None = None,
     ) -> ScenarioFamilyManifest:
         latent_scenario_payload = {
             "family_id": family_id,
@@ -365,6 +413,17 @@ class BenchmarkScenarioGenerator:
             "prospectively_held_out": prospectively_held_out,
             "instance_count": len(instances),
         }
+        extensions = dict(instance_extensions or {})
+        if set(extensions) - {spec.instance_id for spec in instances}:
+            raise ValueError("Scenario mechanic extensions must bind registered instances.")
+        if extensions:
+            latent_scenario_payload["mechanic_schema_version"] = "2"
+            latent_scenario_payload["mechanic_extension_digest"] = _digest_object(
+                {
+                    instance_id: extension.model_dump(mode="json")
+                    for instance_id, extension in sorted(extensions.items())
+                }
+            )
         latent_scenario_digest = _digest_object(latent_scenario_payload)
         family_manifest = ScenarioFamilyManifest(
             family_id=family_id,
@@ -377,6 +436,9 @@ class BenchmarkScenarioGenerator:
         for spec in instances:
             profile = self.build_task_profile(spec)
             latent_param_payload = spec.model_dump(mode="json")
+            extension = extensions.get(spec.instance_id)
+            if extension is not None:
+                latent_param_payload["mechanic_extension"] = extension.model_dump(mode="json")
             instance_manifest = ScenarioInstanceManifest(
                 family_id=family_id,
                 instance_id=spec.instance_id,
@@ -386,6 +448,8 @@ class BenchmarkScenarioGenerator:
                 planned_replicates=spec.planned_replicates,
             )
             self._instances[spec.instance_id] = (instance_manifest, spec)
+            if extension is not None:
+                self._instance_extensions[spec.instance_id] = extension
 
         return family_manifest
 
@@ -488,6 +552,7 @@ class BenchmarkScenarioGenerator:
             raise KeyError(f"Unknown scenario instance ID: {instance_id}")
 
         instance_manifest, spec = self._instances[instance_id]
+        extension = self._instance_extensions.get(instance_id)
         family_manifest = self._families[spec.family_id][0]
         profile = self.build_task_profile(spec)
         rng = random.Random(seed)
@@ -537,6 +602,11 @@ class BenchmarkScenarioGenerator:
                     val_b = _mutate_typo(val_b, rng)
                 if rng.random() < spec.token_transposition_rate:
                     val_b = _mutate_token_transposition(val_b, rng)
+                if extension is not None:
+                    if rng.random() < extension.unicode_transliteration_rate:
+                        val_b = _mutate_unicode_transliteration(val_b)
+                    if rng.random() < extension.punctuation_change_rate:
+                        val_b = _mutate_punctuation(val_b)
 
                 dt_b = date.fromisoformat(date_text)
                 if rng.random() < spec.date_shift_rate:
@@ -641,7 +711,14 @@ class BenchmarkScenarioGenerator:
             task_profile=profile,
             datasets={name: tuple(records) for name, records in datasets.items()},
             truth=tuple(truth),
-            latent_parameters=spec.model_dump(mode="json"),
+            latent_parameters={
+                **spec.model_dump(mode="json"),
+                **(
+                    {"mechanic_extension": extension.model_dump(mode="json")}
+                    if extension is not None
+                    else {}
+                ),
+            },
         )
 
 
@@ -649,4 +726,5 @@ __all__ = [
     "BenchmarkScenarioBundle",
     "BenchmarkScenarioGenerator",
     "ScenarioLatentSpec",
+    "ScenarioMechanicExtension",
 ]

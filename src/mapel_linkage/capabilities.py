@@ -334,8 +334,10 @@ _CAPABILITIES: Final[tuple[Capability, ...]] = (
         ComponentStatus.IMPLEMENTED,
         WorkflowStatus.INTEGRATED,
         RuntimeVerificationStatus.CORE_CI,
-        "Parametric scenario generator, benchmark portfolio runner, and "
-        "file-backed registry persistence.",
+        "Stable seed-v1 plus a versioned 64-family/280-instance advisor-v2 design, three "
+        "truth-safe real benchmark adapters, prospective family partitions, deterministic "
+        "shards, and append-only resume controls; the diagnostic v1 corpus completed with "
+        "retained failures and corrected execution-v2 evidence remains pending.",
     ),
     Capability(
         "stage2_similarity_advisor",
@@ -355,7 +357,9 @@ _CAPABILITIES: Final[tuple[Capability, ...]] = (
         ComponentStatus.IMPLEMENTED,
         WorkflowStatus.INTEGRATED,
         RuntimeVerificationStatus.CORE_CI,
-        "Learned meta-regressor with conformal uncertainty intervals and similarity fallback.",
+        "Learned meta-regressor with family-disjoint fit, conformal interval calibration, "
+        "locked evaluation, true-mechanism OOD exclusion, scenario-replicate-complete adapter "
+        "gating, and similarity fallback.",
     ),
     Capability(
         "linkage_strategy_advisor",
@@ -364,9 +368,9 @@ _CAPABILITIES: Final[tuple[Capability, ...]] = (
         ComponentStatus.IMPLEMENTED,
         WorkflowStatus.INTEGRATED,
         RuntimeVerificationStatus.CORE_CI,
-        "Snapshot-bound active synthetic benchmark planning, explicit human execution approval, "
-        "append-only evidence checks, and advisory meta-model refit; operational validity remains "
-        "not established.",
+        "Snapshot-bound active planning plus separately approved, digest-bound advisor-corpus "
+        "shard execution and append-only evidence checks; diagnostic v1 evidence is retained, "
+        "while corrected v2 advisor validation and operational validity remain unestablished.",
     ),
 )
 

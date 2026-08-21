@@ -663,8 +663,9 @@ def run_lifecycle(*, project_root: Path | None = None) -> LifecycleArtifacts:
         or advisor_report.merge_authority != "none"
         or advisor_report.automatic_promotion != "prohibited"
         or advisor_report.operational_validity != "not_established"
-        or advisor_report.fallback_to_similarity
-        or advisor_report.meta_model_type != "ridge_meta_ranker_v1"
+        or not advisor_report.fallback_to_similarity
+        or advisor_report.meta_model_type != "none"
+        or advisor_report.predicted_candidate_utilities
     ):
         raise RuntimeError("The strategy advisor exceeded its fixed authority boundary.")
 

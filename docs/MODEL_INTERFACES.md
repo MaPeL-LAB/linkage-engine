@@ -58,6 +58,10 @@ Scores are not automatically calibrated probabilities or decisions.
 
 The corresponding pair table retains surrogate pair references and evidence fields locally, including log2 Bayes factor, match weight, model posterior, model/version identifiers, and the parameter digest. Every M2D result is labelled `model_posterior_uncalibrated` and `evidence_only`.
 
+Reference model version `m2d-reference-v2` casts learned evidence constants explicitly to double
+precision, uses a two-tail base-2 logistic expression that avoids positive exponential overflow,
+and fails closed unless every aggregate weight and posterior is finite and bounded.
+
 `SplinkSettingsPlanCompiler` translates the validated canonical comparison and blocking
 configuration into a package-owned Splink settings plan. The integrated
 `SplinkNativeDuckDBMatcher` requires the exact Splink 4.0.16 runtime, fixed safe input
