@@ -247,7 +247,7 @@ b01f8ce77516bcdfa1cd815ac3eea289ff00f432f7dec8ee75eb791d97766c22      4808  test
 d75b9a2f33a44c480ee79ca9ca15ffcf2f4a9ae69924133a407e294da5eee97c      7251  tests/benchmarking/test_advisor_catalogue.py
 3792dfb09154a519bf521f77ce2318351b5893aee410f2504603733e871154e9      8505  tests/benchmarking/test_advisor_corpus_cli.py
 be1bdcb31f2524973ea9d643810bc39fc8ab4d1ebf4b0f3f6d5d04c049201742     10925  tests/benchmarking/test_advisor_execution.py
-c8251714ceec98ee70387061c807b7d6839418a7ec2d461e3e76047b1cae5fb3     17779  tests/benchmarking/test_advisor_v3.py
+ac7fe96013006e192181bed4b6523ee4e4618158d3dbbfcacbf67a504b9a3f15     17766  tests/benchmarking/test_advisor_v3.py
 f99f9f8547b1ce6540e01da08be724704442ae9307d112b7d8dcfdd44e0431f7      9950  tests/benchmarking/test_benchmark_runner.py
 d31860b01b3a9e8961d82f9544c5a2edd4414ad52eba5f4deb2b8e6b97e1474a      4131  tests/benchmarking/test_contracts.py
 7a3a7ae0e7636c3f70b5f55c06f49a0a9a4e7a2b66c2be5355fc84e1e6f47ca1      6383  tests/benchmarking/test_registry_persistence.py

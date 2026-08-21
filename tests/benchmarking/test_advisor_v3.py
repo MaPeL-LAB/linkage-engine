@@ -4,6 +4,7 @@ import json
 import multiprocessing
 import os
 import subprocess
+import sys
 import time
 from collections import Counter
 from pathlib import Path
@@ -430,7 +431,7 @@ def test_v3_driver_rejects_fake_python_and_dry_run_is_private_path_safe() -> Non
 
     environment = {**os.environ, "MAPEL_TEST_DATA_POLICY": "synthetic_only"}
     dry = subprocess.run(
-        ["bash", str(script), "--python", str(ROOT / ".venv" / "bin" / "python"), "--dry-run"],
+        ["bash", str(script), "--python", sys.executable, "--dry-run"],
         cwd=ROOT,
         env=environment,
         text=True,
