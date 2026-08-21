@@ -135,7 +135,8 @@ whether GitHub visibility is public or private.
 ## Canonical synthetic lifecycle demonstration
 
 The import-safe [`examples/e2e_linkage_lifecycle.py`](examples/e2e_linkage_lifecycle.py)
-connects synthetic generation, preflight profiling, the advisory-only Stage-3 meta-ranker,
+connects synthetic generation, preflight profiling, the advisory-only Stage-3 meta-ranker
+(including fail-safe similarity fallback when the complete advisor grid is absent),
 protected model-portfolio training and calibration, review ordering, human consensus and
 partition-disjoint label promotion, immutable recipe IO, synthetic-only new-data inference,
 and aggregate multi-source evaluation. It never establishes operational validity.
@@ -228,6 +229,49 @@ prospectively held-out mechanisms, rejects stale registries and duplicate run ID
 package-owned deterministic synthetic generator. Plans and refitted meta-models remain
 `advisory_only`; automatic model promotion and all decision, assignment, and merge authority remain
 prohibited. Synthetic benchmark evidence does not establish operational validity.
+
+### Advisor-scale synthetic corpus
+
+The versioned `advisor_v2` design expands the stable seed-v1 catalogue from 10 families/19
+instances with a separate 64-family/280-instance experimental programme. Its prospective family
+roles are 40 meta-training, 8 conformal, 8 locked-evaluation, and 8 true-mechanism OOD families.
+The historical seed-v1 transliteration family remains digest-stable but is excluded from true OOD
+readiness because it is a typo/transposition proxy.
+
+Quick aggregate planning is safe to run directly:
+
+```text
+mapel-linkage plan-advisor-corpus --shards 32 --replicates 5
+scripts/run_advisor_corpus.sh --dry-run --shards 32 --replicates 5
+```
+
+The first execution-protocol-v1 run completed all 9,800 retained records on 2026-08-21. Its audit
+exposed 688 Fellegi-Sunter score-materialisation failures alongside 3,512 successes and 5,600
+expected ineligible records. That registry remains immutable diagnostic evidence; its former
+family-level readiness result is superseded because excluding failed replicates would create
+survivor bias.
+
+Execution protocol v2 uses numerically stable Fellegi-Sunter scoring and requires all 1,400
+scenario-replicate cells to contain successful evidence from each of the three required adapters.
+The corrected run is intentionally a single outside-Codex long job. A human must choose a
+non-identifying approval reference and explicitly authorise the exact digest-bound plan:
+
+```bash
+CORPUS_APPROVAL_REF="replace-with-approved-non-identifying-reference"
+scripts/run_advisor_corpus.sh \
+  --full \
+  --approve-execution \
+  --approval-reference "${CORPUS_APPROVAL_REF}"
+```
+
+The driver verifies the focused implementation first, then executes every deterministic shard
+into a new ignored project-relative execution-v2 registry; it never overwrites the diagnostic v1
+registry. Reruns resume exact retained evidence; tamper,
+collision, path escape, symlink traversal, or dependency/environment drift fails closed. Only the
+Fellegi-Sunter reference, XGBoost classifier, and XGBoost ranker currently have truth-safe
+success-capable benchmark adapters. Other portfolio entries retain stable ineligible evidence and
+never receive placeholder metrics. Repository CI does not execute the heavy corpus, and its
+scientific or operational validity remains `not_established`.
 
 ## Command line
 

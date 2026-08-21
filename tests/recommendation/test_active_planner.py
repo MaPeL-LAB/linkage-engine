@@ -252,10 +252,10 @@ def test_execution_requires_bound_approval_appends_and_refits(tmp_path: Path) ->
     assert report.appended_run_count == len(records) > 0
     assert len({record.run_id for record in records}) == len(records)
     assert report.registry_snapshot_digest_before != report.registry_snapshot_digest_after
-    assert report.meta_model_refit_status is MetaModelRefitStatus.FITTED
-    assert report.refitted_meta_model_digest is not None
+    assert report.meta_model_refit_status is MetaModelRefitStatus.ABSTAINED_INSUFFICIENT_EVIDENCE
+    assert report.refitted_meta_model_digest is None
     assert report.meta_ranking_report_digest is not None
-    assert report.meta_model_trained_run_count > 0
+    assert report.meta_model_trained_run_count == 0
     assert report.recommendation_authority == "advisory_only"
     assert report.decision_authority == "none"
     assert report.assignment_authority == "none"
@@ -275,8 +275,18 @@ def test_execution_requires_bound_approval_appends_and_refits(tmp_path: Path) ->
         )
     assert len(registry.list_run_records()) == run_count
 
-    with pytest.raises(FileExistsError, match="already exists"):
-        registry.save_run_record(records[0])
+    first = records[0]
+    assert registry.save_run_record(
+        first,
+        metrics=registry.load_metrics(first.run_id),
+        failure=registry.load_failure_record(first.run_id),
+    ).is_file()
+    with pytest.raises(FileExistsError, match="conflicting"):
+        registry.save_run_record(
+            first.model_copy(update={"environment_digest": "f" * 64}),
+            metrics=registry.load_metrics(first.run_id),
+            failure=registry.load_failure_record(first.run_id),
+        )
 
 
 def test_plan_benchmarks_cli_emits_safe_output_and_rejects_invalid_profile(

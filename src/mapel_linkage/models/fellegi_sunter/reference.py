@@ -37,7 +37,7 @@ _PAIR_COLUMNS: Final[tuple[str, ...]] = (
     "retrieval_rule_ids",
     "retrieval_rule_count",
 )
-_MODEL_VERSION: Final[str] = "m2d-reference-v1"
+_MODEL_VERSION: Final[str] = "m2d-reference-v2"
 _PROBABILITY_STATUS: Final[str] = "model_posterior_uncalibrated"
 _DECISION_AUTHORITY: Final[str] = "evidence_only"
 
@@ -50,6 +50,24 @@ def _canonical_digest(payload: object) -> str:
 
 def _sql_text(value: str) -> str:
     return "'" + value.replace("'", "''") + "'"
+
+
+def _sql_double(value: float) -> str:
+    if not math.isfinite(value):
+        raise FellegiSunterError("ML-FS-015", "Model evidence weights must remain finite.")
+    return f"CAST({value!r} AS DOUBLE)"
+
+
+def _stable_base2_logistic_sql(match_weight: str) -> str:
+    """Return a base-2 logistic expression that never evaluates a positive exponent."""
+
+    positive_tail = f"POWER(2.0, -({match_weight}))"
+    negative_tail = f"POWER(2.0, ({match_weight}))"
+    return (
+        f"CASE WHEN ({match_weight}) >= 0.0 "
+        f"THEN (1.0 / (1.0 + {positive_tail})) "
+        f"ELSE ({negative_tail} / (1.0 + {negative_tail})) END"
+    )
 
 
 def _logistic_from_log_odds(log_odds: float) -> float:
@@ -421,16 +439,16 @@ class DuckDBFellegiSunterMatcher:
         for comparison_id, parameters in model.comparisons.items():
             level_column = features.columns[comparison_id].level
             cases = " ".join(
-                f"WHEN {level.level} THEN {level.log2_bayes_factor!r}"
+                f"WHEN {level.level} THEN {_sql_double(level.log2_bayes_factor)}"
                 for level in parameters.levels
             )
             component_expressions.append(
-                f"CASE {quote_identifier(level_column)} {cases} ELSE 0.0 END"
+                f"CASE {quote_identifier(level_column)} {cases} ELSE {_sql_double(0.0)} END"
             )
         log2_bayes_factor = " + ".join(component_expressions) or "0.0"
         prior_log2_odds = math.log2(model.prior_probability / (1.0 - model.prior_probability))
-        match_weight = f"({prior_log2_odds!r} + ({log2_bayes_factor}))"
-        probability = f"(1.0 / (1.0 + POWER(2.0, -({match_weight}))))"
+        match_weight = f"({_sql_double(prior_log2_odds)} + ({log2_bayes_factor}))"
+        probability = _stable_base2_logistic_sql(match_weight)
         suffix = _canonical_digest(
             {
                 "features": features.table.schema_digest,
@@ -465,6 +483,25 @@ class DuckDBFellegiSunterMatcher:
         if score_table.row_count != features.candidate_pair_count:
             raise FellegiSunterError(
                 "ML-FS-012", "Fellegi-Sunter scoring did not preserve candidate coverage."
+            )
+        quoted_output = quote_identifier(score_table.table_name)
+        try:
+            invalid_count = self._store._scalar_int(
+                "SELECT COUNT(*) FROM "
+                f"{quoted_output} WHERE "
+                f"NOT isfinite({quote_identifier('__ml_fs_log2_bayes_factor')}) OR "
+                f"NOT isfinite({quote_identifier('__ml_fs_match_weight')}) OR "
+                f"NOT isfinite({quote_identifier('__ml_fs_model_probability')}) OR "
+                f"{quote_identifier('__ml_fs_model_probability')} < 0.0 OR "
+                f"{quote_identifier('__ml_fs_model_probability')} > 1.0"
+            )
+        except DataPlaneError:
+            raise FellegiSunterError(
+                "ML-FS-013", "Fellegi-Sunter score integrity could not be verified."
+            ) from None
+        if invalid_count:
+            raise FellegiSunterError(
+                "ML-FS-014", "Fellegi-Sunter scoring produced invalid aggregate evidence."
             )
         return FellegiSunterScoreResult(
             table=score_table,

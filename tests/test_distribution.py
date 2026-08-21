@@ -26,6 +26,13 @@ def test_public_api_top_level_exports() -> None:
     assert hasattr(config_pkg, "compile_config")
     assert hasattr(config_pkg, "load_config")
 
+    import mapel_linkage.benchmarking as benchmark_pkg
+
+    assert hasattr(benchmark_pkg, "build_advisor_corpus_design")
+    assert hasattr(benchmark_pkg, "build_benchmark_shard_plan")
+    assert hasattr(benchmark_pkg, "execute_advisor_corpus_shard")
+    assert hasattr(benchmark_pkg, "audit_advisor_corpus")
+
 
 def test_splink_runtime_metadata_and_ci_constraint_are_exactly_aligned() -> None:
     pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))

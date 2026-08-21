@@ -19,6 +19,38 @@ from mapel_linkage.benchmarking.contracts import (
     ScenarioFamilyManifest,
     ScenarioInstanceManifest,
 )
+from mapel_linkage.governance.atomic import atomic_write_text
+
+_MAX_MANIFEST_BYTES = 8 * 1024 * 1024
+
+
+def _canonical_text(model: Any) -> str:
+    return json.dumps(model.model_dump(mode="json"), indent=2, sort_keys=True) + "\n"
+
+
+def _read_text(path: Path, *, missing_message: str) -> str:
+    try:
+        if path.is_symlink() or not path.is_file():
+            raise FileNotFoundError
+        if path.stat().st_size > _MAX_MANIFEST_BYTES:
+            raise ValueError("A benchmark registry artifact exceeds its aggregate size limit.")
+        return path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        raise FileNotFoundError(missing_message) from None
+    except OSError:
+        raise ValueError("A benchmark registry artifact could not be read safely.") from None
+
+
+def _persist_canonical_exact(path: Path, text: str, *, collision_message: str) -> None:
+    """Append one immutable artifact or accept its exact idempotent replay."""
+
+    if path.is_symlink():
+        raise ValueError("Benchmark registry artifacts cannot be symbolic links.")
+    if path.exists():
+        if _read_text(path, missing_message=collision_message) != text:
+            raise FileExistsError(collision_message)
+        return
+    atomic_write_text(path, text)
 
 
 def build_registry_snapshot(
@@ -75,23 +107,22 @@ class BenchmarkRegistry:
         self.families_dir.mkdir(parents=True, exist_ok=True)
         dest = self.families_dir / f"{manifest.family_id}.json"
         if dest.exists():
-            existing = ScenarioFamilyManifest.model_validate_json(dest.read_text(encoding="utf-8"))
+            existing = ScenarioFamilyManifest.model_validate_json(
+                _read_text(dest, missing_message="Scenario family not found.")
+            )
             if existing.family_digest != manifest.family_digest:
                 raise FileExistsError(
                     "A different scenario-family manifest already exists for this ID."
                 )
             return dest
-        dest.write_text(
-            json.dumps(manifest.model_dump(mode="json"), indent=2, sort_keys=True) + "\n",
-            encoding="utf-8",
-        )
+        atomic_write_text(dest, _canonical_text(manifest))
         return dest
 
     def load_family(self, family_id: str) -> ScenarioFamilyManifest:
         path = self.families_dir / f"{family_id}.json"
-        if not path.exists():
-            raise FileNotFoundError(f"Scenario family not found: {family_id} at {path}")
-        return ScenarioFamilyManifest.model_validate_json(path.read_text(encoding="utf-8"))
+        return ScenarioFamilyManifest.model_validate_json(
+            _read_text(path, missing_message="Scenario family not found.")
+        )
 
     def list_families(self) -> tuple[ScenarioFamilyManifest, ...]:
         if not self.families_dir.exists():
@@ -99,7 +130,9 @@ class BenchmarkRegistry:
         manifests = []
         for file in sorted(self.families_dir.glob("*.json")):
             manifests.append(
-                ScenarioFamilyManifest.model_validate_json(file.read_text(encoding="utf-8"))
+                ScenarioFamilyManifest.model_validate_json(
+                    _read_text(file, missing_message="Scenario family not found.")
+                )
             )
         return tuple(sorted(manifests, key=lambda m: m.family_id))
 
@@ -108,31 +141,30 @@ class BenchmarkRegistry:
         dest = self.instances_dir / f"{manifest.instance_id}.json"
         if dest.exists():
             existing = ScenarioInstanceManifest.model_validate_json(
-                dest.read_text(encoding="utf-8")
+                _read_text(dest, missing_message="Scenario instance not found.")
             )
             if existing.instance_digest != manifest.instance_digest:
                 raise FileExistsError(
                     "A different scenario-instance manifest already exists for this ID."
                 )
             return dest
-        dest.write_text(
-            json.dumps(manifest.model_dump(mode="json"), indent=2, sort_keys=True) + "\n",
-            encoding="utf-8",
-        )
+        atomic_write_text(dest, _canonical_text(manifest))
         return dest
 
     def load_instance(self, instance_id: str) -> ScenarioInstanceManifest:
         path = self.instances_dir / f"{instance_id}.json"
-        if not path.exists():
-            raise FileNotFoundError(f"Scenario instance not found: {instance_id} at {path}")
-        return ScenarioInstanceManifest.model_validate_json(path.read_text(encoding="utf-8"))
+        return ScenarioInstanceManifest.model_validate_json(
+            _read_text(path, missing_message="Scenario instance not found.")
+        )
 
     def list_instances(self, family_id: str | None = None) -> tuple[ScenarioInstanceManifest, ...]:
         if not self.instances_dir.exists():
             return ()
         manifests = []
         for file in sorted(self.instances_dir.glob("*.json")):
-            inst = ScenarioInstanceManifest.model_validate_json(file.read_text(encoding="utf-8"))
+            inst = ScenarioInstanceManifest.model_validate_json(
+                _read_text(file, missing_message="Scenario instance not found.")
+            )
             if family_id is None or inst.family_id == family_id:
                 manifests.append(inst)
         return tuple(sorted(manifests, key=lambda m: m.instance_id))
@@ -146,18 +178,29 @@ class BenchmarkRegistry:
         self.runs_dir.mkdir(parents=True, exist_ok=True)
         dest = self.runs_dir / f"{record.run_id}.json"
         if dest.exists():
-            raise FileExistsError("A benchmark run record already exists for this run ID.")
+            existing = self.load_run_record(record.run_id)
+            existing_metrics = self.load_metrics(record.run_id)
+            existing_failure = self.load_failure_record(record.run_id)
+            metrics_model = (
+                metrics
+                if isinstance(metrics, BenchmarkAggregateMetrics) or metrics is None
+                else BenchmarkAggregateMetrics.model_validate(metrics)
+            )
+            if (
+                existing != record
+                or existing_metrics != metrics_model
+                or existing_failure != failure
+            ):
+                raise FileExistsError(
+                    "A conflicting benchmark run record already exists for this run ID."
+                )
+            return dest
         metrics_dest = self.metrics_dir / f"{record.run_id}.json"
         failure_dest = self.failures_dir / f"{record.run_id}.json"
         if metrics is not None and metrics_dest.exists():
             raise FileExistsError("Aggregate metrics already exist for this benchmark run ID.")
         if failure is not None and failure_dest.exists():
             raise FileExistsError("Failure evidence already exists for this benchmark run ID.")
-        dest.write_text(
-            json.dumps(record.model_dump(mode="json"), indent=2, sort_keys=True) + "\n",
-            encoding="utf-8",
-        )
-
         if metrics is not None:
             self.metrics_dir.mkdir(parents=True, exist_ok=True)
             m_dest = self.metrics_dir / f"{record.run_id}.json"
@@ -165,27 +208,43 @@ class BenchmarkRegistry:
                 m_payload = metrics.model_dump(mode="json")
             else:
                 m_payload = metrics
-            m_dest.write_text(
-                json.dumps(m_payload, indent=2, sort_keys=True) + "\n",
-                encoding="utf-8",
-            )
+            metrics_model = BenchmarkAggregateMetrics.model_validate(m_payload)
+            if record.aggregate_metrics_digest != metrics_model.metrics_digest:
+                raise ValueError("Benchmark metrics do not match the run-record digest.")
+            atomic_write_text(m_dest, _canonical_text(metrics_model))
 
         if failure is not None:
             self.save_failure_record(failure)
+
+        atomic_write_text(dest, _canonical_text(record))
 
         return dest
 
     def load_run_record(self, run_id: str) -> BenchmarkRunRecord:
         path = self.runs_dir / f"{run_id}.json"
-        if not path.exists():
-            raise FileNotFoundError(f"Benchmark run record not found: {run_id} at {path}")
-        return BenchmarkRunRecord.model_validate_json(path.read_text(encoding="utf-8"))
+        record = BenchmarkRunRecord.model_validate_json(
+            _read_text(path, missing_message="Benchmark run record not found.")
+        )
+        metrics = self.load_metrics(run_id)
+        failure = self.load_failure_record(run_id)
+        if record.status == BenchmarkRunStatus.SUCCESS:
+            if (
+                metrics is None
+                or record.aggregate_metrics_digest != metrics.metrics_digest
+                or failure is not None
+            ):
+                raise ValueError("Benchmark success evidence failed its integrity check.")
+        elif metrics is not None or failure is None or failure.status != record.status:
+            raise ValueError("Benchmark failure evidence failed its integrity check.")
+        return record
 
     def load_metrics(self, run_id: str) -> BenchmarkAggregateMetrics | None:
         path = self.metrics_dir / f"{run_id}.json"
         if not path.exists():
             return None
-        return BenchmarkAggregateMetrics.model_validate_json(path.read_text(encoding="utf-8"))
+        return BenchmarkAggregateMetrics.model_validate_json(
+            _read_text(path, missing_message="Benchmark metrics not found.")
+        )
 
     def list_run_records(
         self, family_id: str | None = None, instance_id: str | None = None
@@ -194,7 +253,7 @@ class BenchmarkRegistry:
             return ()
         records = []
         for file in sorted(self.runs_dir.glob("*.json")):
-            rec = BenchmarkRunRecord.model_validate_json(file.read_text(encoding="utf-8"))
+            rec = self.load_run_record(file.stem)
             if family_id is not None and rec.family_id != family_id:
                 continue
             if instance_id is not None and rec.instance_id != instance_id:
@@ -206,18 +265,22 @@ class BenchmarkRegistry:
         self.failures_dir.mkdir(parents=True, exist_ok=True)
         dest = self.failures_dir / f"{failure.run_id}.json"
         if dest.exists():
-            raise FileExistsError("Failure evidence already exists for this benchmark run ID.")
-        dest.write_text(
-            json.dumps(failure.model_dump(mode="json"), indent=2, sort_keys=True) + "\n",
-            encoding="utf-8",
-        )
+            existing = self.load_failure_record(failure.run_id)
+            if existing != failure:
+                raise FileExistsError(
+                    "Conflicting failure evidence already exists for this run ID."
+                )
+            return dest
+        atomic_write_text(dest, _canonical_text(failure))
         return dest
 
     def load_failure_record(self, run_id: str) -> BenchmarkFailureRecord | None:
         path = self.failures_dir / f"{run_id}.json"
         if not path.exists():
             return None
-        return BenchmarkFailureRecord.model_validate_json(path.read_text(encoding="utf-8"))
+        return BenchmarkFailureRecord.model_validate_json(
+            _read_text(path, missing_message="Benchmark failure evidence not found.")
+        )
 
     def list_failure_records(self) -> tuple[BenchmarkFailureRecord, ...]:
         if not self.failures_dir.exists():
@@ -225,7 +288,9 @@ class BenchmarkRegistry:
         failures = []
         for file in sorted(self.failures_dir.glob("*.json")):
             failures.append(
-                BenchmarkFailureRecord.model_validate_json(file.read_text(encoding="utf-8"))
+                BenchmarkFailureRecord.model_validate_json(
+                    _read_text(file, missing_message="Benchmark failure evidence not found.")
+                )
             )
         return tuple(sorted(failures, key=lambda f: f.run_id))
 
@@ -236,9 +301,10 @@ class BenchmarkRegistry:
         snapshot = build_registry_snapshot(snapshot_id=snapshot_id, records=records)
         self.snapshots_dir.mkdir(parents=True, exist_ok=True)
         dest = self.snapshots_dir / f"{snapshot_id}.json"
-        dest.write_text(
-            json.dumps(snapshot.model_dump(mode="json"), indent=2, sort_keys=True) + "\n",
-            encoding="utf-8",
+        _persist_canonical_exact(
+            dest,
+            _canonical_text(snapshot),
+            collision_message="A conflicting benchmark snapshot already exists for this ID.",
         )
         return snapshot
 
@@ -321,9 +387,10 @@ class BenchmarkRegistry:
 
         self.reports_dir.mkdir(parents=True, exist_ok=True)
         dest = self.reports_dir / f"{report_id}.json"
-        dest.write_text(
-            json.dumps(report.model_dump(mode="json"), indent=2, sort_keys=True) + "\n",
-            encoding="utf-8",
+        _persist_canonical_exact(
+            dest,
+            _canonical_text(report),
+            collision_message="A conflicting benchmark report already exists for this ID.",
         )
         return report
 

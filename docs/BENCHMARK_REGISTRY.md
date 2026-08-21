@@ -53,8 +53,27 @@ local operational monitoring
 Evidence classes are not pooled silently. Local synthetic evidence remains synthetic, and local
 verified evidence is eligible only under an approved protocol.
 
-## Current implementation boundary
+## Advisor-v2 implementation boundary
 
-I2A provides immutable registry contracts and deterministic snapshot construction. It does not
-run the model portfolio, populate the global corpus, retrieve nearest scenarios, or train a
-meta-recommender. Those belong to B1 and later I2 stages.
+The versioned advisor-scale design contains 64 families and 280 instances, partitioned
+prospectively into 40 meta-training, 8 conformal, 8 locked-evaluation, and 8 real-mechanism OOD
+families. The 10-family/19-instance seed-v1 catalogue remains stable. Its historical
+transliteration family is retained for compatibility but excluded from true OOD readiness.
+
+Three package-owned link-only adapters can produce comparative success evidence: the
+Fellegi-Sunter reference, XGBoost classifier, and XGBoost ranker. Synthetic truth is restricted to
+protected supervised training labels and post-score mechanical evaluation. Dedupe-only,
+multi-source, LightGBM, and PyTorch recipes retain stable ineligible evidence until real adapters
+exist; their metrics are never fabricated.
+
+The CLI can inspect the aggregate design and execute one explicitly approved deterministic shard.
+Manifests and run evidence are append-only, digest-bound, idempotently resumable, and rejected on
+tamper, collision, or environment drift.
+
+The 2026-08-21 execution-protocol-v1 diagnostic registry completed 9,800 records but retained 688
+Fellegi-Sunter scoring failures. Its family-overlap readiness result is superseded: difficult
+failed replicates cannot be silently omitted from meta-training. Execution protocol v2 uses a new
+registry provenance boundary and requires five or more replicates per instance plus successful
+Fellegi-Sunter, XGBoost-classifier, and XGBoost-ranker evidence in every scenario-replicate cell.
+The diagnostic registry is never overwritten, and advisor validation remains unestablished until
+the corrected execution-v2 audit passes.

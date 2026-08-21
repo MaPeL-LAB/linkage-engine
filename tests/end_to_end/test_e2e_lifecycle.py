@@ -144,10 +144,11 @@ def test_advisor_tournament_and_calibration_authority_boundaries(
     assert advisor.merge_authority == "none"
     assert advisor.automatic_promotion == "prohibited"
     assert advisor.operational_validity == "not_established"
-    assert advisor.fallback_to_similarity is False
-    assert advisor.meta_model_type == "ridge_meta_ranker_v1"
+    assert advisor.fallback_to_similarity is True
+    assert advisor.meta_model_type == "none"
     assert advisor.meta_model_trained_runs > 0
-    assert advisor.predicted_candidate_utilities
+    assert not advisor.predicted_candidate_utilities
+    assert "scenario-replicate-complete" in str(advisor.fallback_reason).lower()
 
     tournament = lifecycle.tournament
     assert tournament.recipe.approval_status is RecipeApprovalStatus.SYNTHETIC_VALIDATED

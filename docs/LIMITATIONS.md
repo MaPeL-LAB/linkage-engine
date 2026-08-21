@@ -110,6 +110,14 @@ statistical performance on a real population.
 - Determinism means repeatability inside a recorded software and hardware envelope, not
   universal cross-platform bitwise identity.
 - Performance and memory behaviour at operational scale have not been benchmarked.
+- The first 64-family/280-instance advisor-v2 execution completed 9,800 retained records but
+  exposed 688 Fellegi-Sunter materialisation failures. It is immutable diagnostic evidence, not a
+  qualified advisor corpus. The corrected execution-v2 registry has not yet been run, so advisor
+  regret, interval coverage, OOD detection, learning curves, and comparative strategy quality
+  remain unqualified.
+- Advisor-v2 comparative execution currently has real link-only adapters for Fellegi-Sunter,
+  XGBoost classification, and XGBoost ranking. Dedupe-only, multi-source, LightGBM, and PyTorch
+  benchmark recipes abstain as ineligible instead of emitting placeholder metrics.
 - Host-level filesystem, process, network, backup, encryption, and access controls remain
   the responsibility of the authorised local environment.
 - No licence has been selected, package publication remains blocked, and no release has
