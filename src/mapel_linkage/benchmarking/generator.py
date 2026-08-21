@@ -13,6 +13,10 @@ from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictFloat, StrictInt, StrictStr
 
+from mapel_linkage.benchmarking.advisor_v3_features import (
+    AdvisorV3MechanismProfile,
+    build_advisor_v3_mechanism_profile,
+)
 from mapel_linkage.benchmarking.contracts import (
     ScenarioFamilyManifest,
     ScenarioInstanceManifest,
@@ -83,6 +87,23 @@ class ScenarioMechanicExtension(BaseModel):
     mechanic_schema_version: Literal["2"] = "2"
     unicode_transliteration_rate: Annotated[StrictFloat, Field(ge=0.0, le=1.0)] = 0.0
     punctuation_change_rate: Annotated[StrictFloat, Field(ge=0.0, le=1.0)] = 0.0
+
+
+class ScenarioMechanicExtensionV3(BaseModel):
+    """Prospective v3 mechanics kept separate from digest-stable v2 extensions."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    mechanic_schema_version: Literal["3"] = "3"
+    unicode_transliteration_rate: Annotated[StrictFloat, Field(ge=0.0, le=1.0)] = 0.0
+    punctuation_change_rate: Annotated[StrictFloat, Field(ge=0.0, le=1.0)] = 0.0
+    source_a_missingness_rate: Annotated[StrictFloat, Field(ge=0.0, le=1.0)] = 0.0
+    source_b_missingness_rate: Annotated[StrictFloat, Field(ge=0.0, le=1.0)] = 0.0
+    label_collision_rate: Annotated[StrictFloat, Field(ge=0.0, le=1.0)] = 0.0
+    exact_duplicate_fraction: Annotated[StrictFloat, Field(ge=0.0, le=1.0)] = 0.0
+
+
+ScenarioMechanic = ScenarioMechanicExtension | ScenarioMechanicExtensionV3
 
 
 @dataclass(frozen=True, slots=True, repr=False)
@@ -193,7 +214,7 @@ class BenchmarkScenarioGenerator:
     def __init__(self) -> None:
         self._families: dict[str, tuple[ScenarioFamilyManifest, dict[str, Any]]] = {}
         self._instances: dict[str, tuple[ScenarioInstanceManifest, ScenarioLatentSpec]] = {}
-        self._instance_extensions: dict[str, ScenarioMechanicExtension] = {}
+        self._instance_extensions: dict[str, ScenarioMechanic] = {}
         self._register_standard_corpus()
 
     def _register_standard_corpus(self) -> None:
@@ -405,7 +426,7 @@ class BenchmarkScenarioGenerator:
         mechanism_tags: tuple[str, ...],
         prospectively_held_out: bool = False,
         instances: tuple[ScenarioLatentSpec, ...],
-        instance_extensions: Mapping[str, ScenarioMechanicExtension] | None = None,
+        instance_extensions: Mapping[str, ScenarioMechanic] | None = None,
     ) -> ScenarioFamilyManifest:
         latent_scenario_payload = {
             "family_id": family_id,
@@ -417,7 +438,12 @@ class BenchmarkScenarioGenerator:
         if set(extensions) - {spec.instance_id for spec in instances}:
             raise ValueError("Scenario mechanic extensions must bind registered instances.")
         if extensions:
-            latent_scenario_payload["mechanic_schema_version"] = "2"
+            schema_versions = {
+                extension.mechanic_schema_version for extension in extensions.values()
+            }
+            if len(schema_versions) != 1:
+                raise ValueError("One scenario family cannot mix mechanic extension versions.")
+            latent_scenario_payload["mechanic_schema_version"] = next(iter(schema_versions))
             latent_scenario_payload["mechanic_extension_digest"] = _digest_object(
                 {
                     instance_id: extension.model_dump(mode="json")
@@ -570,6 +596,12 @@ class BenchmarkScenarioGenerator:
                 label = f"{rng.choice(_SYLLABLES)}-{index:05d}"
                 group = f"G{index % 7:02d}"
 
+            if (
+                isinstance(extension, ScenarioMechanicExtensionV3)
+                and rng.random() < extension.label_collision_rate
+            ):
+                label = f"{label.split('-', maxsplit=1)[0]}-amb{index % 5:02d}"
+
             base_date = date(1980 + (index % 30), 1 + (index % 12), 1 + (index % 27))
             date_text = base_date.isoformat()
             bases.append((entity_key, household_key, label, date_text, group))
@@ -584,7 +616,12 @@ class BenchmarkScenarioGenerator:
             for index, (entity_key, household_key, label, date_text, group) in enumerate(bases):
                 key_a = f"A{index:06d}"
                 val_a = label
-                if rng.random() < spec.missingness_rate:
+                source_a_missingness = (
+                    extension.source_a_missingness_rate
+                    if isinstance(extension, ScenarioMechanicExtensionV3)
+                    else spec.missingness_rate
+                )
+                if rng.random() < source_a_missingness:
                     val_a = None  # type: ignore[assignment]
                 datasets["source_a"].append(
                     SyntheticRecord(
@@ -615,7 +652,11 @@ class BenchmarkScenarioGenerator:
                     dt_b = date(dt_b.year, dt_b.day, dt_b.month)
                 dt_str = dt_b.isoformat()
 
-                miss_b = spec.missingness_rate
+                miss_b = (
+                    extension.source_b_missingness_rate
+                    if isinstance(extension, ScenarioMechanicExtensionV3)
+                    else spec.missingness_rate
+                )
                 if spec.informative_missingness and group in ("G00", "G01"):
                     miss_b = min(1.0, miss_b * 2.0 + 0.2)
                 if rng.random() < miss_b:
@@ -641,7 +682,12 @@ class BenchmarkScenarioGenerator:
                 datasets["source_a"].append(
                     SyntheticRecord(
                         record_key=key_dup,
-                        label_value=_mutate_typo(label, rng),
+                        label_value=(
+                            label
+                            if isinstance(extension, ScenarioMechanicExtensionV3)
+                            and rng.random() < extension.exact_duplicate_fraction
+                            else _mutate_typo(label, rng)
+                        ),
                         date_value=date_text,
                         group_value=group,
                     )
@@ -721,10 +767,30 @@ class BenchmarkScenarioGenerator:
             },
         )
 
+    def build_advisor_v3_mechanism_profile(
+        self,
+        instance_id: str,
+        *,
+        seed: int = 20260816,
+        generated_bundle: BenchmarkScenarioBundle | None = None,
+    ) -> AdvisorV3MechanismProfile:
+        """Build the v3 observable aggregate contract without returning rows or truth."""
+
+        if instance_id not in self._instances:
+            raise KeyError(f"Unknown scenario instance ID: {instance_id}")
+        bundle = generated_bundle or self.generate(instance_id, seed=seed)
+        spec = self._instances[instance_id][1]
+        return build_advisor_v3_mechanism_profile(
+            datasets=bundle.datasets,
+            task_profile=bundle.task_profile,
+            planned_training_label_budget=spec.label_volume,
+        )
+
 
 __all__ = [
     "BenchmarkScenarioBundle",
     "BenchmarkScenarioGenerator",
     "ScenarioLatentSpec",
     "ScenarioMechanicExtension",
+    "ScenarioMechanicExtensionV3",
 ]

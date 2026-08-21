@@ -43,6 +43,16 @@ from mapel_linkage.recommendation.distance import (
     TaskMetaFeatureVector,
     extract_family_meta_features,
 )
+from mapel_linkage.recommendation.distance_v3 import (
+    ADVISOR_V3_META_FEATURE_WEIGHTS,
+    AdvisorV3FeatureUnavailableError,
+    MechanismAwareMetaFeatureDistanceComputer,
+    MechanismAwareTaskMetaFeatureVector,
+    advisor_v3_feature_model_schema_digest,
+    advisor_v3_ood_distance_rule_digest,
+    extract_advisor_v3_family_meta_features,
+    select_advisor_v3_ood_distance_threshold,
+)
 from mapel_linkage.recommendation.eligibility import (
     AdvisorContext,
     EligibilityDecision,
@@ -69,6 +79,10 @@ from mapel_linkage.recommendation.qualification import (
     serialize_advisor_qualification_artifact,
     write_advisor_qualification_artifact,
 )
+from mapel_linkage.recommendation.qualification_v3 import (
+    AdvisorV3QualificationPolicy,
+    advisor_v3_evaluation_algorithm_digest,
+)
 from mapel_linkage.recommendation.similarity_advisor import (
     SimilarityLinkageAdvisor,
     recommend_with_similarity,
@@ -79,6 +93,7 @@ from mapel_linkage.recommendation.structural_pareto import (
 )
 
 __all__ = [
+    "ADVISOR_V3_META_FEATURE_WEIGHTS",
     "DEFAULT_META_FEATURE_WEIGHTS",
     "AbstentionReason",
     "ActiveBenchmarkPlanner",
@@ -89,6 +104,8 @@ __all__ = [
     "AdvisorQualificationArtifact",
     "AdvisorQualificationPolicy",
     "AdvisorQualificationReport",
+    "AdvisorV3FeatureUnavailableError",
+    "AdvisorV3QualificationPolicy",
     "BenchmarkCoverageAnalysis",
     "BenchmarkGapAnalyzer",
     "CandidateExplanation",
@@ -110,6 +127,8 @@ __all__ = [
     "ExperimentPlanningTrigger",
     "FixedRecipeBaselineMetrics",
     "LearnedMetaRankerModel",
+    "MechanismAwareMetaFeatureDistanceComputer",
+    "MechanismAwareTaskMetaFeatureVector",
     "MetaFeatureDistanceComputer",
     "MetaModelRefitStatus",
     "MetaRankingAdvisoryReport",
@@ -125,16 +144,21 @@ __all__ = [
     "SimilarityLinkageAdvisor",
     "StructuralPipelineCandidate",
     "TaskMetaFeatureVector",
+    "advisor_v3_evaluation_algorithm_digest",
+    "advisor_v3_feature_model_schema_digest",
+    "advisor_v3_ood_distance_rule_digest",
     "build_diverse_shortlist",
     "build_structural_pipeline_candidates",
     "deserialize_advisor_qualification_artifact",
     "evaluate_candidate",
     "execute_planned_experiments",
+    "extract_advisor_v3_family_meta_features",
     "extract_family_meta_features",
     "load_advisor_qualification_artifact",
     "qualify_advisor_registry",
     "recommend_pipeline",
     "recommend_with_similarity",
+    "select_advisor_v3_ood_distance_threshold",
     "serialize_advisor_qualification_artifact",
     "structural_pareto_frontier",
     "write_advisor_qualification_artifact",

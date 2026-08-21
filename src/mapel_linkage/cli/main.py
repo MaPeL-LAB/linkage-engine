@@ -33,6 +33,21 @@ from mapel_linkage.benchmarking.advisor_execution import (
     audit_advisor_corpus,
     execute_advisor_corpus_shard,
 )
+from mapel_linkage.benchmarking.advisor_v3_catalogue import (
+    build_advisor_v3_corpus_design,
+    build_advisor_v3_corpus_readiness,
+    build_advisor_v3_preregistration,
+    build_advisor_v3_shard_plan,
+    validate_advisor_v3_geometry_coherence,
+)
+from mapel_linkage.benchmarking.advisor_v3_execution import (
+    AdvisorV3CorpusExecutionApproval,
+    advisor_v3_execution_provenance_digest,
+    audit_advisor_v3_corpus,
+    build_advisor_v3_execution_approval,
+    execute_advisor_v3_corpus_shard,
+    prepare_advisor_v3_execution,
+)
 from mapel_linkage.capabilities import WorkflowStatus, capabilities, capability_summary
 from mapel_linkage.configuration import (
     compile_config,
@@ -267,6 +282,62 @@ def build_parser() -> argparse.ArgumentParser:
     audit_corpus.add_argument("--shards", type=int, default=32, metavar="N")
     audit_corpus.add_argument("--replicates", type=int, default=5, metavar="N")
     audit_corpus.set_defaults(handler=_audit_advisor_corpus)
+
+    plan_v3_corpus = subparsers.add_parser(
+        "plan-advisor-v3-corpus",
+        help="Emit the outcome-free prospective advisor-v3 design and fixed shard plan.",
+    )
+    plan_v3_corpus.set_defaults(handler=_plan_advisor_v3_corpus)
+
+    prepare_v3_corpus = subparsers.add_parser(
+        "prepare-advisor-v3-corpus",
+        help="Serially prepare shared governance for an approved advisor-v3 execution.",
+    )
+    prepare_v3_corpus.add_argument(
+        "--registry-dir",
+        metavar="RELATIVE_DIR",
+        required=True,
+        help="Path under the ignored private/benchmark_registry/ project envelope.",
+    )
+    prepare_v3_corpus.add_argument("--project-root", metavar="ROOT", default=".")
+    prepare_v3_corpus.add_argument(
+        "--preregistration",
+        metavar="RELATIVE_JSON",
+        default="docs/evidence/advisor_v3_preregistration_20260821.json",
+    )
+    prepare_v3_corpus.add_argument("--approve-execution", action="store_true")
+    prepare_v3_corpus.add_argument("--approval-reference", metavar="REFERENCE", required=True)
+    prepare_v3_corpus.set_defaults(handler=_prepare_advisor_v3_corpus)
+
+    run_v3_corpus = subparsers.add_parser(
+        "run-advisor-v3-corpus",
+        help="Execute or resume one approved whole-family advisor-v3 shard.",
+    )
+    run_v3_corpus.add_argument(
+        "--registry-dir",
+        metavar="RELATIVE_DIR",
+        required=True,
+        help="Path under the ignored private/benchmark_registry/ project envelope.",
+    )
+    run_v3_corpus.add_argument("--project-root", metavar="ROOT", default=".")
+    run_v3_corpus.add_argument("--shard-index", type=int, required=True, metavar="INDEX")
+    run_v3_corpus.add_argument("--approve-execution", action="store_true")
+    run_v3_corpus.add_argument("--approval-reference", metavar="REFERENCE", required=True)
+    run_v3_corpus.set_defaults(handler=_run_advisor_v3_corpus)
+
+    audit_v3_corpus = subparsers.add_parser(
+        "audit-advisor-v3-corpus",
+        help="Audit advisor-v3 digest integrity without using held-out metric values.",
+    )
+    audit_v3_corpus.add_argument(
+        "--registry-dir",
+        metavar="RELATIVE_DIR",
+        required=True,
+        help="Path under the ignored private/benchmark_registry/ project envelope.",
+    )
+    audit_v3_corpus.add_argument("--project-root", metavar="ROOT", default=".")
+    audit_v3_corpus.add_argument("--approval-reference", metavar="REFERENCE", required=True)
+    audit_v3_corpus.set_defaults(handler=_audit_advisor_v3_corpus)
 
     qualify_advisor = subparsers.add_parser(
         "qualify-advisor",
@@ -891,6 +962,170 @@ def _audit_advisor_corpus(namespace: argparse.Namespace) -> int:
         )
         return 2
     print(json.dumps(readiness.safe_summary(), sort_keys=True))
+    return 0
+
+
+def _advisor_v3_approval(
+    reference: str, runner: BenchmarkPortfolioRunner
+) -> AdvisorV3CorpusExecutionApproval:
+    return build_advisor_v3_execution_approval(
+        approval_reference=reference,
+        runner=runner,
+    )
+
+
+def _resolve_advisor_v3_registry_path(
+    namespace: argparse.Namespace, *, must_exist: bool = False
+) -> Path:
+    relative = Path(namespace.registry_dir)
+    if relative.parts[:2] != ("private", "benchmark_registry"):
+        raise ValueError(
+            "Advisor-v3 registries must remain under the ignored "
+            "private/benchmark_registry/ envelope."
+        )
+    return _resolve_advisor_registry_path(namespace, must_exist=must_exist)
+
+
+def _resolve_advisor_v3_preregistration(namespace: argparse.Namespace) -> Path:
+    project_root = Path(namespace.project_root).resolve(strict=True)
+    relative = Path(namespace.preregistration)
+    if (
+        relative.is_absolute()
+        or not relative.parts
+        or relative.parts[:2] != ("docs", "evidence")
+        or ".." in relative.parts
+        or relative.suffix.lower() != ".json"
+    ):
+        raise ValueError("Advisor-v3 preregistration must be project docs/evidence JSON.")
+    candidate = project_root
+    for part in relative.parts:
+        candidate /= part
+        if candidate.is_symlink():
+            raise ValueError("Advisor-v3 preregistration paths cannot traverse symbolic links.")
+    resolved = candidate.resolve(strict=True)
+    if not resolved.is_relative_to(project_root / "docs" / "evidence"):
+        raise ValueError("Advisor-v3 preregistration is outside its source-controlled root.")
+    return resolved
+
+
+def _plan_advisor_v3_corpus(_namespace: argparse.Namespace) -> int:
+    try:
+        design = build_advisor_v3_corpus_design()
+        runner = BenchmarkPortfolioRunner()
+        readiness = build_advisor_v3_corpus_readiness(adapter_statuses=runner.adapter_statuses())
+        plan = build_advisor_v3_shard_plan()
+        preregistration = build_advisor_v3_preregistration()
+        geometry = validate_advisor_v3_geometry_coherence()
+    except (OSError, ValidationError, ValueError):
+        print(
+            "ERROR ML-BENCH-V3-001: Advisor-v3 prospective planning failed closed.",
+            file=sys.stderr,
+        )
+        return 2
+    print(
+        json.dumps(
+            {
+                "design": design.safe_summary(),
+                "readiness_digest": readiness.readiness_digest,
+                "execution_provenance_digest": advisor_v3_execution_provenance_digest(runner),
+                "execution_ready": readiness.execution_ready,
+                "shard_plan_digest": plan.plan_digest,
+                "shard_count": plan.shard_count,
+                "preregistration_digest": preregistration.preregistration_digest,
+                "geometry_coherence_digest": geometry.geometry_coherence_digest,
+                "held_out_metric_values_used_for_design_fit_or_threshold": False,
+                "qualification_evaluation_accessed": False,
+                "operational_validity": "not_established",
+            },
+            sort_keys=True,
+        )
+    )
+    return 0
+
+
+def _prepare_advisor_v3_corpus(namespace: argparse.Namespace) -> int:
+    if not bool(namespace.approve_execution):
+        print(
+            "ERROR ML-BENCH-V3-002: Explicit human execution approval is required.",
+            file=sys.stderr,
+        )
+        return 2
+    try:
+        registry_path = _resolve_advisor_v3_registry_path(namespace)
+        preregistration_path = _resolve_advisor_v3_preregistration(namespace)
+        runner = BenchmarkPortfolioRunner()
+        approval = _advisor_v3_approval(str(namespace.approval_reference), runner)
+        report = prepare_advisor_v3_execution(
+            registry=BenchmarkRegistry(registry_path),
+            committed_preregistration_path=preregistration_path,
+            approval=approval,
+            runner=runner,
+        )
+    except (FileExistsError, FileNotFoundError, OSError, ValidationError, ValueError):
+        print(
+            "ERROR ML-BENCH-V3-003: Advisor-v3 governance preparation failed closed.",
+            file=sys.stderr,
+        )
+        return 2
+    print(json.dumps(report.model_dump(mode="json"), sort_keys=True))
+    return 0
+
+
+def _run_advisor_v3_corpus(namespace: argparse.Namespace) -> int:
+    if not bool(namespace.approve_execution):
+        print(
+            "ERROR ML-BENCH-V3-004: Explicit human execution approval is required.",
+            file=sys.stderr,
+        )
+        return 2
+    try:
+        registry_path = _resolve_advisor_v3_registry_path(namespace, must_exist=True)
+        runner = BenchmarkPortfolioRunner()
+        approval = _advisor_v3_approval(str(namespace.approval_reference), runner)
+        report = execute_advisor_v3_corpus_shard(
+            registry=BenchmarkRegistry(registry_path),
+            shard_index=int(namespace.shard_index),
+            approval=approval,
+            runner=runner,
+        )
+    except (FileExistsError, OSError, ValidationError, ValueError):
+        print(
+            "ERROR ML-BENCH-V3-005: Advisor-v3 shard execution failed closed; "
+            "retained evidence was not overwritten.",
+            file=sys.stderr,
+        )
+        return 2
+    print(json.dumps(report.model_dump(mode="json"), sort_keys=True))
+    return 0
+
+
+def _audit_advisor_v3_corpus(namespace: argparse.Namespace) -> int:
+    try:
+        registry_path = _resolve_advisor_v3_registry_path(namespace, must_exist=True)
+        runner = BenchmarkPortfolioRunner()
+        approval = _advisor_v3_approval(str(namespace.approval_reference), runner)
+        readiness = audit_advisor_v3_corpus(
+            registry=BenchmarkRegistry(registry_path),
+            approval=approval,
+            runner=runner,
+        )
+    except (FileExistsError, OSError, ValidationError, ValueError):
+        print(
+            "ERROR ML-BENCH-V3-006: Advisor-v3 audit failed closed on incomplete, stale, "
+            "conflicting, or tampered aggregate evidence.",
+            file=sys.stderr,
+        )
+        return 2
+    print(
+        json.dumps(
+            {
+                **readiness.model_dump(mode="json"),
+                "readiness_digest": readiness.readiness_digest,
+                "execution_provenance_digest": approval.execution_provenance_digest,
+            },
+            sort_keys=True,
+        )
+    )
     return 0
 
 
