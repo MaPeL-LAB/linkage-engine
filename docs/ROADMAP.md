@@ -127,13 +127,17 @@ B1 is integrated: the repository includes the parametric scenario generator, ben
 portfolio runner, failure/status contracts, and file-backed aggregate registry persistence.
 Generated registries are synthetic evidence and are not an operational corpus or a claim of
 population fidelity. A specific locally generated registry still needs adequate scenario
-coverage before an advisor may rely on it.
+coverage before an advisor may rely on it. The corrected advisor-v2 execution completed its exact
+9,800-run grid and passed evidence readiness; this closes the corpus-completeness gate but not the
+separate strategy-quality gate.
 
 ## I2B — similarity and coverage advisor
 
 I2B is integrated with nearest-family retrieval, weighted distance, coverage and
 out-of-distribution checks, performance-distribution aggregation, uncertainty, and
-abstention. It must abstain when the supplied registry lacks adequate coverage.
+abstention. It must abstain when the supplied registry lacks adequate coverage. Its first
+prospective locked-family qualification returned `not_qualified`: it tied the best fixed recipe
+rather than improving on it, and the current meta-features failed the OOD-detection gate.
 
 ```text
 observable feature standardisation
@@ -150,7 +154,10 @@ Family counts such as 50–100 are planning ranges, not automatic validity gates
 
 I2C is integrated as a learned meta-regressor with conformal uncertainty and similarity
 fallback. Its presence does not establish that a particular registry has adequate overlap or
-that learned ranking outperforms transparent retrieval for an operational population.
+that learned ranking outperforms transparent retrieval for an operational population. Its learned
+utilities now order supported candidates, but the first prospective qualification did not improve
+over Stage 2 and missed the locked interval-coverage gate by one of 24 family-recipe cells. Stage 3
+therefore remains in fail-safe similarity fallback.
 
 ## I2D — active benchmark planning
 

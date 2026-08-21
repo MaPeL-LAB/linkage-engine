@@ -111,13 +111,19 @@ statistical performance on a real population.
   universal cross-platform bitwise identity.
 - Performance and memory behaviour at operational scale have not been benchmarked.
 - The first 64-family/280-instance advisor-v2 execution completed 9,800 retained records but
-  exposed 688 Fellegi-Sunter materialisation failures. It is immutable diagnostic evidence, not a
-  qualified advisor corpus. The corrected execution-v2 registry has not yet been run, so advisor
-  regret, interval coverage, OOD detection, learning curves, and comparative strategy quality
-  remain unqualified.
+  exposed 688 Fellegi-Sunter materialisation failures. It remains immutable diagnostic evidence.
+  The corrected execution-v2 registry subsequently completed the exact 9,800-run grid, but the
+  prespecified empirical qualification returned `not_qualified`: a fixed XGBoost classifier was
+  already optimal for every locked family, locked conformal coverage was 19/24, and the current
+  task meta-features detected none of eight true-mechanism OOD families. These outcomes cannot be
+  tuned away; another round requires a new policy, representational features, experimental design,
+  and locked families.
 - Advisor-v2 comparative execution currently has real link-only adapters for Fellegi-Sunter,
   XGBoost classification, and XGBoost ranking. Dedupe-only, multi-source, LightGBM, and PyTorch
   benchmark recipes abstain as ineligible instead of emitting placeholder metrics.
+- Stage-2 and Stage-3 components remain advisory-only and software-integrated, but their first
+  prospective empirical qualification did not authorize automatic promotion. Stage 3 must fall
+  back to Stage 2, and local confirmation remains mandatory.
 - Host-level filesystem, process, network, backup, encryption, and access controls remain
   the responsibility of the authorised local environment.
 - No licence has been selected, package publication remains blocked, and no release has

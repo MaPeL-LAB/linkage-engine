@@ -68,6 +68,9 @@ def test_similarity_advisor_within_distribution(populated_registry: Path) -> Non
     assert report.out_of_distribution_score <= 0.60
     assert len(report.nearest_family_ids) == 2
     assert report.empirical_metric_distributions
+    assert set(report.nearest_family_ids) <= {
+        record.family_id for record in registry.list_run_records()
+    }
 
     # Check metric distribution values
     for _cand_id, dist in report.empirical_metric_distributions.items():
@@ -82,7 +85,7 @@ def test_similarity_advisor_within_distribution(populated_registry: Path) -> Non
     assert rec.coverage_status is CoverageStatus.WITHIN_BENCHMARK_ENVELOPE
     assert rec.out_of_distribution_score == report.out_of_distribution_score
     assert rec.registry_snapshot_digest is not None
-    assert rec.abstained_from_empirical_ranking is True
+    assert rec.abstained_from_empirical_ranking is False
     assert rec.empirical_performance_claims == "none"
 
     # Authority literal invariants

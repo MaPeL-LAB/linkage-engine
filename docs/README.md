@@ -72,6 +72,8 @@ validation, local operation, and research evidence.
 - [`implementation/M2_COMPLETE_SYNTHETIC_MVP.md`](implementation/M2_COMPLETE_SYNTHETIC_MVP.md)
 - [`implementation/I1B_CONFIGURATION_DRIVEN_MODEL_PORTFOLIO.md`](implementation/I1B_CONFIGURATION_DRIVEN_MODEL_PORTFOLIO.md)
 - [`implementation/I1C_CONFIGURATION_DRIVEN_LINKAGE_MODES.md`](implementation/I1C_CONFIGURATION_DRIVEN_LINKAGE_MODES.md)
+- [`implementation/B1_ADVISOR_SCALE_CORPUS.md`](implementation/B1_ADVISOR_SCALE_CORPUS.md)
+- [`implementation/I2_ADVISOR_EMPIRICAL_QUALIFICATION.md`](implementation/I2_ADVISOR_EMPIRICAL_QUALIFICATION.md)
 
 M3 through M7 have a mix of integrated workflows and component-only capabilities. I1B adds
 the bounded configuration-driven all-model synthetic portfolio; I1C adds only five exact
@@ -81,6 +83,8 @@ older implementation reports describe historical status.
 
 ## Research evidence
 
+- [`evidence/advisor_v2_qualification_20260821.json`](evidence/advisor_v2_qualification_20260821.json)
+  — canonical aggregate-only result from the first prospective advisor-v2 qualification.
 - [`research/RESEARCH_SYNTHESIS.md`](research/RESEARCH_SYNTHESIS.md)
 - [`research/METHODS_LANDSCAPE.md`](research/METHODS_LANDSCAPE.md)
 - [`research/SOFTWARE_LANDSCAPE.md`](research/SOFTWARE_LANDSCAPE.md)

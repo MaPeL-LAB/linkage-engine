@@ -10,6 +10,10 @@ from typing import Any
 
 import numpy as np
 
+from mapel_linkage.benchmarking.advisor_catalogue import (
+    advisor_v2_family_roles,
+    build_advisor_v2_generator,
+)
 from mapel_linkage.benchmarking.contracts import (
     BenchmarkRegistrySnapshot,
     BenchmarkRunStatus,
@@ -58,6 +62,12 @@ from mapel_linkage.recommendation.structural_pareto import (
     build_diverse_shortlist,
     structural_pareto_frontier,
 )
+from mapel_linkage.recommendation.utility import (
+    ADVISOR_UTILITY_POLICY_DIGEST,
+    candidate_recipe_token,
+    empirical_distribution_utility,
+    recipe_token_by_digest,
+)
 
 _ELIGIBILITY_POLICY: dict[str, Any] = {
     "policy": "stage1-hard-eligibility-v1",
@@ -66,15 +76,6 @@ _ELIGIBILITY_POLICY: dict[str, Any] = {
     "inference_requires_approved_recipe": True,
     "stacking_requires_protected_oof": True,
     "runtime_dependencies_are_hard_constraints": True,
-}
-
-_STAGE2_UTILITY_POLICY: dict[str, Any] = {
-    "policy": "stage2-similarity-coverage-v1",
-    "empirical_metrics_used": True,
-    "distance_metric": "gower",
-    "max_ood_distance": 0.45,
-    "mandatory_baseline_retained": True,
-    "shortlist_family_diversity": True,
 }
 
 
@@ -97,10 +98,12 @@ class SimilarityLinkageAdvisor:
     ) -> None:
         self.registry = registry
         self.distance_computer = distance_computer or MetaFeatureDistanceComputer()
-        self.generator = generator or BenchmarkScenarioGenerator()
+        self.generator = generator or build_advisor_v2_generator()
         self.max_ood_distance = max_ood_distance
         self.k_nearest_families = k_nearest_families
         self._family_vectors = extract_family_meta_features(self.generator)
+        self._role_by_family = dict(advisor_v2_family_roles())
+        self._recipe_token_by_digest = recipe_token_by_digest()
 
     def recommend(
         self,
@@ -212,7 +215,7 @@ class SimilarityLinkageAdvisor:
                 recommendation_id=recommendation_id,
                 intent=context.intent,
                 task_profile_digest=task_profile.profile_digest,
-                utility_policy_digest=_policy_digest(_STAGE2_UTILITY_POLICY),
+                utility_policy_digest=ADVISOR_UTILITY_POLICY_DIGEST,
                 eligibility_policy_digest=_policy_digest(_ELIGIBILITY_POLICY),
                 registry_snapshot_digest=None,
                 coverage_status=CoverageStatus.STRUCTURAL_ONLY,
@@ -243,9 +246,17 @@ class SimilarityLinkageAdvisor:
             )
 
         # Find nearest scenario families
+        available_family_ids = {record.family_id for record in snapshot.records}
+        v2_evidence_present = bool(available_family_ids & set(self._role_by_family))
+        eligible_family_vectors = {
+            family_id: vector
+            for family_id, vector in self._family_vectors.items()
+            if family_id in available_family_ids
+            and (not v2_evidence_present or self._role_by_family.get(family_id) == "meta_training")
+        }
         nearest = self.distance_computer.find_nearest_families(
             target_meta,
-            self._family_vectors,
+            eligible_family_vectors,
             k=self.k_nearest_families,
         )
         nearest_family_ids = tuple(fam_id for fam_id, _ in nearest)
@@ -282,7 +293,7 @@ class SimilarityLinkageAdvisor:
                 recommendation_id=recommendation_id,
                 intent=context.intent,
                 task_profile_digest=task_profile.profile_digest,
-                utility_policy_digest=_policy_digest(_STAGE2_UTILITY_POLICY),
+                utility_policy_digest=ADVISOR_UTILITY_POLICY_DIGEST,
                 eligibility_policy_digest=_policy_digest(_ELIGIBILITY_POLICY),
                 registry_snapshot_digest=snapshot.registry_digest,
                 coverage_status=CoverageStatus.OUT_OF_DISTRIBUTION,
@@ -323,28 +334,9 @@ class SimilarityLinkageAdvisor:
 
         for run in runs_by_family:
             for candidate in eligible:
-                fam = candidate.pair_model_family
-                r_strat = candidate.ranking_strategy.value
-                r_mode = candidate.linkage_mode
-
-                matches = (
-                    (fam == "fellegi_sunter" and "fellegi" in run.run_id)
-                    or (
-                        fam == "xgboost"
-                        and r_strat == "xgboost_ranker"
-                        and "xgboost-ranker" in run.run_id
-                    )
-                    or (
-                        fam == "xgboost"
-                        and r_strat == "model_score"
-                        and "xgboost-classifier" in run.run_id
-                    )
-                    or (fam == "lightgbm" and "lightgbm" in run.run_id)
-                    or (fam == "pytorch" and "pytorch" in run.run_id)
-                    or (fam == "stacking")
-                    or (r_mode == "dedupe_only" and "dedupe" in run.run_id)
-                    or (r_mode == "multi_source" and "multi-source" in run.run_id)
-                )
+                candidate_token = candidate_recipe_token(candidate)
+                run_token = self._recipe_token_by_digest.get(run.pipeline_recipe_digest)
+                matches = candidate_token is not None and candidate_token == run_token
 
                 if matches:
                     all_runs_by_candidate[candidate.candidate_id].append(run)
@@ -400,14 +392,9 @@ class SimilarityLinkageAdvisor:
         # Rank eligible challengers using empirical utility
         def _candidate_empirical_score(c: StructuralPipelineCandidate) -> float:
             dist = empirical_distributions.get(c.candidate_id)
-            if dist is None or dist.sample_count == 0:
+            if dist is None:
                 return -1.0
-            return (
-                0.4 * dist.mean_recall_at_1
-                + 0.4 * dist.mean_positive_predictive_value
-                + 0.2 * (1.0 - dist.mean_brier_score)
-                - 0.2 * dist.failure_rate
-            )
+            return empirical_distribution_utility(dist)
 
         baseline_candidate = next(
             (c for c in eligible if c.pair_model_id == portfolio.mandatory_baseline_id),
@@ -474,11 +461,12 @@ class SimilarityLinkageAdvisor:
             recommendation_id=recommendation_id,
             intent=context.intent,
             task_profile_digest=task_profile.profile_digest,
-            utility_policy_digest=_policy_digest(_STAGE2_UTILITY_POLICY),
+            utility_policy_digest=ADVISOR_UTILITY_POLICY_DIGEST,
             eligibility_policy_digest=_policy_digest(_ELIGIBILITY_POLICY),
             registry_snapshot_digest=snapshot.registry_digest,
             coverage_status=CoverageStatus.WITHIN_BENCHMARK_ENVELOPE,
             out_of_distribution_score=float(best_distance),
+            abstained_from_empirical_ranking=False,
             abstention_reasons=abstention_reasons,
             mandatory_baseline_candidate_id=(
                 baseline_candidate.candidate_id if baseline_candidate is not None else None
