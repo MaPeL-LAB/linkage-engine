@@ -60,7 +60,10 @@ from mapel_linkage.recommendation import (
     RecommendationIntent,
     RuntimeDependency,
     SimilarityLinkageAdvisor,
+    load_advisor_qualification_artifact,
+    qualify_advisor_registry,
     recommend_pipeline,
+    write_advisor_qualification_artifact,
 )
 from mapel_linkage.synthetic import SyntheticGenerationConfig
 
@@ -161,6 +164,12 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Path to BenchmarkRegistry directory for similarity/meta-ranker advisor.",
     )
+    recommend.add_argument(
+        "--qualification-artifact",
+        metavar="RELATIVE_JSON",
+        default=None,
+        help="Project-relative qualification artifact required to activate learned ranking.",
+    )
     recommend.set_defaults(handler=_recommend_pipeline)
 
     sample_queue = subparsers.add_parser(
@@ -258,6 +267,27 @@ def build_parser() -> argparse.ArgumentParser:
     audit_corpus.add_argument("--shards", type=int, default=32, metavar="N")
     audit_corpus.add_argument("--replicates", type=int, default=5, metavar="N")
     audit_corpus.set_defaults(handler=_audit_advisor_corpus)
+
+    qualify_advisor = subparsers.add_parser(
+        "qualify-advisor",
+        help="Evaluate Stage-2 and Stage-3 on protected advisor-v2 family roles.",
+    )
+    qualify_advisor.add_argument("--registry-dir", metavar="RELATIVE_DIR", required=True)
+    qualify_advisor.add_argument("--project-root", metavar="ROOT", default=".")
+    qualify_advisor.add_argument("--shards", type=int, default=32, metavar="N")
+    qualify_advisor.add_argument("--replicates", type=int, default=5, metavar="N")
+    qualify_advisor.add_argument(
+        "--output",
+        metavar="RELATIVE_JSON",
+        default="artifacts/advisor_qualification/advisor_v2_qualification.json",
+    )
+    qualify_advisor.add_argument(
+        "--approve-locked-evaluation",
+        action="store_true",
+        help="Required one-time human approval to inspect the protected locked families.",
+    )
+    qualify_advisor.add_argument("--approval-reference", metavar="REFERENCE", required=True)
+    qualify_advisor.set_defaults(handler=_qualify_advisor)
 
     import_rev = subparsers.add_parser(
         "import-reviews",
@@ -518,6 +548,35 @@ def _verified_labels_available(plan: ExecutionPlan) -> bool:
     }
 
 
+def _resolve_qualification_input(namespace: argparse.Namespace) -> Path | None:
+    raw_value = getattr(namespace, "qualification_artifact", None)
+    if raw_value is None:
+        return None
+    relative = Path(raw_value)
+    raw_project_root = Path(namespace.project_root)
+    if (
+        relative.is_absolute()
+        or not relative.parts
+        or ".." in relative.parts
+        or relative.suffix.lower() != ".json"
+        or raw_project_root.is_symlink()
+    ):
+        raise ValueError("Qualification input must be project-relative canonical JSON.")
+    try:
+        project_root = raw_project_root.resolve(strict=True)
+        candidate = project_root
+        for part in relative.parts:
+            candidate = candidate / part
+            if candidate.is_symlink():
+                raise ValueError("Qualification input paths cannot traverse symbolic links.")
+        resolved = candidate.resolve(strict=True)
+    except OSError:
+        raise ValueError("Qualification input is unavailable.") from None
+    if not resolved.is_relative_to(project_root) or not resolved.is_file():
+        raise ValueError("Qualification input must remain inside the project root.")
+    return resolved
+
+
 def _recommend_pipeline(namespace: argparse.Namespace) -> int:
     try:
         plan = _compile_plan(namespace)
@@ -538,7 +597,16 @@ def _recommend_pipeline(namespace: argparse.Namespace) -> int:
                 if getattr(namespace, "registry_dir", None)
                 else None
             )
-            advisor_meta = MetaRankingLinkageAdvisor(registry=registry)
+            qualification_path = _resolve_qualification_input(namespace)
+            qualification = (
+                load_advisor_qualification_artifact(qualification_path)
+                if qualification_path is not None
+                else None
+            )
+            advisor_meta = MetaRankingLinkageAdvisor(
+                registry=registry,
+                qualification_artifact=qualification,
+            )
             report_meta = advisor_meta.advise(plan, context=context, profile=profile)
             print(json.dumps(report_meta.safe_summary(), sort_keys=True))
             return 0
@@ -562,7 +630,7 @@ def _recommend_pipeline(namespace: argparse.Namespace) -> int:
     except LinkageRuntimeError as error:
         print(f"ERROR {error.code}: {error.public_message}", file=sys.stderr)
         return 2
-    except ValidationError:
+    except (ValidationError, ValueError):
         print(
             "ERROR ML-ADVISOR-002: The structural recommendation could not be constructed.",
             file=sys.stderr,
@@ -823,6 +891,75 @@ def _audit_advisor_corpus(namespace: argparse.Namespace) -> int:
         )
         return 2
     print(json.dumps(readiness.safe_summary(), sort_keys=True))
+    return 0
+
+
+def _resolve_advisor_qualification_output(namespace: argparse.Namespace) -> Path:
+    raw_project_root = Path(namespace.project_root)
+    if raw_project_root.is_symlink():
+        raise ValueError("Project roots cannot be symbolic links.")
+    try:
+        project_root = raw_project_root.resolve(strict=True)
+    except OSError:
+        raise ValueError("The project root is unavailable.") from None
+    marker = project_root / "pyproject.toml"
+    if not project_root.is_dir() or marker.is_symlink() or not marker.is_file():
+        raise ValueError("The project root is not a regular package repository.")
+
+    relative = Path(namespace.output)
+    if (
+        relative.is_absolute()
+        or not relative.parts
+        or relative.parts[0] != "artifacts"
+        or ".." in relative.parts
+        or relative.suffix.lower() != ".json"
+    ):
+        raise ValueError("Qualification output must be project-relative artifact JSON.")
+    candidate = project_root
+    for part in relative.parts:
+        candidate = candidate / part
+        if candidate.is_symlink():
+            raise ValueError("Qualification output paths cannot traverse symbolic links.")
+    resolved = candidate.resolve(strict=False)
+    artifact_root = (project_root / "artifacts").resolve(strict=False)
+    if not resolved.is_relative_to(artifact_root):
+        raise ValueError("Qualification output must remain inside the artifact root.")
+    if resolved.exists() and not resolved.is_file():
+        raise ValueError("Qualification output must be a regular JSON file.")
+    return resolved
+
+
+def _qualify_advisor(namespace: argparse.Namespace) -> int:
+    """Run one approved, protected, aggregate-only advisor qualification."""
+
+    if not bool(namespace.approve_locked_evaluation):
+        print(
+            "ERROR ML-ADVISOR-QUAL-001: Explicit human approval for locked-family "
+            "evaluation is required.",
+            file=sys.stderr,
+        )
+        return 2
+    try:
+        registry_path = _resolve_advisor_registry_path(namespace, must_exist=True)
+        output_path = _resolve_advisor_qualification_output(namespace)
+        shard_plan = build_benchmark_shard_plan(shard_count=int(namespace.shards))
+        artifact = qualify_advisor_registry(
+            registry=BenchmarkRegistry(registry_path),
+            shard_plan=shard_plan,
+            approval_reference=str(namespace.approval_reference),
+            replicates=int(namespace.replicates),
+        )
+        write_advisor_qualification_artifact(output_path, artifact)
+        if load_advisor_qualification_artifact(output_path) != artifact:
+            raise ValueError("Advisor qualification artifact reload did not match.")
+    except (FileExistsError, OSError, UnicodeError, ValidationError, ValueError):
+        print(
+            "ERROR ML-ADVISOR-QUAL-002: Advisor qualification failed closed on "
+            "incomplete, conflicting, tampered, or unsafe aggregate evidence.",
+            file=sys.stderr,
+        )
+        return 2
+    print(json.dumps(artifact.safe_summary(), sort_keys=True))
     return 0
 
 

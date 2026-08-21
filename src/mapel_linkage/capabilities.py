@@ -336,8 +336,8 @@ _CAPABILITIES: Final[tuple[Capability, ...]] = (
         RuntimeVerificationStatus.CORE_CI,
         "Stable seed-v1 plus a versioned 64-family/280-instance advisor-v2 design, three "
         "truth-safe real benchmark adapters, prospective family partitions, deterministic "
-        "shards, and append-only resume controls; the diagnostic v1 corpus completed with "
-        "retained failures and corrected execution-v2 evidence remains pending.",
+        "shards, and append-only resume controls; corrected execution v2 completed its exact "
+        "9,800-run evidence grid, while strategy qualification remains separate.",
     ),
     Capability(
         "stage2_similarity_advisor",
@@ -348,7 +348,8 @@ _CAPABILITIES: Final[tuple[Capability, ...]] = (
         RuntimeVerificationStatus.CORE_CI,
         "Nearest scenario family retrieval, weighted distance computation, "
         "out-of-distribution thresholding, empirical performance distribution aggregation, "
-        "and strict advisory invariants.",
+        "and strict advisory invariants; the first prospective qualification failed the "
+        "fixed-baseline-improvement and OOD-detection gates.",
     ),
     Capability(
         "stage3_meta_ranking_advisor",
@@ -359,7 +360,8 @@ _CAPABILITIES: Final[tuple[Capability, ...]] = (
         RuntimeVerificationStatus.CORE_CI,
         "Learned meta-regressor with family-disjoint fit, conformal interval calibration, "
         "locked evaluation, true-mechanism OOD exclusion, scenario-replicate-complete adapter "
-        "gating, and similarity fallback.",
+        "gating, learned shortlist ordering, and similarity fallback; the first prospective "
+        "qualification failed improvement and locked interval-coverage gates.",
     ),
     Capability(
         "linkage_strategy_advisor",
@@ -369,8 +371,9 @@ _CAPABILITIES: Final[tuple[Capability, ...]] = (
         WorkflowStatus.INTEGRATED,
         RuntimeVerificationStatus.CORE_CI,
         "Snapshot-bound active planning plus separately approved, digest-bound advisor-corpus "
-        "shard execution and append-only evidence checks; diagnostic v1 evidence is retained, "
-        "while corrected v2 advisor validation and operational validity remain unestablished.",
+        "shard execution, append-only evidence checks, and aggregate qualification artifacts; "
+        "the first v2 qualification did not authorize promotion and operational validity remains "
+        "unestablished.",
     ),
 )
 

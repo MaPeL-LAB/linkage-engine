@@ -31,6 +31,13 @@ recommendation stability
 performance against always-FS and always-XGBoost baselines
 ```
 
+The first prospective policy fixes three nearest meta-training families, mean utility
+`0.4 * recall@1 + 0.4 * positive predictive value + 0.2 * (1 - Brier score)`, and the following
+family-level gates before locked evaluation: mean-regret improvement of at least 0.005 over the
+best fixed recipe, top-2 oracle coverage of at least 0.875, leave-one-training-family-out selection
+stability of at least 0.80, true-mechanism OOD detection of at least 0.75, and locked-family false
+abstention no greater than 0.125.
+
 ## Stage 3 — learned meta-ranking
 
 Stage 3 requires independent Stage-2 validation, sufficient recipe-by-family overlap, and stable
@@ -45,6 +52,12 @@ replicates per instance, mixed engine provenance, or constant metric evidence re
 fallback, not a learned recommendation. Family-level overlap alone is insufficient because it can
 exclude difficult failed replicates and create survivor bias.
 
+The first policy additionally fixes ridge penalty 1.0, 90 percent split-conformal intervals,
+Stage-3 regret improvement of at least 0.01 over Stage 2, locked interval coverage of at least
+0.80, mean interval width no greater than 0.50, and nested learning-curve family counts of 8, 16,
+24, 32, and 40. Stage-3 predictions must order the supported shortlist; merely reporting predicted
+utilities while preserving the Stage-2 order is not a learned ranking.
+
 ## Stage 4 — active benchmark planning
 
 Stage 4 requires calibrated uncertainty. Proposed experiments are evaluated prospectively by
@@ -56,6 +69,12 @@ adapters to be success-capable, and explicit human approval. The completed execu
 registry is retained as diagnostic evidence after exposing 688 Fellegi-Sunter failures; only a
 separate execution-v2 registry with a complete three-adapter cell grid can qualify meta-ranking
 evidence.
+
+The execution-v2 grid completed, and its first locked evaluation returned `not_qualified`. Stage 2
+and Stage 3 both achieved zero regret and complete top-2 oracle coverage, but the fixed XGBoost
+classifier also had zero regret. Positive improvement gates therefore failed. Locked conformal
+coverage was 19/24, and no true-mechanism OOD family was detected. These results are frozen; a new
+round must version its policy and use new locked families rather than tune on these outcomes.
 
 ## Evidence language
 

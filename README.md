@@ -253,8 +253,24 @@ survivor bias.
 
 Execution protocol v2 uses numerically stable Fellegi-Sunter scoring and requires all 1,400
 scenario-replicate cells to contain successful evidence from each of the three required adapters.
-The corrected run is intentionally a single outside-Codex long job. A human must choose a
-non-identifying approval reference and explicitly authorise the exact digest-bound plan:
+The corrected run completed all 9,800 records with 4,200 required successes and 5,600 expected
+ineligible records. Its aggregate readiness digest is
+`4c91c1099c15f226ddded933a3fb5462e23f5ecf8c44914eac87944882d84e76`.
+
+The first prospective advisor qualification returned `not_qualified`: both advisors had zero
+locked-family regret but could not improve on the already-perfect fixed XGBoost-classifier
+baseline; split-conformal coverage was 79.17 percent against the fixed 80 percent gate; and the
+current task meta-features detected none of the eight true-mechanism OOD families. The exact
+aggregate result and its consequences are recorded in
+[`docs/implementation/I2_ADVISOR_EMPIRICAL_QUALIFICATION.md`](docs/implementation/I2_ADVISOR_EMPIRICAL_QUALIFICATION.md).
+No threshold was changed after locked evaluation.
+An exact complete registry is not sufficient to activate learned ranking: the Stage-3 advisor also
+requires a canonical `qualified` artifact bound to that registry snapshot and policy. The current
+artifact therefore forces similarity fallback.
+
+The corpus driver remains the resumable outside-Codex route for rebuilding the heavy registry. A
+human must choose a non-identifying approval reference and explicitly authorise the exact
+digest-bound plan:
 
 ```bash
 CORPUS_APPROVAL_REF="replace-with-approved-non-identifying-reference"
@@ -265,13 +281,23 @@ scripts/run_advisor_corpus.sh \
 ```
 
 The driver verifies the focused implementation first, then executes every deterministic shard
-into a new ignored project-relative execution-v2 registry; it never overwrites the diagnostic v1
-registry. Reruns resume exact retained evidence; tamper,
-collision, path escape, symlink traversal, or dependency/environment drift fails closed. Only the
+into the ignored project-relative execution-v2 registry; it never overwrites the diagnostic v1
+registry. Reruns resume exact retained evidence; tamper, collision, path escape, symlink
+traversal, or dependency/environment drift fails closed. Only the
 Fellegi-Sunter reference, XGBoost classifier, and XGBoost ranker currently have truth-safe
 success-capable benchmark adapters. Other portfolio entries retain stable ineligible evidence and
 never receive placeholder metrics. Repository CI does not execute the heavy corpus, and its
 scientific or operational validity remains `not_established`.
+
+The bounded qualification itself is quick and can be run directly after explicit locked-family
+approval:
+
+```text
+mapel-linkage qualify-advisor --project-root . \
+  --registry-dir private/benchmark_registry/advisor_v2_execution_v2 \
+  --output artifacts/advisor_qualification/advisor_v2_qualification.json \
+  --approve-locked-evaluation --approval-reference NON_IDENTIFYING_REFERENCE
+```
 
 ## Command line
 

@@ -92,6 +92,102 @@ def test_audit_advisor_corpus_fails_closed_without_creating_a_registry(
     assert not (project / "private").exists()
 
 
+def test_qualify_advisor_requires_approval_before_locked_or_path_access(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    private_sentinel = "private-locked-approval-sentinel"
+
+    assert (
+        main(
+            [
+                "qualify-advisor",
+                "--project-root",
+                str(tmp_path / "missing-project"),
+                "--registry-dir",
+                "private/missing",
+                "--approval-reference",
+                private_sentinel,
+            ]
+        )
+        == 2
+    )
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert "ML-ADVISOR-QUAL-001" in captured.err
+    assert str(tmp_path) not in captured.err
+    assert private_sentinel not in captured.err
+
+
+def test_qualify_advisor_rejects_unsafe_output_without_path_leakage(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    project = tmp_path / "project"
+    project.mkdir()
+    (project / "pyproject.toml").write_text("[project]\nname='fixture'\n", encoding="utf-8")
+    registry = project / "private" / "advisor"
+    registry.mkdir(parents=True)
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (project / "artifacts").symlink_to(outside, target_is_directory=True)
+    private_sentinel = "private-locked-approval-sentinel"
+
+    assert (
+        main(
+            [
+                "qualify-advisor",
+                "--project-root",
+                str(project),
+                "--registry-dir",
+                "private/advisor",
+                "--output",
+                "artifacts/qualification.json",
+                "--approve-locked-evaluation",
+                "--approval-reference",
+                private_sentinel,
+            ]
+        )
+        == 2
+    )
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert "ML-ADVISOR-QUAL-002" in captured.err
+    assert str(project) not in captured.err
+    assert str(outside) not in captured.err
+    assert private_sentinel not in captured.err
+    assert not (outside / "qualification.json").exists()
+
+
+def test_meta_ranker_cli_rejects_external_qualification_artifact_without_path_leakage(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    private_path = tmp_path / "private-qualification.json"
+    private_path.write_text("{}\n", encoding="utf-8")
+
+    assert (
+        main(
+            [
+                "recommend-pipeline",
+                "--config",
+                "configs/examples/synthetic_link_only.yaml",
+                "--project-root",
+                str(ROOT),
+                "--method",
+                "meta-ranker",
+                "--qualification-artifact",
+                str(private_path),
+            ]
+        )
+        == 2
+    )
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert "ML-ADVISOR-002" in captured.err
+    assert str(private_path) not in captured.err
+
+
 def test_run_advisor_corpus_rejects_absolute_and_symlink_paths_without_leakage(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],

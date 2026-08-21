@@ -240,7 +240,7 @@ class PipelineRecommendation(RecommendationNode):
     registry_snapshot_digest: Digest | None = None
     coverage_status: CoverageStatus
     out_of_distribution_score: Annotated[StrictFloat, Field(ge=0.0, le=1.0)] | None = None
-    abstained_from_empirical_ranking: Literal[True] = True
+    abstained_from_empirical_ranking: StrictBool = True
     abstention_reasons: Annotated[tuple[AbstentionReason, ...], Field(min_length=1, max_length=16)]
     mandatory_baseline_candidate_id: Identifier | None
     shortlist: Annotated[tuple[StructuralPipelineCandidate, ...], Field(max_length=9)] = ()
@@ -295,6 +295,14 @@ class PipelineRecommendation(RecommendationNode):
             and AbstentionReason.NO_BENCHMARK_EVIDENCE not in self.abstention_reasons
         ):
             raise ValueError("Structural-only advice must disclose missing benchmark evidence.")
+        if not self.abstained_from_empirical_ranking and (
+            self.registry_snapshot_digest is None
+            or self.coverage_status is not CoverageStatus.WITHIN_BENCHMARK_ENVELOPE
+            or not any(contribution.eligible for contribution in self.evidence_contributions)
+        ):
+            raise ValueError(
+                "Empirical ranking requires eligible evidence within the benchmark envelope."
+            )
         return self
 
     @property

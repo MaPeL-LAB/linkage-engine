@@ -28,6 +28,8 @@ from mapel_linkage.recommendation.meta_ranker import (
     MetaRankingLinkageAdvisor,
     _has_complete_required_evidence_grid,
 )
+from mapel_linkage.recommendation.qualification import load_advisor_qualification_artifact
+from mapel_linkage.recommendation.utility import AdvisorRecipeToken
 from tests.helpers import EXAMPLE_CONFIG, ROOT
 
 
@@ -38,8 +40,8 @@ def _plan() -> ExecutionPlan:
 
 def _complete_required_grid(
     *, replicates: int = 5
-) -> tuple[tuple[BenchmarkRunRecord, ...], frozenset[str], dict[str, str]]:
-    recipe_tokens = {
+) -> tuple[tuple[BenchmarkRunRecord, ...], frozenset[str], dict[str, AdvisorRecipeToken]]:
+    recipe_tokens: dict[str, AdvisorRecipeToken] = {
         "a" * 64: "fellegi_sunter",
         "b" * 64: "xgboost_classifier",
         "c" * 64: "xgboost_ranker",
@@ -284,6 +286,51 @@ def test_meta_ranker_with_populated_registry(populated_registry: Path) -> None:
     summary = report.safe_summary()
     assert summary["report_schema_version"] == "1"
     assert summary["recommendation_authority"] == "advisory_only"
+
+
+@pytest.mark.parametrize(
+    ("use_not_qualified_artifact", "expected_reason"),
+    [
+        (False, "no approved empirical qualification"),
+        (True, "did not authorize learned ranking"),
+    ],
+)
+def test_complete_grid_cannot_activate_meta_ranking_without_qualified_artifact(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    use_not_qualified_artifact: bool,
+    expected_reason: str,
+) -> None:
+    import mapel_linkage.recommendation.meta_ranker as module
+
+    monkeypatch.setattr(
+        module, "_has_complete_required_evidence_grid", lambda *_args, **_kwargs: True
+    )
+    qualification = (
+        load_advisor_qualification_artifact(
+            ROOT / "docs" / "evidence" / "advisor_v2_qualification_20260821.json"
+        )
+        if use_not_qualified_artifact
+        else None
+    )
+    advisor = MetaRankingLinkageAdvisor(
+        registry=BenchmarkRegistry(tmp_path / "registry"),
+        qualification_artifact=qualification,
+        max_ood_distance=1.0,
+    )
+    report = advisor.advise(
+        _plan(),
+        context=AdvisorContext(
+            intent=RecommendationIntent.DEVELOP_NEW_RECIPE,
+            verified_labels_available=True,
+            available_runtimes=(RuntimeDependency.CORE,),
+        ),
+    )
+
+    assert report.fallback_to_similarity is True
+    assert report.meta_model_type == "none"
+    assert expected_reason in str(report.fallback_reason).lower()
+    assert advisor.last_fitted_model is None
 
 
 def test_meta_ranker_test_partition_rejection() -> None:

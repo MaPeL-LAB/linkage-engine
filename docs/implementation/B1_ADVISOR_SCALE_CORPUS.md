@@ -3,8 +3,9 @@
 ## Delivered boundary
 
 This increment delivers a versioned experimental design and an approved, resumable execution
-route. The first execution-protocol-v1 corpus is retained as diagnostic evidence; it does not
-validate the linkage strategy advisor.
+route. The first execution-protocol-v1 corpus is retained as diagnostic evidence. The corrected
+execution-v2 corpus is complete and supplied the exact evidence grid for the separately governed
+advisor qualification.
 
 ```text
 seed_v1:     10 families / 19 instances (IDs and digests unchanged)
@@ -114,10 +115,17 @@ The earlier family-overlap gate is superseded. Readiness v2 requires at least fi
 instance, one consistent engine provenance, and successful evidence from all three required
 adapters in all 1,400 cells. Failed or missing cells force Stage-2 similarity fallback.
 
-## Residual risk and required human decisions
+## Corrected v2 completion and qualification handoff
 
-The corrected execution-v2 run has not been performed by repository verification. A human still
-owns approval of the compute run, inspection of completion/failure evidence, acceptance of any
-additional adapter work, and all release or operational-use decisions. Synthetic evidence cannot
-establish population fidelity, fairness, real-world calibration, operational sensitivity or positive
-predictive value, or safety for any production linkage task.
+Execution v2 completed on 2026-08-21 with all 9,800 records retained: 4,200 required adapter
+successes, 5,600 expected ineligible records, no required adapter failures, and successful
+three-adapter evidence in every one of the 1,400 scenario-replicate cells. The aggregate readiness
+digest is `4c91c1099c15f226ddded933a3fb5462e23f5ecf8c44914eac87944882d84e76`.
+
+This establishes corpus completeness, not advisor quality. The prospective qualification is
+documented separately in
+[`I2_ADVISOR_EMPIRICAL_QUALIFICATION.md`](I2_ADVISOR_EMPIRICAL_QUALIFICATION.md); it returned
+`not_qualified` and requires similarity fallback. Synthetic evidence cannot establish population
+fidelity, fairness, real-world calibration, operational sensitivity or positive predictive value,
+or safety for any production linkage task. A human still owns all new experimental-design,
+release, and operational-use decisions.
