@@ -6,7 +6,7 @@ import json
 import sys
 from collections.abc import Sequence
 from pathlib import Path
-from typing import Literal
+from typing import Literal, cast
 
 from pydantic import ValidationError
 
@@ -60,6 +60,13 @@ from mapel_linkage.configuration import (
 )
 from mapel_linkage.configuration.compiler import ExecutionPlan
 from mapel_linkage.domain.errors import AdvisorError, LinkageRuntimeError
+from mapel_linkage.governance.artifact_migration import (
+    build_artifact_migration_policy,
+    execute_artifact_migration,
+    load_artifact_migration_plan,
+    plan_artifact_migration,
+    serialize_artifact_migration_plan,
+)
 from mapel_linkage.governance.errors import SafeError, SafeErrorCode
 from mapel_linkage.pipeline import (
     SyntheticDedupeModeWorkflowResult,
@@ -154,6 +161,36 @@ def build_parser() -> argparse.ArgumentParser:
     )
     schema.add_argument("--output", metavar="OUTPUT", required=True)
     schema.set_defaults(handler=_emit_schema)
+
+    migrate = subparsers.add_parser(
+        "migrate-artifact",
+        help="Dry-run or execute one allow-listed, digest-bound artifact migration.",
+    )
+    migrate.add_argument("--project-root", metavar="ROOT", default=".")
+    migrate.add_argument("--source", metavar="RELATIVE_JSON", required=True)
+    migrate.add_argument("--target", metavar="RELATIVE_JSON", required=True)
+    migrate.add_argument(
+        "--artifact-kind",
+        choices=("run_manifest",),
+        required=True,
+    )
+    migrate.add_argument(
+        "--target-version",
+        choices=("1",),
+        required=True,
+    )
+    migrate_mode = migrate.add_mutually_exclusive_group(required=True)
+    migrate_mode.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Emit the canonical no-write plan for separate review.",
+    )
+    migrate_mode.add_argument(
+        "--plan-file",
+        metavar="RELATIVE_JSON",
+        help="Execute only the exact canonical plan produced by a prior dry run.",
+    )
+    migrate.set_defaults(handler=_migrate_artifact)
 
     profile = subparsers.add_parser(
         "profile-job",
@@ -644,6 +681,46 @@ def _emit_schema(namespace: argparse.Namespace) -> int:
         print(error.render(), file=sys.stderr)
         return 2
     print("Configuration JSON Schema written.")
+    return 0
+
+
+def _migrate_artifact(namespace: argparse.Namespace) -> int:
+    try:
+        policy = build_artifact_migration_policy(Path(namespace.project_root))
+        if bool(namespace.dry_run):
+            plan = plan_artifact_migration(
+                source_path=str(namespace.source),
+                target_path=str(namespace.target),
+                artifact_kind=cast(Literal["run_manifest"], str(namespace.artifact_kind)),
+                target_schema_version=cast(Literal["1"], str(namespace.target_version)),
+                policy=policy,
+            )
+            print(serialize_artifact_migration_plan(plan), end="")
+            return 0
+        plan = load_artifact_migration_plan(
+            plan_path=str(namespace.plan_file),
+            policy=policy,
+        )
+        if plan.artifact_kind != str(namespace.artifact_kind) or plan.target_schema_version != str(
+            namespace.target_version
+        ):
+            raise LinkageRuntimeError(
+                "ML-MIGRATE-007",
+                "The migration plan is invalid or does not match the requested migration.",
+            )
+        result = execute_artifact_migration(
+            source_path=str(namespace.source),
+            target_path=str(namespace.target),
+            plan=plan,
+            policy=policy,
+        )
+    except SafeError as error:
+        print(error.render(), file=sys.stderr)
+        return 2
+    except LinkageRuntimeError as error:
+        print(f"ERROR {error.code}: {error.public_message}", file=sys.stderr)
+        return 2
+    print(json.dumps(result.safe_summary(), sort_keys=True))
     return 0
 
 

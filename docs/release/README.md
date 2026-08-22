@@ -12,6 +12,7 @@ publication and deployment authority are `none`, and operational validity is `no
 
 - [`COMPATIBILITY_MATRIX.md`](COMPATIBILITY_MATRIX.md)
 - [`API_STABILITY_POLICY.md`](API_STABILITY_POLICY.md)
+- [`ARTIFACT_MIGRATION_EVIDENCE.md`](ARTIFACT_MIGRATION_EVIDENCE.md)
 - [`ARTIFACT_MIGRATION_POLICY.md`](ARTIFACT_MIGRATION_POLICY.md)
 - [`SECURITY_AND_DEPENDENCY_REVIEW.md`](SECURITY_AND_DEPENDENCY_REVIEW.md)
 - [`MODEL_CARDS.md`](MODEL_CARDS.md)
@@ -30,3 +31,6 @@ python scripts/verify_release_readiness.py --expect-blocked
 Calling the verifier without `--expect-blocked` fails while any release blocker remains. That
 failure is deliberate and must not be bypassed by changing a status string without its required
 evidence and human approval.
+
+The bounded run-manifest migration path is implemented and verified. Six unrelated blockers remain;
+release authorization and operational validity are still absent.

@@ -399,6 +399,15 @@ record values, identifiers, candidate pairs, and backend tracebacks are excluded
 | `ML-LABEL-016` | `src/mapel_linkage/governance/labels.py` |
 | `ML-LABEL-017` | `src/mapel_linkage/validation/splitting.py` |
 | `ML-MANIFEST-001` | `src/mapel_linkage/governance/errors.py` |
+| `ML-MIGRATE-001` | `src/mapel_linkage/governance/artifact_migration.py` |
+| `ML-MIGRATE-002` | `src/mapel_linkage/governance/artifact_migration.py` |
+| `ML-MIGRATE-003` | `src/mapel_linkage/governance/artifact_migration.py` |
+| `ML-MIGRATE-004` | `src/mapel_linkage/governance/artifact_migration.py` |
+| `ML-MIGRATE-005` | `src/mapel_linkage/governance/artifact_migration.py` |
+| `ML-MIGRATE-006` | `src/mapel_linkage/governance/artifact_migration.py` |
+| `ML-MIGRATE-007` | `src/mapel_linkage/cli/main.py`, `src/mapel_linkage/governance/artifact_migration.py` |
+| `ML-MIGRATE-008` | `src/mapel_linkage/governance/artifact_migration.py` |
+| `ML-MIGRATE-009` | `src/mapel_linkage/governance/artifact_migration.py` |
 | `ML-MODE-001` | `src/mapel_linkage/pipeline/mode_artifacts.py` |
 | `ML-MODE-002` | `src/mapel_linkage/pipeline/mode_artifacts.py` |
 | `ML-MODE-003` | `src/mapel_linkage/pipeline/mode_artifacts.py` |
@@ -617,7 +626,7 @@ record values, identifiers, candidate pairs, and backend tracebacks are excluded
 | `ML-VALID-THRESH-005` | `src/mapel_linkage/validation/threshold_metrics.py` |
 | `ML-VALID-THRESH-006` | `src/mapel_linkage/validation/threshold_metrics.py` |
 
-Catalogue count: **610** unique codes.
+Catalogue count: **619** unique codes.
 
 A code identifies a safe failure class. It does not authorize exposing the rejected
 input, local path, configuration value, row, pair, model content, or secret.

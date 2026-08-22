@@ -53,6 +53,7 @@ def test_manifest_contains_no_paths_or_configuration_values(tmp_path: Path) -> N
         created_at=datetime(2026, 8, 16, tzinfo=UTC),
     )
     text = manifest.model_dump_json()
+    assert manifest.schema_version == "1"
     assert {
         "duckdb",
         "mapel-linkage-engine",

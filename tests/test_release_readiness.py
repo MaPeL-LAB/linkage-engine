@@ -8,6 +8,7 @@ from tests.helpers import ROOT
 
 POLICY = ROOT / "docs" / "release" / "RELEASE_READINESS_POLICY.json"
 SCALE_EVIDENCE = ROOT / "docs" / "release" / "SCALE_BENCHMARK_EVIDENCE_V2.md"
+MIGRATION_EVIDENCE = ROOT / "docs" / "release" / "ARTIFACT_MIGRATION_EVIDENCE.md"
 VERIFY = ROOT / "scripts" / "verify_release_readiness.py"
 GENERATE_ERRORS = ROOT / "scripts" / "generate_error_code_catalogue.py"
 
@@ -30,13 +31,36 @@ def test_release_policy_is_canonical_truthful_and_explicitly_blocked() -> None:
     assert payload["scale_benchmark"]["benchmark_id"] == "m8_complete_synthetic_scale_v2"
     assert "licence_not_selected" in payload["current_blockers"]
     assert "scale_evidence_not_completed" not in payload["current_blockers"]
+    assert "artifact_migration_tool_not_implemented" not in payload["current_blockers"]
     assert "operational_validation_not_established" in payload["current_blockers"]
+    assert len(payload["current_blockers"]) == 6
+
+    migration = payload["artifact_migration"]
+    assert migration == {
+        "artifact_kind": "run_manifest",
+        "conflicting_replay": "rejected",
+        "dry_run_required": True,
+        "evidence_review": "implemented_and_verified",
+        "exact_replay": "idempotent",
+        "plan_schema_version": "1",
+        "report_classification": "aggregate_only",
+        "source_overwrite": False,
+        "source_schema_version": "0.1",
+        "target_schema_version": "1",
+        "transformation": "run_manifest_0_1_to_1",
+    }
 
     evidence = SCALE_EVIDENCE.read_text(encoding="utf-8")
     assert f"`{payload['scale_benchmark']['plan_digest']}`" in evidence
     assert f"`{payload['scale_benchmark']['summary_digest']}`" in evidence
     assert "does not authorize release" in evidence
     assert "`operational_validity=not_established`" in evidence
+
+    migration_evidence = MIGRATION_EVIDENCE.read_text(encoding="utf-8")
+    assert "`run_manifest_0_1_to_1`" in migration_evidence
+    assert "dry-run plan is required" in migration_evidence
+    assert "does not authorize release" in migration_evidence
+    assert "`operational_validity=not_established`" in migration_evidence
 
 
 def test_release_control_verifier_passes_only_in_expected_blocked_mode() -> None:

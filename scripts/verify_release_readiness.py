@@ -15,7 +15,6 @@ ROOT = Path(__file__).resolve().parents[1]
 POLICY_PATH = ROOT / "docs" / "release" / "RELEASE_READINESS_POLICY.json"
 EXPECTED_BLOCKERS = (
     "api_stability_not_frozen",
-    "artifact_migration_tool_not_implemented",
     "compatibility_matrix_incomplete",
     "external_security_review_not_approved",
     "licence_not_selected",
@@ -24,6 +23,7 @@ EXPECTED_BLOCKERS = (
 )
 EXPECTED_DOCUMENTS = (
     "docs/release/API_STABILITY_POLICY.md",
+    "docs/release/ARTIFACT_MIGRATION_EVIDENCE.md",
     "docs/release/ARTIFACT_MIGRATION_POLICY.md",
     "docs/release/COMPATIBILITY_MATRIX.md",
     "docs/release/ERROR_CODE_CATALOGUE.md",
@@ -43,6 +43,19 @@ EXPECTED_SCALE_BENCHMARK: dict[str, object] = {
     "plan_digest": "442d59215bf6572979bb96ce1b3881c88b7974e627bd731a083d20b2eb05a48d",
     "resumable": True,
     "summary_digest": "4d4c015b1f1e289c57516a76b6b3730d277a761e2310b53be1f76fab651f7465",
+}
+EXPECTED_ARTIFACT_MIGRATION: dict[str, object] = {
+    "artifact_kind": "run_manifest",
+    "conflicting_replay": "rejected",
+    "dry_run_required": True,
+    "evidence_review": "implemented_and_verified",
+    "exact_replay": "idempotent",
+    "plan_schema_version": "1",
+    "report_classification": "aggregate_only",
+    "source_overwrite": False,
+    "source_schema_version": "0.1",
+    "target_schema_version": "1",
+    "transformation": "run_manifest_0_1_to_1",
 }
 
 
@@ -158,6 +171,46 @@ def _verify_release_controls() -> dict[str, object]:
     scale = policy.get("scale_benchmark")
     if not isinstance(scale, dict) or scale != EXPECTED_SCALE_BENCHMARK:
         errors.append("scale-benchmark release policy is inconsistent")
+
+    migration = policy.get("artifact_migration")
+    if not isinstance(migration, dict) or migration != EXPECTED_ARTIFACT_MIGRATION:
+        errors.append("artifact-migration release policy is inconsistent")
+
+    migration_evidence_path = ROOT / "docs" / "release" / "ARTIFACT_MIGRATION_EVIDENCE.md"
+    if migration_evidence_path.is_file() and not migration_evidence_path.is_symlink():
+        migration_evidence = migration_evidence_path.read_text(encoding="utf-8")
+        for required_claim in (
+            "`run_manifest_0_1_to_1`",
+            "`source_schema_version=0.1`",
+            "`target_schema_version=1`",
+            "dry-run plan is required",
+            "does not authorize release",
+            "`operational_validity=not_established`",
+        ):
+            if required_claim not in migration_evidence:
+                errors.append("artifact-migration evidence boundary is incomplete")
+
+    migration_source = ROOT / "src" / "mapel_linkage" / "governance" / "artifact_migration.py"
+    if migration_source.is_symlink() or not migration_source.is_file():
+        errors.append("artifact-migration implementation is unavailable or path-unsafe")
+    else:
+        migration_text = migration_source.read_text(encoding="utf-8")
+        for required_literal in (
+            '_RUN_MANIFEST_KIND: Literal["run_manifest"] = "run_manifest"',
+            '_RUN_MANIFEST_SOURCE_VERSION: Literal["0.1"] = "0.1"',
+            '_RUN_MANIFEST_TARGET_VERSION: Literal["1"] = "1"',
+            '"ML-MIGRATE-007"',
+            '"ML-MIGRATE-008"',
+            'migration_authority: Literal["none"] = "none"',
+            'release_authority: Literal["none"] = "none"',
+            'operational_validity: Literal["not_established"] = "not_established"',
+        ):
+            if required_literal not in migration_text:
+                errors.append("artifact-migration implementation drifted from reviewed evidence")
+
+    cli_source = (ROOT / "src" / "mapel_linkage" / "cli" / "main.py").read_text(encoding="utf-8")
+    if '"migrate-artifact"' not in cli_source or '"--dry-run"' not in cli_source:
+        errors.append("artifact-migration CLI planning boundary is absent")
 
     evidence_path = ROOT / "docs" / "release" / "SCALE_BENCHMARK_EVIDENCE_V2.md"
     if evidence_path.is_file() and not evidence_path.is_symlink():

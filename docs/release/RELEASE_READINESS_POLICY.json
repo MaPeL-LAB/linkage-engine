@@ -1,10 +1,22 @@
 {
   "api_stability": "pre_1_0_versioned_unstable",
+  "artifact_migration": {
+    "artifact_kind": "run_manifest",
+    "conflicting_replay": "rejected",
+    "dry_run_required": true,
+    "evidence_review": "implemented_and_verified",
+    "exact_replay": "idempotent",
+    "plan_schema_version": "1",
+    "report_classification": "aggregate_only",
+    "source_overwrite": false,
+    "source_schema_version": "0.1",
+    "target_schema_version": "1",
+    "transformation": "run_manifest_0_1_to_1"
+  },
   "artifact_migration_authority": "none",
   "automatic_publication": "prohibited",
   "current_blockers": [
     "api_stability_not_frozen",
-    "artifact_migration_tool_not_implemented",
     "compatibility_matrix_incomplete",
     "external_security_review_not_approved",
     "licence_not_selected",
@@ -25,6 +37,7 @@
   ],
   "required_documents": [
     "docs/release/API_STABILITY_POLICY.md",
+    "docs/release/ARTIFACT_MIGRATION_EVIDENCE.md",
     "docs/release/ARTIFACT_MIGRATION_POLICY.md",
     "docs/release/COMPATIBILITY_MATRIX.md",
     "docs/release/ERROR_CODE_CATALOGUE.md",

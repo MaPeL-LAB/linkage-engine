@@ -172,11 +172,12 @@ Phase 1 is integrated with a machine-readable fail-closed private-candidate poli
 and API/artifact governance, model cards, a generated error-code catalogue, security/dependency
 controls, rollback procedures, and a resumable aggregate-only scale runner using 10 workers by
 default. The bounded v2 synthetic scale evidence is complete and owner-approved for the development
-envelope. The release policy remains explicitly `blocked`.
+envelope. A dry-run-gated, allow-listed aggregate run-manifest migration from schema `0.1` to `1`
+is implemented and verified without artifact approval or release authority. The release policy
+remains explicitly `blocked`.
 
 Remaining exit work:
 
-- implement and test explicit version-to-version artifact migration tooling;
 - freeze the pre-1.0 public surface after compatibility review;
 - add dedicated macOS and Windows compatibility jobs where approved;
 - perform a synthetic rollback drill and retain its aggregate evidence;

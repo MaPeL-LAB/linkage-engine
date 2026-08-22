@@ -65,6 +65,7 @@ validation, local operation, and research evidence.
   machine-readable fail-closed release status and blockers.
 - [`release/COMPATIBILITY_MATRIX.md`](release/COMPATIBILITY_MATRIX.md)
 - [`release/API_STABILITY_POLICY.md`](release/API_STABILITY_POLICY.md)
+- [`release/ARTIFACT_MIGRATION_EVIDENCE.md`](release/ARTIFACT_MIGRATION_EVIDENCE.md)
 - [`release/ARTIFACT_MIGRATION_POLICY.md`](release/ARTIFACT_MIGRATION_POLICY.md)
 - [`release/SECURITY_AND_DEPENDENCY_REVIEW.md`](release/SECURITY_AND_DEPENDENCY_REVIEW.md)
 - [`release/MODEL_CARDS.md`](release/MODEL_CARDS.md)

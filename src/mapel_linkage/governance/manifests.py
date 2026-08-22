@@ -10,7 +10,7 @@ import uuid
 from datetime import UTC, datetime
 from importlib import metadata
 from pathlib import Path
-from typing import Annotated, ClassVar
+from typing import Annotated, ClassVar, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr
 
@@ -20,14 +20,13 @@ from mapel_linkage.governance.errors import SafeError, SafeErrorCode
 from mapel_linkage.governance.paths import PathPolicy
 
 
-class RunManifest(BaseModel):
-    """Unrestricted structural metadata for a single execution."""
+class _RunManifestFields(BaseModel):
+    """Shared strictly validated aggregate fields across manifest versions."""
 
     model_config: ClassVar[ConfigDict] = ConfigDict(
         extra="forbid", frozen=True, hide_input_in_errors=True
     )
 
-    schema_version: str = "0.1"
     run_id: Annotated[StrictStr, Field(pattern=r"^[a-f0-9]{32}$")]
     created_at: datetime
     status: Annotated[StrictStr, Field(pattern=r"^[a-z_]+$")]
@@ -41,6 +40,18 @@ class RunManifest(BaseModel):
     package_versions: dict[StrictStr, StrictStr]
     dataset_count: Annotated[StrictInt, Field(ge=0)]
     variable_count: Annotated[StrictInt, Field(ge=0)]
+
+
+class RunManifest(_RunManifestFields):
+    """Current aggregate structural metadata for a single execution."""
+
+    schema_version: Literal["1"] = "1"
+
+
+class _LegacyRunManifestV01(_RunManifestFields):
+    """Strict legacy contract retained only for the allow-listed migration path."""
+
+    schema_version: Literal["0.1"]
 
 
 def _version_for(package: str) -> str:

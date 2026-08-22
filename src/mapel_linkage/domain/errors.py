@@ -110,5 +110,9 @@ class PipelineError(LinkageRuntimeError):
     """Raised when a pipeline stage cannot complete safely."""
 
 
+class ArtifactMigrationError(LinkageRuntimeError):
+    """Raised when a versioned artifact migration fails closed."""
+
+
 class AdvisorError(LinkageRuntimeError):
     """Raised by advisory-only eligibility and recommendation boundaries."""

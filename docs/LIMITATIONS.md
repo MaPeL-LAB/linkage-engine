@@ -127,9 +127,11 @@ statistical performance on a real population.
 - Host-level filesystem, process, network, backup, encryption, and access controls remain
   the responsibility of the authorised local environment.
 - M8 Phase 1 release controls are integrated, but the machine-readable policy remains blocked:
-  migration tooling, API freeze, dedicated compatibility jobs, rollback drill, external security
-  approval, licence, publication, and operational approval are incomplete. Bounded v2 synthetic
-  scale evidence is approved only for its recorded development envelope.
+  API freeze, dedicated compatibility jobs, rollback drill, external security approval, licence,
+  publication, and operational approval are incomplete. The migration utility supports only the
+  reviewed aggregate run-manifest `0.1` to `1` path; all other artifact kinds and versions fail
+  closed. Bounded v2 synthetic scale evidence is approved only for its recorded development
+  envelope.
 - Privacy-preserving record linkage remains a separate threat-modelled research stream.
 
 These limitations must remain visible in reports, model and recipe manifests, user
