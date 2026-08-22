@@ -44,6 +44,7 @@ def _readiness_payload() -> dict[str, object]:
         "source_v3_readiness_digest": digest,
         "source_registry_snapshot_digest": digest,
         "analysis_provenance_digest": digest,
+        "remediation_approval_digest": digest,
         "recomputed_geometry_coherence_digest": (
             build_advisor_v31_protocol_amendment().source_geometry_coherence_digest
         ),

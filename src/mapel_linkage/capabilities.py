@@ -372,8 +372,9 @@ _CAPABILITIES: Final[tuple[Capability, ...]] = (
         RuntimeVerificationStatus.CORE_CI,
         "Snapshot-bound active planning plus separately approved, digest-bound advisor-corpus "
         "shard execution, append-only evidence checks, and aggregate qualification artifacts; "
-        "the first v2 qualification did not authorize promotion and operational validity remains "
-        "unestablished.",
+        "the first separately approved v3.1 qualification passed every Stage-2 gate but returned "
+        "not_qualified because Stage 3 failed the fixed regret-improvement gate. Similarity "
+        "fallback remains mandatory and operational validity remains unestablished.",
     ),
 )
 

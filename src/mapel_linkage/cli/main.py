@@ -80,10 +80,13 @@ from mapel_linkage.recommendation import (
     RuntimeDependency,
     SimilarityLinkageAdvisor,
     load_advisor_qualification_artifact,
+    load_advisor_v31_qualification_artifact,
     qualify_advisor_registry,
     recommend_pipeline,
     write_advisor_qualification_artifact,
+    write_advisor_v31_qualification_artifact,
 )
+from mapel_linkage.recommendation.qualification_v31 import qualify_advisor_v31_registry
 from mapel_linkage.synthetic import SyntheticGenerationConfig
 
 _PIPELINE_COMMANDS = (
@@ -368,6 +371,40 @@ def build_parser() -> argparse.ArgumentParser:
     audit_v31_remediation.add_argument("--approve-remediation", action="store_true")
     audit_v31_remediation.add_argument("--approval-reference", metavar="REFERENCE", required=True)
     audit_v31_remediation.set_defaults(handler=_audit_advisor_v31_remediation)
+
+    qualify_v31 = subparsers.add_parser(
+        "qualify-advisor-v31",
+        help="Run one separately approved aggregate advisor-v3.1 qualification.",
+    )
+    qualify_v31.add_argument(
+        "--source-registry-dir",
+        metavar="RELATIVE_DIR",
+        required=True,
+        help="Existing immutable v3 registry under private/benchmark_registry/.",
+    )
+    qualify_v31.add_argument(
+        "--remediation-registry-dir",
+        metavar="RELATIVE_DIR",
+        required=True,
+        help="Existing governance-only v3.1 registry under private/benchmark_registry/.",
+    )
+    qualify_v31.add_argument("--project-root", metavar="ROOT", default=".")
+    qualify_v31.add_argument(
+        "--amendment",
+        metavar="RELATIVE_JSON",
+        default="docs/evidence/advisor_v31_protocol_amendment_20260821.json",
+    )
+    qualify_v31.add_argument("--remediation-approval-digest", metavar="DIGEST", required=True)
+    qualify_v31.add_argument("--remediation-readiness-digest", metavar="DIGEST", required=True)
+    qualify_v31.add_argument(
+        "--output",
+        metavar="RELATIVE_JSON",
+        default="artifacts/advisor_qualification/advisor_v31_qualification.json",
+    )
+    qualify_v31.add_argument("--approve-locked-evaluation", action="store_true")
+    qualify_v31.add_argument("--approve-ood-evaluation", action="store_true")
+    qualify_v31.add_argument("--approval-reference", metavar="REFERENCE", required=True)
+    qualify_v31.set_defaults(handler=_qualify_advisor_v31)
 
     qualify_advisor = subparsers.add_parser(
         "qualify-advisor",
@@ -1257,6 +1294,59 @@ def _audit_advisor_v31_remediation(namespace: argparse.Namespace) -> int:
         )
         return 2
     print(json.dumps(readiness.safe_summary(), sort_keys=True))
+    return 0
+
+
+def _qualify_advisor_v31(namespace: argparse.Namespace) -> int:
+    """Run only after separate authorization of both protected evaluation roles."""
+
+    if not (bool(namespace.approve_locked_evaluation) and bool(namespace.approve_ood_evaluation)):
+        print(
+            "ERROR ML-ADVISOR-QUAL-V31-001: Separate explicit approval for locked and "
+            "OOD evaluation is required.",
+            file=sys.stderr,
+        )
+        return 2
+    try:
+        source_path = _resolve_advisor_v31_registry_path(
+            namespace,
+            argument="source_registry_dir",
+            must_exist=True,
+        )
+        remediation_path = _resolve_advisor_v31_registry_path(
+            namespace,
+            argument="remediation_registry_dir",
+            must_exist=True,
+        )
+        _require_disjoint_advisor_v31_registry_paths(source_path, remediation_path)
+        _require_existing_advisor_v3_registry_layout(source_path)
+        _require_existing_advisor_v3_registry_layout(remediation_path)
+        amendment_path = _resolve_advisor_v31_amendment(namespace)
+        output_path = _resolve_advisor_qualification_output(namespace)
+        if output_path.is_relative_to(source_path) or output_path.is_relative_to(remediation_path):
+            raise ValueError("Advisor-v3.1 qualification output overlaps protected evidence.")
+        artifact = qualify_advisor_v31_registry(
+            source_registry=BenchmarkRegistry(source_path),
+            remediation_registry=BenchmarkRegistry(remediation_path),
+            committed_amendment_path=amendment_path,
+            remediation_approval_digest=str(namespace.remediation_approval_digest),
+            remediation_readiness_digest=str(namespace.remediation_readiness_digest),
+            approval_reference=str(namespace.approval_reference),
+            human_approved=True,
+            locked_evaluation_access_authorized=True,
+            ood_evaluation_access_authorized=True,
+        )
+        write_advisor_v31_qualification_artifact(output_path, artifact)
+        if load_advisor_v31_qualification_artifact(output_path) != artifact:
+            raise ValueError("Advisor-v3.1 qualification artifact reload did not match.")
+    except (FileExistsError, FileNotFoundError, OSError, UnicodeError, ValidationError, ValueError):
+        print(
+            "ERROR ML-ADVISOR-QUAL-V31-002: Advisor-v3.1 qualification failed closed on "
+            "missing, stale, conflicting, path-unsafe, or tampered aggregate evidence.",
+            file=sys.stderr,
+        )
+        return 2
+    print(json.dumps(artifact.safe_summary(), sort_keys=True))
     return 0
 
 

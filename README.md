@@ -107,11 +107,17 @@ immutable; a distinct governance-only registry binds its frozen approval, origin
 terminal readiness, exact snapshot, recomputed observable geometry, and the separate current
 source/dependency/environment analysis-provenance digest. The amendment transparently uses
 adapter-status and failure-code metadata but no performance metric values. No second heavy corpus is
-required, and qualification still requires a later reviewed evaluator and explicit approval.
+required. The v3.1 evaluator is now implemented as a digest-selected, canonical aggregate-artifact
+workflow. It cannot access the protected roles unless both locked and OOD approval flags are
+present, and it rejects OOD recipe metrics structurally. The first separately approved v3.1
+qualification returned `not_qualified`: Stage 2 passed every fixed gate, but Stage 3 failed the
+fixed regret-improvement gate and therefore requires similarity fallback.
 Runtime mechanism-profile production and operational validity remain unestablished. See
 [`docs/implementation/I2_ADVISOR_V3_PREREGISTRATION.md`](docs/implementation/I2_ADVISOR_V3_PREREGISTRATION.md)
 and
-[`docs/implementation/I2_ADVISOR_V31_REMEDIATION.md`](docs/implementation/I2_ADVISOR_V31_REMEDIATION.md).
+[`docs/implementation/I2_ADVISOR_V31_REMEDIATION.md`](docs/implementation/I2_ADVISOR_V31_REMEDIATION.md),
+plus the
+[`v3.1 qualification report`](docs/implementation/I2_ADVISOR_V31_QUALIFICATION.md).
 
 See
 [`docs/architecture/ADR-0004-CAPABILITY-STATUS-AND-PIPELINE-INTEGRATION.md`](docs/architecture/ADR-0004-CAPABILITY-STATUS-AND-PIPELINE-INTEGRATION.md).

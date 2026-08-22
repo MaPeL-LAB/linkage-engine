@@ -84,6 +84,10 @@ intentionally unavailable in this pre-corpus package. It requires a separate rev
 implementation slice and explicit approval authorizing locked and OOD evaluation. Corpus execution
 alone can neither qualify nor promote the advisor.
 
+That later implementation slice now exists under the disclosed v3.1 evidence amendment. This
+historical preregistration statement and its digest remain unchanged: implementation availability
+does not authorize execution, change a threshold, or convert v3.1 into a prospective protocol.
+
 Performance gates were not relaxed after the advisor-v2 failure:
 
 - Stage 2 regret improvement over the best fixed recipe at least 0.005;

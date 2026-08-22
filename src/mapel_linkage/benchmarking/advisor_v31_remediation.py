@@ -218,6 +218,7 @@ class AdvisorV31RemediationReadinessManifest(BaseModel):
     source_v3_readiness_digest: Digest
     source_registry_snapshot_digest: Digest
     analysis_provenance_digest: Digest
+    remediation_approval_digest: Digest
     recomputed_geometry_coherence_digest: Digest
     observable_geometry_recomputed: Literal[True] = True
     source_v3_advisor_evidence_ready: Literal[False] = False
@@ -792,6 +793,15 @@ def _frozen_source_snapshot_digest(
     )
 
 
+def frozen_advisor_v3_snapshot_digest(
+    registry: BenchmarkRegistry,
+    inspection: FrozenAdvisorV3CorpusInspection,
+) -> str:
+    """Expose the exact frozen snapshot binding for later reviewed qualification."""
+
+    return _frozen_source_snapshot_digest(registry, inspection)
+
+
 def _role_evidence_counts(
     records: tuple[BenchmarkRunRecord, ...],
     *,
@@ -922,6 +932,18 @@ def audit_advisor_v31_remediation(
         and counts["ood_diagnostic"] == 720
         and counts["nonrequired_ineligible"] == 6_720
     )
+    analysis_provenance_digest = advisor_v31_analysis_provenance_digest()
+    approval = AdvisorV31RemediationApproval(
+        approval_reference=remediation_approval_reference,
+        human_approved=True,
+        amendment_digest=amendment.amendment_digest,
+        source_execution_approval_digest=inspection.approval.approval_digest,
+        source_execution_provenance_digest=inspection.approval.execution_provenance_digest,
+        source_v3_readiness_digest=inspection.readiness.readiness_digest,
+        source_registry_snapshot_digest=snapshot_digest,
+        analysis_provenance_digest=analysis_provenance_digest,
+        recomputed_geometry_coherence_digest=geometry_digest,
+    )
     readiness = AdvisorV31RemediationReadinessManifest(
         amendment_digest=amendment.amendment_digest,
         source_execution_approval_digest=inspection.approval.approval_digest,
@@ -929,7 +951,8 @@ def audit_advisor_v31_remediation(
         source_v3_preregistration_digest=build_advisor_v3_preregistration().preregistration_digest,
         source_v3_readiness_digest=inspection.readiness.readiness_digest,
         source_registry_snapshot_digest=snapshot_digest,
-        analysis_provenance_digest=advisor_v31_analysis_provenance_digest(),
+        analysis_provenance_digest=analysis_provenance_digest,
+        remediation_approval_digest=approval.approval_digest,
         recomputed_geometry_coherence_digest=geometry_digest,
         source_completed_run_count=len(inspection.records),
         source_family_manifest_count=family_count,
@@ -946,17 +969,6 @@ def audit_advisor_v31_remediation(
         non_success_ood_diagnostic_adapter_run_count=counts["ood_non_success"],
         ineligible_nonrequired_recipe_run_count=counts["nonrequired_ineligible"],
         advisor_evidence_ready=ready,
-    )
-    approval = AdvisorV31RemediationApproval(
-        approval_reference=remediation_approval_reference,
-        human_approved=True,
-        amendment_digest=amendment.amendment_digest,
-        source_execution_approval_digest=inspection.approval.approval_digest,
-        source_execution_provenance_digest=inspection.approval.execution_provenance_digest,
-        source_v3_readiness_digest=inspection.readiness.readiness_digest,
-        source_registry_snapshot_digest=snapshot_digest,
-        analysis_provenance_digest=readiness.analysis_provenance_digest,
-        recomputed_geometry_coherence_digest=geometry_digest,
     )
     governance = remediation_registry.root_directory / "governance"
     for path, artifact in (
@@ -977,6 +989,7 @@ __all__ = [
     "audit_advisor_v31_remediation",
     "build_advisor_v31_protocol_amendment",
     "frozen_advisor_v3_provenance_digest",
+    "frozen_advisor_v3_snapshot_digest",
     "inspect_frozen_advisor_v3_corpus",
     "load_committed_advisor_v31_protocol_amendment",
 ]

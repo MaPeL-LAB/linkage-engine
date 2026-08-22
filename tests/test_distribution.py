@@ -33,7 +33,12 @@ def test_public_api_top_level_exports() -> None:
     assert hasattr(benchmark_pkg, "execute_advisor_corpus_shard")
     assert hasattr(benchmark_pkg, "audit_advisor_corpus")
     assert hasattr(benchmark_pkg, "audit_advisor_v31_remediation")
+    assert hasattr(benchmark_pkg, "frozen_advisor_v3_snapshot_digest")
     assert hasattr(benchmark_pkg, "inspect_frozen_advisor_v3_corpus")
+
+    import mapel_linkage.recommendation.qualification_v31 as qualification_v31
+
+    assert hasattr(qualification_v31, "qualify_advisor_v31_registry")
 
 
 def test_splink_runtime_metadata_and_ci_constraint_are_exactly_aligned() -> None:

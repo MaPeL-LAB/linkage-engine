@@ -1,0 +1,147 @@
+{
+  "artifact_schema_version": "3.1",
+  "contains_candidate_pairs": false,
+  "contains_identifiers": false,
+  "contains_local_paths": false,
+  "contains_record_values": false,
+  "operational_validity": "not_established",
+  "report": {
+    "amendment_digest": "f2dddaed05cb7d1c984cc6b8a8d0dd0edd6fcdde0f3ffd4913d0a5c732e5e579",
+    "analysis_provenance_digest": "be76396425267712037137c8dfefb5fff813353b9e847c3a9ab68b963247154b",
+    "approval_digest": "d1fe3866aced848593ed24b9b197e684e8f347f5130978cd79542f838622c4c8",
+    "assignment_authority": "none",
+    "automatic_promotion": "prohibited",
+    "conformal": {
+      "empirical_coverage": 1.0,
+      "locked_family_count": 12,
+      "locked_family_recipe_count": 36,
+      "mean_absolute_error": 0.0244017683,
+      "mean_interval_width": 0.283697101111,
+      "nominal_coverage": 0.9
+    },
+    "conformal_family_count": 12,
+    "conformal_qualified": true,
+    "contains_candidate_pairs": false,
+    "contains_identifiers": false,
+    "contains_local_paths": false,
+    "contains_record_values": false,
+    "decision_authority": "none",
+    "evaluation_algorithm_digest": "9a0655900cf82c943963396b84293cbee68dd4504e859ed8eb7d91a0a6f235f7",
+    "evidence_digest": "d796b9097702bf182c72e7380a266077cceca1e65089d7eb46540b8b2c984652",
+    "expected_run_count": 11760,
+    "failed_gate_codes": [
+      "stage3_regret_improvement"
+    ],
+    "fallback_to_similarity_required": true,
+    "family_split_digest": "30bea2eb35a96a324404e5d61891f32605958ebe308e08c22cff1bb97b9e7098",
+    "fixed_baselines": [
+      {
+        "locked_family_count": 12,
+        "mean_regret": 0.005468332702,
+        "median_regret": 0.0,
+        "oracle_coverage": 0.583333333333,
+        "recipe_token": "fellegi_sunter"
+      },
+      {
+        "locked_family_count": 12,
+        "mean_regret": 0.018454109407,
+        "median_regret": 0.00111732559,
+        "oracle_coverage": 0.416666666667,
+        "recipe_token": "xgboost_classifier"
+      },
+      {
+        "locked_family_count": 12,
+        "mean_regret": 0.080245400872,
+        "median_regret": 0.077647558839,
+        "oracle_coverage": 0.0,
+        "recipe_token": "xgboost_ranker"
+      }
+    ],
+    "hard_constraint_violation_count": 0,
+    "learning_curve": [
+      {
+        "meta_ranker_mean_regret": 0.005468332702,
+        "similarity_mean_regret": 0.002248794963,
+        "training_family_count": 12
+      },
+      {
+        "meta_ranker_mean_regret": 0.005468332702,
+        "similarity_mean_regret": 2.9172718e-05,
+        "training_family_count": 24
+      },
+      {
+        "meta_ranker_mean_regret": 0.005468332702,
+        "similarity_mean_regret": 2.9172718e-05,
+        "training_family_count": 36
+      },
+      {
+        "meta_ranker_mean_regret": 0.005468332702,
+        "similarity_mean_regret": 0.0,
+        "training_family_count": 48
+      }
+    ],
+    "learning_curve_qualified": true,
+    "learning_curve_tail_regret_range": 0.0,
+    "locked_evaluation_accessed": true,
+    "locked_evaluation_family_count": 12,
+    "locked_evaluation_used_for_fit": false,
+    "merge_authority": "none",
+    "meta_model_digest": "de32ebc8128a6a40724d7bca10bbd6d0e92e083926084c34964a3c7b01593060",
+    "meta_training_family_count": 48,
+    "ood": {
+      "balanced_abstention_accuracy": 1.0,
+      "detected_ood_family_count": 12,
+      "falsely_abstained_locked_family_count": 0,
+      "locked_false_abstention_rate": 0.0,
+      "locked_family_count": 12,
+      "ood_detection_rate": 1.0,
+      "ood_family_count": 12
+    },
+    "ood_diagnostic_adapter_run_count": 720,
+    "ood_evaluation_accessed": true,
+    "ood_evidence_used_for_fit": false,
+    "ood_evidence_used_for_interval_calibration": false,
+    "ood_holdout_family_count": 12,
+    "ood_qualified": true,
+    "ood_recipe_metric_payloads_parsed_for_digest_integrity_only": true,
+    "ood_recipe_metric_values_used_for_fit_threshold_or_qualification": false,
+    "operational_validity": "not_established",
+    "policy_digest": "4aa38de1b88fe51f2dae1ceb18f0f4edca89150d75f3767b8c11fd403612bf10",
+    "qualification_readiness_digest": "cb80ad8f92589f3fc923e150ff41fb83a1cab6682622a7b68d1a6773d97fd260",
+    "qualification_required_adapter_run_count": 4320,
+    "qualification_status": "not_qualified",
+    "recommendation_authority": "advisory_only",
+    "release_authority": "none",
+    "remediation_approval_digest": "bdb47868dffc02d0db1d207ed14a116d16105533fe6fc36afe47f69b9458638d",
+    "remediation_readiness_digest": "fe2239fb40b1ce4091c453f674f43cd16404ad678fb5b5f5e67712b69463fe62",
+    "report_schema_version": "3.1",
+    "retained_ineligible_run_count": 6720,
+    "source_execution_approval_digest": "51a8b8e5f010bba261950766f3a28224d326c73241a21a8d88077971061339c6",
+    "source_execution_provenance_digest": "3272c85a3a7bf61751361ddcccf2c6b7a3dd5116955b53c903b3dbdcefcd0d82",
+    "source_registry_snapshot_digest": "6d3e796c530116b5d58cbc8042940282a2f5a29c978a42e1112e7358816981f7",
+    "source_v3_readiness_digest": "6bd3074efef580ad8e8e736750ef6c436a86055fd1d0cbada2149d0b3270b0e2",
+    "stage2_qualified": true,
+    "stage2_regret_improvement_over_best_fixed": 0.005468332702,
+    "stage2_similarity": {
+      "locked_family_count": 12,
+      "mean_regret": 0.0,
+      "median_regret": 0.0,
+      "method": "similarity",
+      "selection_stability": 0.996527777778,
+      "top1_oracle_coverage": 1.0,
+      "top2_oracle_coverage": 1.0
+    },
+    "stage3_meta_ranker": {
+      "locked_family_count": 12,
+      "mean_regret": 0.005468332702,
+      "median_regret": 0.0,
+      "method": "meta_ranker",
+      "selection_stability": 1.0,
+      "top1_oracle_coverage": 0.583333333333,
+      "top2_oracle_coverage": 1.0
+    },
+    "stage3_qualified": false,
+    "stage3_regret_improvement_over_stage2": -0.005468332702
+  },
+  "report_digest": "5645e65dfdd24ae9f511417e8ead16b0d2cae538c3d13e8ac24c2f347702d4b9"
+}

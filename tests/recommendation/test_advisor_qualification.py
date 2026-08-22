@@ -18,6 +18,7 @@ from mapel_linkage.benchmarking.advisor_catalogue import (
     build_advisor_v2_generator,
     build_benchmark_shard_plan,
 )
+from mapel_linkage.benchmarking.advisor_v3_catalogue import advisor_v3_family_roles
 from mapel_linkage.benchmarking.registry import BenchmarkRegistry
 from mapel_linkage.benchmarking.runner import BenchmarkPortfolioRunner
 from mapel_linkage.configuration import compile_config, load_config
@@ -26,6 +27,9 @@ from mapel_linkage.recommendation import AdvisorContext, RecommendationIntent, r
 from mapel_linkage.recommendation.distance import (
     TaskMetaFeatureVector,
     extract_family_meta_features,
+)
+from mapel_linkage.recommendation.distance_v3 import (
+    MechanismAwareTaskMetaFeatureVector,
 )
 from mapel_linkage.recommendation.meta_learning import FamilyRecipeUtilityEvidence
 from mapel_linkage.recommendation.meta_ranker import _rank_evidence_backed_shortlist
@@ -37,6 +41,14 @@ from mapel_linkage.recommendation.qualification import (
     qualify_advisor_registry,
     serialize_advisor_qualification_artifact,
     write_advisor_qualification_artifact,
+)
+from mapel_linkage.recommendation.qualification_v3 import (
+    AdvisorV3QualificationPolicy,
+    AdvisorV31FamilyUtilityEvidence,
+    AdvisorV31QualificationApproval,
+    AdvisorV31QualificationReadinessArtifact,
+    build_advisor_v31_qualification_readiness,
+    evaluate_advisor_v31_aggregate_evidence,
 )
 from mapel_linkage.recommendation.utility import (
     ADVISOR_UTILITY_POLICY_DIGEST,
@@ -295,3 +307,120 @@ def test_committed_advisor_v2_qualification_evidence_is_canonical_and_not_qualif
     assert evidence_path.read_text(encoding="utf-8") == serialize_advisor_qualification_artifact(
         artifact
     )
+
+
+def _v31_qualification_inputs() -> tuple[
+    AdvisorV31QualificationReadinessArtifact,
+    AdvisorV31QualificationApproval,
+    tuple[AdvisorV31FamilyUtilityEvidence, ...],
+    dict[str, AdvisorFamilyRole],
+    dict[str, MechanismAwareTaskMetaFeatureVector],
+]:
+    digest = "a" * 64
+    readiness = build_advisor_v31_qualification_readiness(
+        amendment_digest=digest,
+        source_execution_approval_digest=digest,
+        source_execution_provenance_digest=digest,
+        source_v3_readiness_digest=digest,
+        source_registry_snapshot_digest=digest,
+        analysis_provenance_digest=digest,
+        remediation_approval_digest=digest,
+        remediation_readiness_digest=digest,
+        advisor_evidence_ready=True,
+    )
+    approval = AdvisorV31QualificationApproval(
+        approval_reference="owner_approved_v31_synthetic",
+        human_approved=True,
+        locked_evaluation_access_authorized=True,
+        ood_evaluation_access_authorized=True,
+        amendment_digest=digest,
+        source_execution_approval_digest=digest,
+        source_execution_provenance_digest=digest,
+        source_v3_readiness_digest=digest,
+        source_registry_snapshot_digest=digest,
+        analysis_provenance_digest=digest,
+        remediation_approval_digest=digest,
+        remediation_readiness_digest=digest,
+        policy_digest=AdvisorV3QualificationPolicy().policy_digest,
+        evaluation_algorithm_digest=readiness.evaluation_algorithm_digest,
+    )
+    roles = dict(advisor_v3_family_roles())
+    vectors = {
+        family_id: MechanismAwareTaskMetaFeatureVector(
+            linkage_mode="link_only",
+            assignment_constraint="one_to_one",
+            label_volume_class="sparse",
+            script_variation_rate=(index % 4) / 3,
+            punctuation_variation_rate=(index % 5) / 4,
+            tokenization_variation_rate=(index % 3) / 2,
+            missingness_mean=(index % 7) / 6,
+            missingness_asymmetry=(index % 6) / 5,
+            frequency_concentration=(index % 8) / 7,
+            candidate_ambiguity_scale=(index % 9) / 8,
+            duplicate_signature_rate=(index % 10) / 9,
+            planned_training_label_budget_scale=(index % 11) / 10,
+        )
+        for index, family_id in enumerate(sorted(roles))
+    }
+    evidence = tuple(
+        AdvisorV31FamilyUtilityEvidence(
+            family_id=family_id,
+            family_role=role,
+            recipe_token=token,
+            mean_utility=0.25 + 0.1 * token_index + (family_index % 5) / 100,
+            run_count=20,
+            evidence_digest=hashlib.sha256(f"{family_id}:{token}".encode()).hexdigest(),
+        )
+        for family_index, (family_id, role) in enumerate(sorted(roles.items()))
+        if role != "ood_holdout"
+        for token_index, token in enumerate(REQUIRED_ADVISOR_RECIPE_TOKENS)
+    )
+    return readiness, approval, evidence, roles, vectors
+
+
+def test_v31_qualification_requires_distinct_bound_approval_and_excludes_ood_metrics() -> None:
+    readiness, approval, evidence, roles, vectors = _v31_qualification_inputs()
+    with pytest.raises(ValidationError):
+        AdvisorV31QualificationApproval.model_validate(
+            {**approval.model_dump(mode="json"), "locked_evaluation_access_authorized": False}
+        )
+    report = evaluate_advisor_v31_aggregate_evidence(
+        readiness=readiness,
+        approval=approval,
+        evidence=evidence,
+        role_by_family=roles,
+        family_vectors=vectors,
+    )
+    assert report.locked_evaluation_accessed is True
+    assert report.ood_evaluation_accessed is True
+    assert report.ood_recipe_metric_payloads_parsed_for_digest_integrity_only is True
+    assert report.ood_recipe_metric_values_used_for_fit_threshold_or_qualification is False
+    assert report.automatic_promotion == "prohibited"
+    assert "family.advisor_v3" not in json.dumps(report.safe_summary(), sort_keys=True)
+
+    with pytest.raises(ValueError, match="exact readiness evidence"):
+        evaluate_advisor_v31_aggregate_evidence(
+            readiness=readiness,
+            approval=approval.model_copy(update={"analysis_provenance_digest": "b" * 64}),
+            evidence=evidence,
+            role_by_family=roles,
+            family_vectors=vectors,
+        )
+    with pytest.raises(ValueError, match="OOD recipe metrics"):
+        evaluate_advisor_v31_aggregate_evidence(
+            readiness=readiness,
+            approval=approval,
+            evidence=(
+                *evidence,
+                AdvisorV31FamilyUtilityEvidence(
+                    family_id=next(key for key, value in roles.items() if value == "ood_holdout"),
+                    family_role="ood_holdout",
+                    recipe_token=REQUIRED_ADVISOR_RECIPE_TOKENS[0],
+                    mean_utility=0.5,
+                    run_count=20,
+                    evidence_digest="c" * 64,
+                ),
+            ),
+            role_by_family=roles,
+            family_vectors=vectors,
+        )

@@ -7,7 +7,7 @@ da297e94c17bf7684c9d31aaeb2b9b5f6610288169d3666236f56998e087f644      3885  .git
 517081c2d888cb57a1d7c132e52567b52ce69fe6b8283e5a7ae2c44201192826      2997  AGENTS.md
 09e67690c5db1e160d14ec02cf672c4b28edc35b29b5acb0dba3e9b64f547ab9      9429  CHANGELOG.md
 12069acaac5412e3cfd006351eb64fcd24c307ab9137c5e51e85c68db9a023fd       773  CONTRIBUTING.md
-bb814c5e82c4dfdf3001f13810d98295dd97d45865ee404748d2afae578610eb     21004  README.md
+7fd40487546615eb544e9cc324d484468979984a19423a32098c0bb66757cd6f     21458  README.md
 fe0ff337c95e5ed48d8318dd89b35f49904bdb54015915561b979cc4cc5deeb1       612  SECURITY.md
 2950ade9940f8e02450fe8b0498f56eca5d223fa83004fe3644c54a52bbec6ef      6727  configs/examples/synthetic_all_models.yaml
 9c4b3b630316cb6802aaddcd61e9bb712184274aec06988981c9d5bb71f3eb06      5726  configs/examples/synthetic_link_only.yaml
@@ -18,7 +18,7 @@ a527f3013c3e076e804f757e17b6d3c64eaf4a514c8706ac17ea38e83f017423       422  cons
 691cd711b239bfaa9a4dc1ac2dbb4f229c3cc57ab4772864f074ad519d0c53f8      1714  docs/ADJUDICATION_WORKFLOW.md
 c2a9d7331dead183bd282e4bd9eae6d7554ab5b4deecfb4af24d394ee4bf5477      4643  docs/ADVISOR_VALIDATION_PLAN.md
 ff1a023e88d18336de1b196f52f325792fe58efceebfcd93a674632df9f30b9b      3280  docs/BENCHMARK_REGISTRY.md
-a4b319dd3ba71b047ca217b6b7413e67f751abd9ad1a8fadc8b37cb741da0a97      9062  docs/CAPABILITY_MATRIX.md
+4454ffd8bb90b5a497d197307fafcd59a0d66285660cd5564c79df31cfc9b4fb      9205  docs/CAPABILITY_MATRIX.md
 130370afecb04c310bd5a39e4ee64ba2589a993cbf1ef180119dfbde61e02da0     13831  docs/CONFIGURATION_REFERENCE.md
 64758841ade081b017d2ff9662cb360a844ad7faa13cefc2179a70df5dbf9e46      8335  docs/LIMITATIONS.md
 8ed4353afb303e8b9f90e8f9c003abd1219ee8dcac0c7888a7c796d2b0502bb0      2398  docs/LINKAGE_TASK_PROFILE.md
@@ -43,6 +43,7 @@ fd8adc5ad9d085790824a532c13d55c0bee40e6fd0a00d70e994de51ab114618      1115  docs
 b3b0e3a2936fb6a6f69bca7556e8ebc02dfbaab2c61fe3140192cdf235744761       921  docs/benchmarking/SCENARIO_FAMILY_TAXONOMY.md
 e5e4d1b864265fa265e434eab7941302ada1bdbfc4e777df0e1f2dcfb9e18616      5048  docs/evidence/advisor_v2_qualification_20260821.json
 53e3185d88f27c5cc09d51e724bfa0c97678118c497ce184d3edcbab3be3ac50      2434  docs/evidence/advisor_v31_protocol_amendment_20260821.json
+599c3efe412653c77450bc0bc5f89b5c5c545641e7a7465facfb1c646966f1e9      5879  docs/evidence/advisor_v31_qualification_20260822.json
 372f0e7673252b645a16114867bfcfdf276130501f49c8f49081d6c4e44d4191      2179  docs/evidence/advisor_v3_preregistration_20260821.json
 d24541704562c805694403736b360451e4cfc1a4c551a7cdebdc9fa9d751c28b      2277  docs/governance/LABEL_PROVENANCE_POLICY.md
 bf729efce85688ad2f59e4ee01cdd7f693cd9459f21a633e40ff0ce8e9dca5b4       919  docs/governance/LICENSING_DECISION.md
@@ -54,8 +55,9 @@ de9bd43941539242f5cfac57cf1de9e131f1841c890690554a18d432075730dd      2532  docs
 f7024939dd7859e67d18bd528348a01fdd560c8eab7a518198626a3e54e79b1c      2829  docs/implementation/I1B_CONFIGURATION_DRIVEN_MODEL_PORTFOLIO.md
 5a0b758d48ad711917baddc73b1e6804040167a55474e4d9ce492bcba6d54ab0      6631  docs/implementation/I1C_CONFIGURATION_DRIVEN_LINKAGE_MODES.md
 b4efaacedcdb93af99b213c6c3824a38afa8a4f06afa657052379d2283bc4ebb      5722  docs/implementation/I2_ADVISOR_EMPIRICAL_QUALIFICATION.md
-5bb7674f4d5189418f7ee08a29ddb29efed0500030a806e1bdeedfad92a98cb1      5198  docs/implementation/I2_ADVISOR_V31_REMEDIATION.md
-f5540fbe201c10e1965ac3167a6ac36bf89af220989580e691fb9af4fc8272b7      8120  docs/implementation/I2_ADVISOR_V3_PREREGISTRATION.md
+461ce1fc43ea5460f42c246e61906c81b034319b5b6f5df8f8ba2bff3f5fad53      3370  docs/implementation/I2_ADVISOR_V31_QUALIFICATION.md
+554de1bbebf79dc8295d79078ca290bb59ac86f1439c86ef153b976e7d6953a3      6478  docs/implementation/I2_ADVISOR_V31_REMEDIATION.md
+bf2922046cffcc1ea4399830f2f1bad53c4749fdee74b88acf5393341bae4fe3      8407  docs/implementation/I2_ADVISOR_V3_PREREGISTRATION.md
 4dc954041436a6890054380d2bba8d80bae868bd24e600a94797ebfc399064f2      6624  docs/implementation/INITIAL_VERTICAL_SLICE_CHECKLIST.md
 c2b8597c7ef88f98598c8775a2ae6313d8170967c8e9dda9c418b9322f5aa52d      6558  docs/implementation/M1_SAFE_FOUNDATION_REPORT.md
 738b4db7d164ca92625b9e546255b6b42e27f69f48fc4c786d72bfc745e07ec8      2457  docs/implementation/M2A_LOCAL_DATA_PLANE_AND_CANDIDATE_GENERATION.md
@@ -64,7 +66,7 @@ c2b8597c7ef88f98598c8775a2ae6313d8170967c8e9dda9c418b9322f5aa52d      6558  docs
 f22fa61a65e2ecf594b9c4f6d7e1fc92e2bae200c2b397d226c48a7dccfd2f3d      4762  docs/implementation/M2D_FELLEGI_SUNTER_BASELINE.md
 8c309a1fce6ca7c9b5cc1d9b451b5577728da60fab0252b0ecf020598eb1406b      6784  docs/implementation/M2E_VERIFIED_LABEL_XGBOOST_CHALLENGER.md
 24ae3b69589b6e91b5c087f8ef5ee969bb80199fd8aeda7c9361abbca8e244bc      7255  docs/implementation/M2_COMPLETE_SYNTHETIC_MVP.md
-1489ef04f89f23148c57d1998a7d0fcc5b5b6785d703b9646ca602c19a25a3b1      5236  docs/implementation/MILESTONES.md
+9fcd37e8a5a52686a24c4a5e4c606052aae4edc52000355d1464a6518aa3b009      5201  docs/implementation/MILESTONES.md
 281ab819aea6db399b4ec0532f99f835bf25b1981e6da68aab336ea397887aa1      2855  docs/implementation/MODEL_PORTFOLIO_AND_RECIPE_FOUNDATION.md
 50623f03d4edd40af1c817fa82c8fc8639597f4b8ba3a2eddbdd75592b687547      2824  docs/implementation/PLURAL_CONFIGURATION_AND_STAGE_ARTIFACTS.md
 39a6536a7975c301b57b9d89b2ed48ea9ce0916eb1a0546d34c78dc32a3cef10       711  docs/local_templates/LABEL_PROVENANCE_DECLARATION.md
@@ -109,10 +111,10 @@ c766f1a8bc7a1697ce432af685595dd589879b5fcd3d2a1ccdc48fbe2867912a      1109  src/
 063f0dc0fbc441896ecc88f8d151d4e8b108ab324dbfad08dd2df0887e716e87     12771  src/mapel_linkage/assignment/contracts.py
 16ddebd00c8ef2b59133ddb3fa57f523e278e71f81b247370e2603e4a885c27f     30478  src/mapel_linkage/assignment/deduplication.py
 3a040774acd91d3cc97dac6fd112b310cce9382c1f5fbecb72a5ad142765fa02     34812  src/mapel_linkage/assignment/solvers.py
-674c22cf7810af8295f2dc4e57775548a85b4b91b5c2456088203b71a3d32e9a      5158  src/mapel_linkage/benchmarking/__init__.py
+0504d2a6029757d9b31003ab8a24b9f5ee9cfaaae92e0a0e2c7d892cc83cc26f      5238  src/mapel_linkage/benchmarking/__init__.py
 d5304e3b4cec43597470456f0cb25fa52ca7172b3b78a2ff91c3d3adb3fa0958     28531  src/mapel_linkage/benchmarking/advisor_catalogue.py
 248c7babf862a18980ff8ad1d0c38298d4f40aa0bd79b1b0e87888bc247de533     22006  src/mapel_linkage/benchmarking/advisor_execution.py
-95502b4d0e259d15090fc69937e8a507358079ee6a332cd921c8d4748ada702f     45340  src/mapel_linkage/benchmarking/advisor_v31_remediation.py
+c8b5e1eba8f994aa70626a91c1451e0881e2638fb3230edba694ccac59e8b946     45816  src/mapel_linkage/benchmarking/advisor_v31_remediation.py
 0a18de04657f4247d42f71230294cfd2b506afbf03f13c552b5dd883fceef83a     33884  src/mapel_linkage/benchmarking/advisor_v3_catalogue.py
 911e5577d6026e577efde55b198bcc9ba80333042f272f3f309a7540da16b1fb     30448  src/mapel_linkage/benchmarking/advisor_v3_execution.py
 70040beeaccb1851734389ceffa63b8fdfa38550a24c0e01e493468f5d2bde2d     14339  src/mapel_linkage/benchmarking/advisor_v3_features.py
@@ -131,9 +133,9 @@ add203d101fd1db4d7ab143b2919fa43cc211aaa4e14c37a91c598935890a666      6170  src/
 57a22fdb7c6d3d74f330d11c2abe0df1dce2971105274747a6d2ec4490733445       617  src/mapel_linkage/candidate_generation/__init__.py
 c571d4887ec9ed595164a3eb558a95fafccdf29db55b91fc8076cfd584cbb10e      6579  src/mapel_linkage/candidate_generation/duckdb_generator.py
 eead05c82c9c7a791bc8ff68f23d3f3fc22e8da94e1e3a0d60ab31feea52895c      4752  src/mapel_linkage/candidate_generation/predicates.py
-82a32d7404248a08583e8b15795423a4ee316e3eb5510dca6b487b7d7afe8da3     18952  src/mapel_linkage/capabilities.py
+35f062f59998e3c4ca4fee194a370a4c6a838d838d5d05c79fe35cd67f81d4b5     19106  src/mapel_linkage/capabilities.py
 d28bb3e79049150b43cae3ac30021a23e448d2f096a997e8b3a385d650dcfe3b        38  src/mapel_linkage/cli/__init__.py
-1cd0f51c0bf0866eb0b73db8f65eb08a56adc554a3a252637e9ef479de19e0ac     60810  src/mapel_linkage/cli/main.py
+e0f9fdaff8c63f0f9c89aa37f8710869abbab0ce091205b1cc9e72f1ed7eb8e3     65125  src/mapel_linkage/cli/main.py
 973632cc81a2ea85dabb4366b8beabfe62d924c98fd153f4bf432493cfc4550c      1707  src/mapel_linkage/clustering/__init__.py
 6821e242012e7b67a18b5b10ad8dbf96f592e85d2f7a0476c3fa7c9ae28b2372     22974  src/mapel_linkage/clustering/contracts.py
 5a815968cfb2348b0ecd3740bcf608dcadeaf71431903cec84eda1e405c4e1b2     24639  src/mapel_linkage/clustering/metrics.py
@@ -206,7 +208,7 @@ c4519cb937c8a40f8574a01379c7011f77512f38012f5a8cefcc09cb4330674e      5272  src/
 0411557a2807ba097e19f180b05aeaefb5ccadaf5bf88662d3995c4ecdd4ff9c     12106  src/mapel_linkage/profiling/contracts.py
 38b93fa7deacf546bca29776549106475c243b1e72b2578cbeb408b1273e45ab      3231  src/mapel_linkage/profiling/preflight.py
 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855         0  src/mapel_linkage/py.typed
-3e81554380873de8ea65d35ad22462758babe8e57b9cdba47d137eb7f17877a0      5251  src/mapel_linkage/recommendation/__init__.py
+9e014a8cc0059e89818fd0646fbc683478ae74524d5c606f4259dab2404b948c      6549  src/mapel_linkage/recommendation/__init__.py
 cc165ea279937c7170c3e3e2eaf6d816b66a772c58bb7bae780735350b2a60e3     35954  src/mapel_linkage/recommendation/active_planner.py
 bba4c10363d3d27d3690d0b28806fc14c6ff3aff09dfbdffd6908e54e68db97b     12894  src/mapel_linkage/recommendation/advisor.py
 c8c3d12eee08f1416e0d0f081f4eb8f2c91520e2677d9b2ab76d7815f9183ab8     21559  src/mapel_linkage/recommendation/contracts.py
@@ -216,7 +218,8 @@ b8a359bb4cdf09e046d046417a84891e7254b7cbb1155cd0f799b9f26a2ef78d     13400  src/
 3a0b64b081c8f28cfad4147381a29012cf3eb4eebc5a755eaf631ece08853a84     13536  src/mapel_linkage/recommendation/meta_learning.py
 8e03ac78e96c53494f52d570c120029aede590ad828a65984fd3e8345acca85e     16530  src/mapel_linkage/recommendation/meta_ranker.py
 90672c9b95e35a74a8ca6acab273d9ca822257c2f329a79fc8d442af8fbe5a27     55457  src/mapel_linkage/recommendation/qualification.py
-8ce7c87f67b16934f9b38bdf2ae88c90fbbd26f57649c8c2d6739095d1e3ab76     16673  src/mapel_linkage/recommendation/qualification_v3.py
+fc34895d09dd9bde1342f9de60b66cd34f021cf2809dbfe131db6ce0aa095088     63844  src/mapel_linkage/recommendation/qualification_v3.py
+71795bb5ed209cce08e8e77cc448230b844a4c3afc16383c11da4314e1327916     13666  src/mapel_linkage/recommendation/qualification_v31.py
 4356422766b6ad86e8cc2023f0f74040d96d459e0179a6fe687a3b7c7bcd1d47     21889  src/mapel_linkage/recommendation/similarity_advisor.py
 398b92fe143d2b707ac8276019880dc3e0c4b8bdee7f2a67529f47b882ba3042      3626  src/mapel_linkage/recommendation/structural_pareto.py
 ec11c2a3d5bcb057085889a966a109691cdabbe318037430f76a2f234e69c7ec      4094  src/mapel_linkage/recommendation/utility.py
@@ -251,7 +254,7 @@ d75b9a2f33a44c480ee79ca9ca15ffcf2f4a9ae69924133a407e294da5eee97c      7251  test
 3792dfb09154a519bf521f77ce2318351b5893aee410f2504603733e871154e9      8505  tests/benchmarking/test_advisor_corpus_cli.py
 be1bdcb31f2524973ea9d643810bc39fc8ab4d1ebf4b0f3f6d5d04c049201742     10925  tests/benchmarking/test_advisor_execution.py
 ac7fe96013006e192181bed4b6523ee4e4618158d3dbbfcacbf67a504b9a3f15     17766  tests/benchmarking/test_advisor_v3.py
-09f3158dacba6d2d6eb0ead81e9843735860e8ebd82f7faad74f8064fef2f90b     14556  tests/benchmarking/test_advisor_v31_remediation.py
+f0ee0c4a7ea56b09ea25b5808b63c740adcbc0b49e6e23d7f3f1bf43e8b40d08     14603  tests/benchmarking/test_advisor_v31_remediation.py
 f99f9f8547b1ce6540e01da08be724704442ae9307d112b7d8dcfdd44e0431f7      9950  tests/benchmarking/test_benchmark_runner.py
 d31860b01b3a9e8961d82f9544c5a2edd4414ad52eba5f4deb2b8e6b97e1474a      4131  tests/benchmarking/test_contracts.py
 7a3a7ae0e7636c3f70b5f55c06f49a0a9a4e7a2b66c2be5355fc84e1e6f47ca1      6383  tests/benchmarking/test_registry_persistence.py
@@ -321,7 +324,8 @@ dac69565a6060e678eb74c1af2447976a551472b7cf792cf69371ceabb66c1f5      3264  test
 1e6c40bf65d188ae5555daea57fd35e18815a3eae57b8a3161f2eda3732894a5      2448  tests/privacy/test_m2e_privacy_boundary.py
 46251855b153e94e2bc15a1e94a0a1707213f21cf93991959ddc757a6327e737      2990  tests/profiling/test_task_profiles.py
 4763ed29d9ee8373e710ee37a0d919677b432f7edb06056fbc127404bab5c916     13799  tests/recommendation/test_active_planner.py
-d27fbf46d41d1ae5e8647ea065afe38aba1cf843ac2c265be4bc3d55d356c952     11731  tests/recommendation/test_advisor_qualification.py
+d177bf9eefeb8aacbc35980e761e4f019d4fb77c05887c6b3555dc42ebcabd93     17209  tests/recommendation/test_advisor_qualification.py
+91c919b2914cb93cd020f99f40798440831bfee8392fa3f57af6faa2098ace70     13668  tests/recommendation/test_advisor_v31_qualification.py
 6ae3bd542ae3a6b6034dd78538ee2b42f31ea21b8c06a9f371914367f95448df      7269  tests/recommendation/test_advisor_v3_features.py
 18046b315a1ec2b48df44f0dd50d47ee5f72d03b370f3fa596cdf4f56f889470      3015  tests/recommendation/test_cli_and_capability.py
 6154bd233c2fdcd60922e30fa6e56914c0d2abb3b115ffb7f3d7bef6fba94703      4473  tests/recommendation/test_distance.py
@@ -332,7 +336,7 @@ e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855         0  test
 6d53a9817f4c30e5ab33e4ae1ac9dc507488c75283f88b868319d9cba8250959      5858  tests/synthetic/test_generator.py
 43aee2848dafd03cc50b3e15242f8bb818b60e5f18a9275ed332d5f0a99602f2      4471  tests/test_capabilities.py
 c12505c2eb035316d1a7d3d7c9c06bee90d49add4976b0707d05c6222d3e8d42     17889  tests/test_cli.py
-f029e29664592f1b57456dd3e0e98cd987c1aa1eed92a8934b96943a423a9941      2174  tests/test_distribution.py
+ae78359c2e258de91380f396a10f3901349ee1535aeac3653ba6bedaa5dd14be      2396  tests/test_distribution.py
 8604afe47cd91c9e3ddf93c172a9c579c85a1957357aa7dc88067b6aab53a2ae      3130  tests/test_i1c_driver.py
 9f95429a60bf7779bc9b922f0832be4840675726f4b7a8911975fdb5270e5405       138  tests/test_package_metadata.py
 a0bfbf53704b9fdfdbb8b7af883611dccec759c1de67277f6748a621c87215a4      1305  tests/test_repository_boundaries.py

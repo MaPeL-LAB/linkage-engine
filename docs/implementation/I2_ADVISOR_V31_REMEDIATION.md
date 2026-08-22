@@ -79,6 +79,28 @@ symbolic links, source/destination aliasing, non-governance destination content,
 idempotent output.
 
 Even a ready v3.1 bridge does not run or authorize locked/OOD qualification, qualify an advisor,
-promote a model, release an artifact, decide a relationship, assign an edge, or merge records. An
-executable evaluator requires a separate reviewed implementation slice and a new human approval
-bound to the v3.1 amendment, source snapshot, readiness digest, and then-current evaluator source.
+promote a model, release an artifact, decide a relationship, assign an edge, or merge records. The
+evaluator is now implemented, but it requires a fresh governance-only re-audit after the evaluator
+source is frozen. A later human approval must bind the exact remediation approval/readiness digests,
+amendment, frozen source snapshot, current analysis provenance, fixed policy, and evaluator
+algorithm. Both protected-role flags are mandatory:
+
+```bash
+mapel-linkage qualify-advisor-v31 \
+  --project-root . \
+  --source-registry-dir private/benchmark_registry/advisor_v3_execution_v1 \
+  --remediation-registry-dir private/benchmark_registry/advisor_v31_remediation_v1 \
+  --remediation-approval-digest '<APPROVAL_DIGEST_FROM_REAUDIT>' \
+  --remediation-readiness-digest '<READINESS_DIGEST_FROM_REAUDIT>' \
+  --output artifacts/advisor_qualification/advisor_v31_qualification.json \
+  --approve-locked-evaluation \
+  --approve-ood-evaluation \
+  --approval-reference '<NON_IDENTIFYING_REFERENCE>'
+```
+
+The command reads recipe utilities only for meta-training, conformal, and locked families. OOD
+recipe metrics are excluded before aggregation; OOD qualification uses observable geometry only.
+The first separately approved v3.1 qualification was executed on 2026-08-22 and returned
+`not_qualified`: Stage 2 passed, while Stage 3 failed the fixed regret-improvement gate. See
+[`I2_ADVISOR_V31_QUALIFICATION.md`](I2_ADVISOR_V31_QUALIFICATION.md). Similarity fallback remains
+mandatory, automatic promotion remains prohibited, and operational validity remains unestablished.

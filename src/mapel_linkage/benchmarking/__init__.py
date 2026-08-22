@@ -52,6 +52,7 @@ from mapel_linkage.benchmarking.advisor_v31_remediation import (
     audit_advisor_v31_remediation,
     build_advisor_v31_protocol_amendment,
     frozen_advisor_v3_provenance_digest,
+    frozen_advisor_v3_snapshot_digest,
     inspect_frozen_advisor_v3_corpus,
     load_committed_advisor_v31_protocol_amendment,
 )
@@ -144,6 +145,7 @@ __all__ = [
     "execute_advisor_corpus_shard",
     "execute_advisor_v3_corpus_shard",
     "frozen_advisor_v3_provenance_digest",
+    "frozen_advisor_v3_snapshot_digest",
     "generate_and_run_seed_corpus",
     "inspect_frozen_advisor_v3_corpus",
     "load_committed_advisor_v3_preregistration",
