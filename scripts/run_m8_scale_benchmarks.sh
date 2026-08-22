@@ -18,6 +18,7 @@ USER_HOME_DIR="${HOME:-}"
 CANONICAL_PYTHON="${USER_HOME_DIR%/}/.venvs/mapel-linkage-engine-m2-py312/bin/python"
 PYTHON_BIN=""
 DRY_RUN=false
+HAS_FORWARD_ARGS=false
 FORWARD_ARGS=()
 
 usage() {
@@ -29,7 +30,7 @@ The default matrix contains ten cases and uses ten workers.
 
 Options:
   --python PATH          Python 3.12 interpreter.
-  --entity-counts LIST  Increasing comma-separated counts (default: 100,250,500,1000,2000).
+  --entity-counts LIST  Increasing comma-separated counts (default: 100,200,300,400,500).
   --repetitions N       Repetitions per count from 1 to 5 (default: 2).
   --workers N           Concurrent workers from 1 to 10 (default: 10).
   --output-dir DIR      Project-relative ignored artifacts directory.
@@ -48,11 +49,13 @@ while (($# > 0)); do
     --entity-counts|--repetitions|--workers|--output-dir)
       [[ $# -ge 2 ]] || { echo "ERROR: The selected option requires a value." >&2; exit 2; }
       FORWARD_ARGS+=("$1" "$2")
+      HAS_FORWARD_ARGS=true
       shift 2
       ;;
     --dry-run)
       DRY_RUN=true
       FORWARD_ARGS+=("$1")
+      HAS_FORWARD_ARGS=true
       shift
       ;;
     -h|--help)
@@ -111,9 +114,14 @@ echo "[preflight] Default concurrency: 10 workers; maximum: 10"
 echo "[plan] Validating the deterministic scale matrix and safe output boundary."
 
 CURRENT_COMMAND="python scripts/run_m8_scale_benchmarks.py"
-"${PYTHON_BIN}" scripts/run_m8_scale_benchmarks.py \
-  --python "${PYTHON_BIN}" \
-  "${FORWARD_ARGS[@]}"
+if [[ "${HAS_FORWARD_ARGS}" == true ]]; then
+  "${PYTHON_BIN}" scripts/run_m8_scale_benchmarks.py \
+    --python "${PYTHON_BIN}" \
+    "${FORWARD_ARGS[@]}"
+else
+  "${PYTHON_BIN}" scripts/run_m8_scale_benchmarks.py \
+    --python "${PYTHON_BIN}"
+fi
 CURRENT_COMMAND="complete"
 
 if [[ "${DRY_RUN}" == true ]]; then

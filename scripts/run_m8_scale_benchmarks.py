@@ -22,14 +22,14 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT_PATH = Path(__file__).resolve()
 ALLOWED_CONFIG = ROOT / "configs" / "examples" / "synthetic_link_only.yaml"
-DEFAULT_OUTPUT = "artifacts/m8_scale_benchmarks"
-DEFAULT_COUNTS = "100,250,500,1000,2000"
+DEFAULT_OUTPUT = "artifacts/m8_scale_benchmarks_v2"
+DEFAULT_COUNTS = "100,200,300,400,500"
 DEFAULT_REPETITIONS = 2
 DEFAULT_WORKERS = 10
 MAXIMUM_WORKERS = 10
 MAXIMUM_CASES = 50
-MAXIMUM_ENTITY_COUNT = 100_000
-BENCHMARK_ID = "m8_complete_synthetic_scale_v1"
+MAXIMUM_ENTITY_COUNT = 500
+BENCHMARK_ID = "m8_complete_synthetic_scale_v2"
 PLAN_KEYS = {
     "benchmark_id",
     "cases",

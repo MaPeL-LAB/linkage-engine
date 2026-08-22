@@ -17,6 +17,7 @@ publication and deployment authority are `none`, and operational validity is `no
 - [`MODEL_CARDS.md`](MODEL_CARDS.md)
 - [`ERROR_CODE_CATALOGUE.md`](ERROR_CODE_CATALOGUE.md)
 - [`PRIVATE_RELEASE_AND_ROLLBACK.md`](PRIVATE_RELEASE_AND_ROLLBACK.md)
+- [`SCALE_BENCHMARK_EVIDENCE_V2.md`](SCALE_BENCHMARK_EVIDENCE_V2.md)
 - [`SCALE_BENCHMARK_POLICY.md`](SCALE_BENCHMARK_POLICY.md)
 
 Verify the controls without claiming release readiness:

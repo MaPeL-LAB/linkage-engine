@@ -171,11 +171,11 @@ its own.
 Phase 1 is integrated with a machine-readable fail-closed private-candidate policy, compatibility
 and API/artifact governance, model cards, a generated error-code catalogue, security/dependency
 controls, rollback procedures, and a resumable aggregate-only scale runner using 10 workers by
-default. The release policy remains explicitly `blocked`.
+default. The bounded v2 synthetic scale evidence is complete and owner-approved for the development
+envelope. The release policy remains explicitly `blocked`.
 
 Remaining exit work:
 
-- complete and review the default runtime/memory scale matrix;
 - implement and test explicit version-to-version artifact migration tooling;
 - freeze the pre-1.0 public surface after compatibility review;
 - add dedicated macOS and Windows compatibility jobs where approved;

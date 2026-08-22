@@ -9,8 +9,7 @@
     "external_security_review_not_approved",
     "licence_not_selected",
     "operational_validation_not_established",
-    "rollback_drill_not_completed",
-    "scale_evidence_not_completed"
+    "rollback_drill_not_completed"
   ],
   "current_status": "blocked",
   "deployment_authority": "none",
@@ -31,14 +30,20 @@
     "docs/release/ERROR_CODE_CATALOGUE.md",
     "docs/release/MODEL_CARDS.md",
     "docs/release/PRIVATE_RELEASE_AND_ROLLBACK.md",
+    "docs/release/SCALE_BENCHMARK_EVIDENCE_V2.md",
     "docs/release/SCALE_BENCHMARK_POLICY.md",
     "docs/release/SECURITY_AND_DEPENDENCY_REVIEW.md"
   ],
   "scale_benchmark": {
+    "benchmark_id": "m8_complete_synthetic_scale_v2",
     "default_workers": 10,
+    "evidence_review": "approved_development_envelope",
+    "maximum_entity_count": 500,
     "maximum_workers": 10,
     "output_classification": "aggregate_synthetic_only",
-    "resumable": true
+    "plan_digest": "442d59215bf6572979bb96ce1b3881c88b7974e627bd731a083d20b2eb05a48d",
+    "resumable": true,
+    "summary_digest": "4d4c015b1f1e289c57516a76b6b3730d277a761e2310b53be1f76fab651f7465"
   },
   "schema_version": "1",
   "synthetic_testing_establishes_operational_validity": false

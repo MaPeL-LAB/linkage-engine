@@ -48,7 +48,7 @@ def test_scale_plan_is_deterministic_bounded_and_no_write(tmp_path: Path) -> Non
     assert first.returncode == second.returncode == 0
     assert first.stdout == second.stdout
     plan = json.loads(first.stdout)
-    assert plan["benchmark_id"] == "m8_complete_synthetic_scale_v1"
+    assert plan["benchmark_id"] == "m8_complete_synthetic_scale_v2"
     assert plan["workers"] == 10
     assert plan["maximum_workers"] == 10
     assert [item["entity_count"] for item in plan["cases"]] == [100, 250]
@@ -88,6 +88,36 @@ def test_scale_plan_rejects_unsafe_scope_without_writing(tmp_path: Path) -> None
 
     assert completed.returncode == 2
     assert "failed closed" in completed.stderr
+    assert str(ROOT) not in completed.stderr
+    assert not output.exists()
+
+
+def test_scale_plan_rejects_entity_counts_above_verified_budget_envelope(
+    tmp_path: Path,
+) -> None:
+    relative_output = f"artifacts/m8-count-{tmp_path.name}"
+    output = ROOT / relative_output
+    completed = subprocess.run(
+        [
+            sys.executable,
+            str(PYTHON_DRIVER),
+            "--python",
+            sys.executable,
+            "--output-dir",
+            relative_output,
+            "--entity-counts",
+            "501",
+            "--dry-run",
+        ],
+        cwd=ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert completed.returncode == 2
+    assert "failed closed" in completed.stderr
+    assert "501" not in completed.stderr
     assert str(ROOT) not in completed.stderr
     assert not output.exists()
 
@@ -156,6 +186,27 @@ def test_shell_scale_driver_has_valid_syntax_and_no_write_dry_run(tmp_path: Path
     assert "Changed: none (dry-run planning only)." in completed.stdout
     assert "Next command: scripts/run_m8_scale_benchmarks.sh" in completed.stdout
     assert not output.exists()
+
+
+def test_shell_scale_driver_accepts_no_forwarded_arguments(tmp_path: Path) -> None:
+    python_stub = tmp_path / "python-stub"
+    python_stub.write_text("#!/usr/bin/env bash\nexit 0\n", encoding="utf-8")
+    python_stub.chmod(0o700)
+
+    completed = subprocess.run(
+        [str(SHELL_DRIVER), "--python", str(python_stub)],
+        cwd=ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert completed.returncode == 0
+    assert "unbound variable" not in completed.stderr
+    assert "Changed: wrote or resumed aggregate synthetic scale evidence" in completed.stdout
+    assert "Next command: python scripts/verify_release_readiness.py --expect-blocked" in (
+        completed.stdout
+    )
 
 
 def test_scale_driver_executes_and_resumes_minimum_synthetic_case(tmp_path: Path) -> None:

@@ -7,6 +7,7 @@ import sys
 from tests.helpers import ROOT
 
 POLICY = ROOT / "docs" / "release" / "RELEASE_READINESS_POLICY.json"
+SCALE_EVIDENCE = ROOT / "docs" / "release" / "SCALE_BENCHMARK_EVIDENCE_V2.md"
 VERIFY = ROOT / "scripts" / "verify_release_readiness.py"
 GENERATE_ERRORS = ROOT / "scripts" / "generate_error_code_catalogue.py"
 
@@ -24,8 +25,18 @@ def test_release_policy_is_canonical_truthful_and_explicitly_blocked() -> None:
     assert payload["synthetic_testing_establishes_operational_validity"] is False
     assert payload["scale_benchmark"]["default_workers"] == 10
     assert payload["scale_benchmark"]["maximum_workers"] == 10
+    assert payload["scale_benchmark"]["maximum_entity_count"] == 500
+    assert payload["scale_benchmark"]["evidence_review"] == "approved_development_envelope"
+    assert payload["scale_benchmark"]["benchmark_id"] == "m8_complete_synthetic_scale_v2"
     assert "licence_not_selected" in payload["current_blockers"]
-    assert "scale_evidence_not_completed" in payload["current_blockers"]
+    assert "scale_evidence_not_completed" not in payload["current_blockers"]
+    assert "operational_validation_not_established" in payload["current_blockers"]
+
+    evidence = SCALE_EVIDENCE.read_text(encoding="utf-8")
+    assert f"`{payload['scale_benchmark']['plan_digest']}`" in evidence
+    assert f"`{payload['scale_benchmark']['summary_digest']}`" in evidence
+    assert "does not authorize release" in evidence
+    assert "`operational_validity=not_established`" in evidence
 
 
 def test_release_control_verifier_passes_only_in_expected_blocked_mode() -> None:

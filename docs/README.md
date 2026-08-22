@@ -70,6 +70,7 @@ validation, local operation, and research evidence.
 - [`release/MODEL_CARDS.md`](release/MODEL_CARDS.md)
 - [`release/ERROR_CODE_CATALOGUE.md`](release/ERROR_CODE_CATALOGUE.md)
 - [`release/PRIVATE_RELEASE_AND_ROLLBACK.md`](release/PRIVATE_RELEASE_AND_ROLLBACK.md)
+- [`release/SCALE_BENCHMARK_EVIDENCE_V2.md`](release/SCALE_BENCHMARK_EVIDENCE_V2.md)
 - [`release/SCALE_BENCHMARK_POLICY.md`](release/SCALE_BENCHMARK_POLICY.md)
 
 ## Implementation records

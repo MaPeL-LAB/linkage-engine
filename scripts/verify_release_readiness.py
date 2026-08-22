@@ -21,7 +21,6 @@ EXPECTED_BLOCKERS = (
     "licence_not_selected",
     "operational_validation_not_established",
     "rollback_drill_not_completed",
-    "scale_evidence_not_completed",
 )
 EXPECTED_DOCUMENTS = (
     "docs/release/API_STABILITY_POLICY.md",
@@ -30,9 +29,21 @@ EXPECTED_DOCUMENTS = (
     "docs/release/ERROR_CODE_CATALOGUE.md",
     "docs/release/MODEL_CARDS.md",
     "docs/release/PRIVATE_RELEASE_AND_ROLLBACK.md",
+    "docs/release/SCALE_BENCHMARK_EVIDENCE_V2.md",
     "docs/release/SCALE_BENCHMARK_POLICY.md",
     "docs/release/SECURITY_AND_DEPENDENCY_REVIEW.md",
 )
+EXPECTED_SCALE_BENCHMARK: dict[str, object] = {
+    "benchmark_id": "m8_complete_synthetic_scale_v2",
+    "default_workers": 10,
+    "evidence_review": "approved_development_envelope",
+    "maximum_entity_count": 500,
+    "maximum_workers": 10,
+    "output_classification": "aggregate_synthetic_only",
+    "plan_digest": "442d59215bf6572979bb96ce1b3881c88b7974e627bd731a083d20b2eb05a48d",
+    "resumable": True,
+    "summary_digest": "4d4c015b1f1e289c57516a76b6b3730d277a761e2310b53be1f76fab651f7465",
+}
 
 
 def _canonical_json(payload: object) -> str:
@@ -145,13 +156,33 @@ def _verify_release_controls() -> dict[str, object]:
         errors.append("CI does not verify the fail-closed release policy")
 
     scale = policy.get("scale_benchmark")
-    if not isinstance(scale, dict) or scale != {
-        "default_workers": 10,
-        "maximum_workers": 10,
-        "output_classification": "aggregate_synthetic_only",
-        "resumable": True,
-    }:
+    if not isinstance(scale, dict) or scale != EXPECTED_SCALE_BENCHMARK:
         errors.append("scale-benchmark release policy is inconsistent")
+
+    evidence_path = ROOT / "docs" / "release" / "SCALE_BENCHMARK_EVIDENCE_V2.md"
+    if evidence_path.is_file() and not evidence_path.is_symlink():
+        evidence = evidence_path.read_text(encoding="utf-8")
+        for key in ("benchmark_id", "plan_digest", "summary_digest"):
+            if f"`{EXPECTED_SCALE_BENCHMARK[key]}`" not in evidence:
+                errors.append("scale-benchmark evidence binding is incomplete")
+        for required_claim in (
+            "explicitly approved by the repository owner on 2026-08-22",
+            "does not authorize release",
+            "`operational_validity=not_established`",
+        ):
+            if required_claim not in evidence:
+                errors.append("scale-benchmark evidence boundary is incomplete")
+
+    scale_driver = (ROOT / "scripts" / "run_m8_scale_benchmarks.py").read_text(encoding="utf-8")
+    for required_literal in (
+        'DEFAULT_COUNTS = "100,200,300,400,500"',
+        "DEFAULT_WORKERS = 10",
+        "MAXIMUM_WORKERS = 10",
+        "MAXIMUM_ENTITY_COUNT = 500",
+        'BENCHMARK_ID = "m8_complete_synthetic_scale_v2"',
+    ):
+        if required_literal not in scale_driver:
+            errors.append("scale-benchmark implementation drifted from reviewed evidence")
     for relative in (
         "scripts/run_m8_scale_benchmarks.py",
         "scripts/run_m8_scale_benchmarks.sh",
