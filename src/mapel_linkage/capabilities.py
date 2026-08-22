@@ -384,8 +384,9 @@ _CAPABILITIES: Final[tuple[Capability, ...]] = (
         WorkflowStatus.INTEGRATED,
         RuntimeVerificationStatus.CORE_CI,
         "Fail-closed private-candidate policy, generated error-code inventory, compatibility/API/"
-        "artifact/security/model-card/rollback controls, and resumable aggregate synthetic scale "
-        "tooling; release, publication, deployment, and operational validity remain blocked.",
+        "artifact/security/model-card/rollback controls, resumable aggregate synthetic scale "
+        "tooling, and immutable synthetic rollback evidence; release, publication, deployment, "
+        "and operational validity remain blocked.",
     ),
 )
 

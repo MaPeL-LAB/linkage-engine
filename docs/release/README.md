@@ -18,6 +18,7 @@ publication and deployment authority are `none`, and operational validity is `no
 - [`MODEL_CARDS.md`](MODEL_CARDS.md)
 - [`ERROR_CODE_CATALOGUE.md`](ERROR_CODE_CATALOGUE.md)
 - [`PRIVATE_RELEASE_AND_ROLLBACK.md`](PRIVATE_RELEASE_AND_ROLLBACK.md)
+- [`ROLLBACK_DRILL_EVIDENCE.md`](ROLLBACK_DRILL_EVIDENCE.md)
 - [`SCALE_BENCHMARK_EVIDENCE_V2.md`](SCALE_BENCHMARK_EVIDENCE_V2.md)
 - [`SCALE_BENCHMARK_POLICY.md`](SCALE_BENCHMARK_POLICY.md)
 
@@ -32,5 +33,5 @@ Calling the verifier without `--expect-blocked` fails while any release blocker 
 failure is deliberate and must not be bypassed by changing a status string without its required
 evidence and human approval.
 
-The bounded run-manifest migration path is implemented and verified. Six unrelated blockers remain;
-release authorization and operational validity are still absent.
+The bounded run-manifest migration path and synthetic rollback drill are implemented and verified.
+Five unrelated blockers remain; release authorization and operational validity are still absent.

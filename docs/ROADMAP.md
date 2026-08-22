@@ -174,13 +174,13 @@ controls, rollback procedures, and a resumable aggregate-only scale runner using
 default. The bounded v2 synthetic scale evidence is complete and owner-approved for the development
 envelope. A dry-run-gated, allow-listed aggregate run-manifest migration from schema `0.1` to `1`
 is implemented and verified without artifact approval or release authority. The release policy
-remains explicitly `blocked`.
+remains explicitly `blocked`. The owner-approved synthetic rollback drill is complete with
+immutable candidate/baseline wheels and aggregate digest-bound evidence.
 
 Remaining exit work:
 
 - freeze the pre-1.0 public surface after compatibility review;
 - add dedicated macOS and Windows compatibility jobs where approved;
-- perform a synthetic rollback drill and retain its aggregate evidence;
 - obtain external security, licence, publication, visibility, and operational approvals separately.
 
 Privacy-preserving record linkage remains a separate research stream requiring its own threat

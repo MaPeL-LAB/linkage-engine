@@ -9,6 +9,7 @@ from tests.helpers import ROOT
 POLICY = ROOT / "docs" / "release" / "RELEASE_READINESS_POLICY.json"
 SCALE_EVIDENCE = ROOT / "docs" / "release" / "SCALE_BENCHMARK_EVIDENCE_V2.md"
 MIGRATION_EVIDENCE = ROOT / "docs" / "release" / "ARTIFACT_MIGRATION_EVIDENCE.md"
+ROLLBACK_EVIDENCE = ROOT / "docs" / "release" / "ROLLBACK_DRILL_EVIDENCE.md"
 VERIFY = ROOT / "scripts" / "verify_release_readiness.py"
 GENERATE_ERRORS = ROOT / "scripts" / "generate_error_code_catalogue.py"
 
@@ -32,8 +33,9 @@ def test_release_policy_is_canonical_truthful_and_explicitly_blocked() -> None:
     assert "licence_not_selected" in payload["current_blockers"]
     assert "scale_evidence_not_completed" not in payload["current_blockers"]
     assert "artifact_migration_tool_not_implemented" not in payload["current_blockers"]
+    assert "rollback_drill_not_completed" not in payload["current_blockers"]
     assert "operational_validation_not_established" in payload["current_blockers"]
-    assert len(payload["current_blockers"]) == 6
+    assert len(payload["current_blockers"]) == 5
 
     migration = payload["artifact_migration"]
     assert migration == {
@@ -61,6 +63,32 @@ def test_release_policy_is_canonical_truthful_and_explicitly_blocked() -> None:
     assert "dry-run plan is required" in migration_evidence
     assert "does not authorize release" in migration_evidence
     assert "`operational_validity=not_established`" in migration_evidence
+
+    rollback = payload["rollback_drill"]
+    assert rollback["drill_id"] == "m8_synthetic_rollback_v1"
+    assert rollback["evidence_review"] == "completed_and_verified"
+    assert rollback["check_count"] == rollback["passed_check_count"] == 13
+    assert rollback["data_policy"] == "synthetic_only"
+    assert rollback["report_classification"] == "aggregate_only"
+    assert rollback["failed_candidate_evidence_overwritten"] is False
+    assert rollback["dependency_layer_independently_isolated"] is False
+    assert rollback["operational_validity"] == "not_established"
+    assert rollback["synthetic_testing_establishes_operational_validity"] is False
+
+    rollback_evidence = ROLLBACK_EVIDENCE.read_text(encoding="utf-8")
+    for key in (
+        "candidate_commit",
+        "baseline_commit",
+        "candidate_wheel_digest",
+        "baseline_wheel_digest",
+        "implementation_digest",
+        "report_digest",
+        "summary_digest",
+    ):
+        assert f"`{rollback[key]}`" in rollback_evidence
+    assert "All 13 checks passed" in rollback_evidence
+    assert "does not authorize release" in rollback_evidence
+    assert "`operational_validity=not_established`" in rollback_evidence
 
 
 def test_release_control_verifier_passes_only_in_expected_blocked_mode() -> None:

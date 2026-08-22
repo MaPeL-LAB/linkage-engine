@@ -37,5 +37,9 @@ candidate contains package source/distributions and aggregate software evidence 
 6. Record the rollback reason, affected candidate digest, restored digest, verification evidence,
    and human approval outside the repository.
 
-`rollback_drill_not_completed` remains a release blocker until this sequence is exercised using
-synthetic-only or aggregate-safe artifacts in an isolated candidate environment.
+The bounded synthetic drill was completed on 2026-08-22 against immutable candidate and baseline
+snapshots. Its aggregate evidence is bound in
+[`ROLLBACK_DRILL_EVIDENCE.md`](ROLLBACK_DRILL_EVIDENCE.md), so
+`rollback_drill_not_completed` is closed. This does not establish operational rollback readiness;
+an authorised deployment environment must retain and exercise its own change-control, backup,
+restore, access, and approval procedures before operational use.

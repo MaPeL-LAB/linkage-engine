@@ -125,10 +125,11 @@ See
 M8 Phase 1 adds fail-closed private-candidate release controls, a generated safe error-code
 catalogue, compatibility/API/artifact/security/model-card/rollback policies, and a resumable
 aggregate-only scale runner using 10 workers by default. The first allow-listed artifact migration
-uses a reviewed dry-run plan to preserve aggregate run-manifest meaning from schema `0.1` to `1`;
-it has no artifact-approval or release authority. Release remains blocked: these controls do not
-select a licence, publish a package, deploy the engine, promote a model, or establish operational
-validity. See [`docs/release/README.md`](docs/release/README.md).
+uses a reviewed dry-run plan to preserve aggregate run-manifest meaning from schema `0.1` to `1`.
+The bounded synthetic rollback drill is complete with immutable, digest-bound aggregate evidence.
+Neither control has artifact-approval or release authority. Release remains blocked: these controls
+do not select a licence, publish a package, deploy the engine, promote a model, or establish
+operational validity. See [`docs/release/README.md`](docs/release/README.md).
 
 ## Intended use
 

@@ -45,6 +45,7 @@ REQUIRED_FILES = {
     "docs/references/references.bib",
     "schemas/linkage-config.schema.json",
     "scripts/generate_error_code_catalogue.py",
+    "scripts/run_m8_rollback_drill.py",
     "scripts/run_m8_scale_benchmarks.py",
     "scripts/run_m8_scale_benchmarks.sh",
     "scripts/verify_release_readiness.py",

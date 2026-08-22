@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import sys
@@ -19,7 +20,6 @@ EXPECTED_BLOCKERS = (
     "external_security_review_not_approved",
     "licence_not_selected",
     "operational_validation_not_established",
-    "rollback_drill_not_completed",
 )
 EXPECTED_DOCUMENTS = (
     "docs/release/API_STABILITY_POLICY.md",
@@ -29,6 +29,7 @@ EXPECTED_DOCUMENTS = (
     "docs/release/ERROR_CODE_CATALOGUE.md",
     "docs/release/MODEL_CARDS.md",
     "docs/release/PRIVATE_RELEASE_AND_ROLLBACK.md",
+    "docs/release/ROLLBACK_DRILL_EVIDENCE.md",
     "docs/release/SCALE_BENCHMARK_EVIDENCE_V2.md",
     "docs/release/SCALE_BENCHMARK_POLICY.md",
     "docs/release/SECURITY_AND_DEPENDENCY_REVIEW.md",
@@ -56,6 +57,42 @@ EXPECTED_ARTIFACT_MIGRATION: dict[str, object] = {
     "source_schema_version": "0.1",
     "target_schema_version": "1",
     "transformation": "run_manifest_0_1_to_1",
+}
+EXPECTED_ROLLBACK_DRILL: dict[str, object] = {
+    "approval_reference": "codex_task_owner_approval_2026-08-22",
+    "authority_contract_digest": (
+        "4de937aca72fc9e4275ee8cb1ab03979948bc1c3c159eefdc1f1e70abe5c6f4c"
+    ),
+    "baseline_commit": "5050626583236fe1a7778eabc363a31764385285",
+    "baseline_package_tree_digest": (
+        "b106ede07796592fa8c799400d25e42ab31ef801a8995b32ef5b10db566cbf5c"
+    ),
+    "baseline_wheel_digest": ("492c9c30c76059e316e9d477792ddef796669024483bc8b368e2d0a2dbd9b475"),
+    "candidate_commit": "81762675996eae77ccb16210936d630f092a3e7b",
+    "candidate_package_tree_digest": (
+        "ecbc7fa8cddea0de30f0caf33f19a3a82be598b6fd11ba3d2dc360c0a953e221"
+    ),
+    "candidate_wheel_digest": ("974e76df6f6f4783eeec0f9f4f499f565417cdd8aaea8d2d653ca483f024a926"),
+    "check_count": 13,
+    "config_digest": "9c4b3b630316cb6802aaddcd61e9bb712184274aec06988981c9d5bb71f3eb06",
+    "constraints_digest": "a527f3013c3e076e804f757e17b6d3c64eaf4a514c8706ac17ea38e83f017423",
+    "data_policy": "synthetic_only",
+    "dependency_environment_digest": (
+        "711ee5cc4b885cab1d997074c0ca17b9ef1f8f69b041f0e484a8c2bcb5661508"
+    ),
+    "dependency_layer_independently_isolated": False,
+    "drill_id": "m8_synthetic_rollback_v1",
+    "evidence_review": "completed_and_verified",
+    "failed_candidate_evidence_overwritten": False,
+    "implementation_digest": ("248c80f27ac61b0c205d1b25574db391f955415c64a865b3494ca6c26686e15d"),
+    "installation_surface": "isolated_venv_with_verified_dependency_layer",
+    "operational_validity": "not_established",
+    "passed_check_count": 13,
+    "removed_candidate_file_count": 1,
+    "report_classification": "aggregate_only",
+    "report_digest": "fd664bebd3d8e8d328812ea2dffaee80894838d112d4d7dcd0b2d9f389771f89",
+    "summary_digest": "0515cd83ec9b9e9abd91ebe7cb660c6e6d788ca1e7642bc65a7cf46927ab0763",
+    "synthetic_testing_establishes_operational_validity": False,
 }
 
 
@@ -175,6 +212,53 @@ def _verify_release_controls() -> dict[str, object]:
     migration = policy.get("artifact_migration")
     if not isinstance(migration, dict) or migration != EXPECTED_ARTIFACT_MIGRATION:
         errors.append("artifact-migration release policy is inconsistent")
+
+    rollback = policy.get("rollback_drill")
+    if not isinstance(rollback, dict) or rollback != EXPECTED_ROLLBACK_DRILL:
+        errors.append("rollback-drill release policy is inconsistent")
+
+    rollback_source = ROOT / "scripts" / "run_m8_rollback_drill.py"
+    if rollback_source.is_symlink() or not rollback_source.is_file():
+        errors.append("rollback-drill implementation is unavailable or path-unsafe")
+    else:
+        rollback_source_digest = hashlib.sha256(rollback_source.read_bytes()).hexdigest()
+        if rollback_source_digest != EXPECTED_ROLLBACK_DRILL["implementation_digest"]:
+            errors.append("rollback-drill implementation digest drifted from reviewed evidence")
+        rollback_source_text = rollback_source.read_text(encoding="utf-8")
+        for required_literal in (
+            'DRILL_ID = "m8_synthetic_rollback_v1"',
+            "SEED = 20260816",
+            "ENTITY_COUNT = 100",
+            '"data_policy": "synthetic_only"',
+            '"release_authority": "none"',
+            '"operational_validity": "not_established"',
+            '"failed_candidate_evidence_overwritten": False',
+        ):
+            if required_literal not in rollback_source_text:
+                errors.append("rollback-drill implementation boundary is incomplete")
+
+    rollback_evidence_path = ROOT / "docs" / "release" / "ROLLBACK_DRILL_EVIDENCE.md"
+    if rollback_evidence_path.is_file() and not rollback_evidence_path.is_symlink():
+        rollback_evidence = rollback_evidence_path.read_text(encoding="utf-8")
+        for key in (
+            "candidate_commit",
+            "baseline_commit",
+            "candidate_wheel_digest",
+            "baseline_wheel_digest",
+            "implementation_digest",
+            "report_digest",
+            "summary_digest",
+        ):
+            if f"`{EXPECTED_ROLLBACK_DRILL[key]}`" not in rollback_evidence:
+                errors.append("rollback-drill evidence binding is incomplete")
+        for required_claim in (
+            "All 13 checks passed",
+            "does not authorize release",
+            "not independently reinstalled",
+            "`operational_validity=not_established`",
+        ):
+            if required_claim not in rollback_evidence:
+                errors.append("rollback-drill evidence boundary is incomplete")
 
     migration_evidence_path = ROOT / "docs" / "release" / "ARTIFACT_MIGRATION_EVIDENCE.md"
     if migration_evidence_path.is_file() and not migration_evidence_path.is_symlink():
