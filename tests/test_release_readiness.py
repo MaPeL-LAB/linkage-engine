@@ -145,6 +145,7 @@ def test_ci_and_precommit_verify_release_controls() -> None:
     assert command in hooks
     assert "python scripts/generate_error_code_catalogue.py --check" in workflow
     assert "python scripts/generate_error_code_catalogue.py --check" in hooks
+    assert workflow.count("fetch-depth: 0") == 2
 
 
 def test_milestone_status_uses_canonical_integrated_capability_truth() -> None:

@@ -204,6 +204,8 @@ def _verify_release_controls() -> dict[str, object]:
         errors.append("GitHub Actions are not pinned to immutable commit SHAs")
     if "python scripts/verify_release_readiness.py --expect-blocked" not in workflow:
         errors.append("CI does not verify the fail-closed release policy")
+    if workflow.count("fetch-depth: 0") != 2:
+        errors.append("CI does not retain immutable rollback history in both jobs")
 
     scale = policy.get("scale_benchmark")
     if not isinstance(scale, dict) or scale != EXPECTED_SCALE_BENCHMARK:
