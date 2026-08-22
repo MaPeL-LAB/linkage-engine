@@ -1,0 +1,45 @@
+{
+  "api_stability": "pre_1_0_versioned_unstable",
+  "artifact_migration_authority": "none",
+  "automatic_publication": "prohibited",
+  "current_blockers": [
+    "api_stability_not_frozen",
+    "artifact_migration_tool_not_implemented",
+    "compatibility_matrix_incomplete",
+    "external_security_review_not_approved",
+    "licence_not_selected",
+    "operational_validation_not_established",
+    "rollback_drill_not_completed",
+    "scale_evidence_not_completed"
+  ],
+  "current_status": "blocked",
+  "deployment_authority": "none",
+  "distribution_name": "mapel-linkage-engine",
+  "operational_validity": "not_established",
+  "package_version": "0.2.0.dev3",
+  "publication_authority": "none",
+  "release_authorized": false,
+  "release_channel": "private_candidate_only",
+  "required_ci_checks": [
+    "all-models",
+    "quality"
+  ],
+  "required_documents": [
+    "docs/release/API_STABILITY_POLICY.md",
+    "docs/release/ARTIFACT_MIGRATION_POLICY.md",
+    "docs/release/COMPATIBILITY_MATRIX.md",
+    "docs/release/ERROR_CODE_CATALOGUE.md",
+    "docs/release/MODEL_CARDS.md",
+    "docs/release/PRIVATE_RELEASE_AND_ROLLBACK.md",
+    "docs/release/SCALE_BENCHMARK_POLICY.md",
+    "docs/release/SECURITY_AND_DEPENDENCY_REVIEW.md"
+  ],
+  "scale_benchmark": {
+    "default_workers": 10,
+    "maximum_workers": 10,
+    "output_classification": "aggregate_synthetic_only",
+    "resumable": true
+  },
+  "schema_version": "1",
+  "synthetic_testing_establishes_operational_validity": false
+}

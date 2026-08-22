@@ -40,8 +40,14 @@ REQUIRED_FILES = {
     "docs/README.md",
     "docs/architecture/ARCHITECTURE.md",
     "docs/governance/PRIVACY_THREAT_MODEL.md",
+    "docs/release/README.md",
+    "docs/release/RELEASE_READINESS_POLICY.json",
     "docs/references/references.bib",
     "schemas/linkage-config.schema.json",
+    "scripts/generate_error_code_catalogue.py",
+    "scripts/run_m8_scale_benchmarks.py",
+    "scripts/run_m8_scale_benchmarks.sh",
+    "scripts/verify_release_readiness.py",
 }
 CHATGPT_MARKERS = ("\ue200cite", "\ue200filecite", "\ue200turn", "\ue201")
 

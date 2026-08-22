@@ -49,6 +49,11 @@ def build_handoff(root: Path, *, replace_build_output: bool = False) -> Path:
 
     _run([sys.executable, "scripts/generate_config_schema.py"], root=root)
     _run([sys.executable, "scripts/generate_repository_manifest.py"], root=root)
+    _run([sys.executable, "scripts/generate_error_code_catalogue.py", "--check"], root=root)
+    _run(
+        [sys.executable, "scripts/verify_release_readiness.py", "--expect-blocked"],
+        root=root,
+    )
     _run([sys.executable, "scripts/verify_repository.py"], root=root)
     _run([sys.executable, "-m", "pytest"], root=root)
     _run([sys.executable, "-m", "build"], root=root)
@@ -108,6 +113,16 @@ def build_handoff(root: Path, *, replace_build_output: bool = False) -> Path:
         "software_bill_of_materials": str(sbom_path.relative_to(root)),
         "contains_record_data": False,
         "contains_operational_configuration": False,
+        "release_policy": {
+            "path": "docs/release/RELEASE_READINESS_POLICY.json",
+            "sha256": _sha256(root / "docs/release/RELEASE_READINESS_POLICY.json"),
+        },
+        "error_code_catalogue": {
+            "path": "docs/release/ERROR_CODE_CATALOGUE.md",
+            "sha256": _sha256(root / "docs/release/ERROR_CODE_CATALOGUE.md"),
+        },
+        "release_control_status": "verified_blocked",
+        "release_authorized": False,
         "package_publication_authority": "none",
         "real_data_validation_status": "not_established",
         "warning": (

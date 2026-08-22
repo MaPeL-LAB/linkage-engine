@@ -130,3 +130,20 @@ artifacts/reports/local_handoff_manifest.json
 ```
 
 Review these before moving the package into an authorised restricted-analysis environment. They describe software dependencies and package files only; they must never include local source records, completed project configuration, adjudication values, candidate pairs, or linkage outputs.
+
+## M8 release-control status
+
+The handoff builder verifies the M8 Phase 1 controls in their explicitly blocked state and records
+`release_control_status=verified_blocked` and `release_authorized=false` in its aggregate manifest.
+It also binds the exact release policy and generated error-code catalogue by SHA-256 digest. This
+produces a reviewable private-candidate handoff; it does not authorize publication, deployment,
+migration, or operational use.
+
+Verify that boundary directly with:
+
+```bash
+python scripts/verify_release_readiness.py --expect-blocked
+```
+
+The verifier deliberately returns a failure when called without `--expect-blocked` while any
+release blocker remains.

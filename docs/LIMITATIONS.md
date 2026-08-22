@@ -126,8 +126,9 @@ statistical performance on a real population.
   back to Stage 2, and local confirmation remains mandatory.
 - Host-level filesystem, process, network, backup, encryption, and access controls remain
   the responsibility of the authorised local environment.
-- No licence has been selected, package publication remains blocked, and no release has
-  been approved.
+- M8 Phase 1 release controls are integrated, but the machine-readable policy remains blocked:
+  scale evidence, migration tooling, API freeze, dedicated compatibility jobs, rollback drill,
+  external security approval, licence, publication, and operational approval are incomplete.
 - Privacy-preserving record linkage remains a separate threat-modelled research stream.
 
 These limitations must remain visible in reports, model and recipe manifests, user

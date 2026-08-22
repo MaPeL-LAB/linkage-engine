@@ -50,6 +50,10 @@ def test_capability_registry_distinguishes_components_from_workflows() -> None:
     assert by_id["lightgbm_pair_classifier"].workflow_status is WorkflowStatus.INTEGRATED
     assert by_id["lightgbm_candidate_ranker"].workflow_status is WorkflowStatus.INTEGRATED
     assert by_id["pytorch_tabular_matcher"].workflow_status is WorkflowStatus.INTEGRATED
+    release = by_id["release_readiness_controls"]
+    assert release.workflow_status is WorkflowStatus.INTEGRATED
+    assert release.runtime_verification is RuntimeVerificationStatus.CORE_CI
+    assert "remain blocked" in release.notes
     assert (
         by_id["splink_native_model_lifecycle"].runtime_verification
         is RuntimeVerificationStatus.CORE_CI

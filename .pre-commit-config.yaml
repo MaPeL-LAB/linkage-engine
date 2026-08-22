@@ -16,3 +16,13 @@ repos:
         entry: python scripts/verify_repository.py
         language: system
         pass_filenames: false
+      - id: error-code-catalogue
+        name: Generated safe error-code catalogue
+        entry: python scripts/generate_error_code_catalogue.py --check
+        language: system
+        pass_filenames: false
+      - id: release-controls
+        name: Fail-closed private release controls
+        entry: python scripts/verify_release_readiness.py --expect-blocked
+        language: system
+        pass_filenames: false

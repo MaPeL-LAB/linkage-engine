@@ -168,13 +168,19 @@ its own.
 
 ## M8 — release hardening
 
-- Python and operating-system compatibility matrix;
-- runtime and memory benchmarks at increasing synthetic scales;
-- security and dependency review;
-- artifact migration and API-stability policies;
-- complete model cards and error-code catalogue;
-- private release and rollback procedures;
-- separately approved licence, repository visibility, and package publication decisions.
+Phase 1 is integrated with a machine-readable fail-closed private-candidate policy, compatibility
+and API/artifact governance, model cards, a generated error-code catalogue, security/dependency
+controls, rollback procedures, and a resumable aggregate-only scale runner using 10 workers by
+default. The release policy remains explicitly `blocked`.
+
+Remaining exit work:
+
+- complete and review the default runtime/memory scale matrix;
+- implement and test explicit version-to-version artifact migration tooling;
+- freeze the pre-1.0 public surface after compatibility review;
+- add dedicated macOS and Windows compatibility jobs where approved;
+- perform a synthetic rollback drill and retain its aggregate evidence;
+- obtain external security, licence, publication, visibility, and operational approvals separately.
 
 Privacy-preserving record linkage remains a separate research stream requiring its own threat
 model. No milestone implies operational validity or publication without explicit approval.

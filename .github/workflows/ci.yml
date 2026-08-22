@@ -35,6 +35,10 @@ jobs:
         run: |
           python scripts/generate_capability_matrix.py
           git diff --exit-code -- docs/CAPABILITY_MATRIX.md
+      - name: Verify generated error-code catalogue
+        run: python scripts/generate_error_code_catalogue.py --check
+      - name: Verify fail-closed release controls
+        run: python scripts/verify_release_readiness.py --expect-blocked
       - name: Verify repository
         run: python scripts/verify_repository.py
       - name: Ruff format

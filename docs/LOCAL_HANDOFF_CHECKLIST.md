@@ -60,4 +60,11 @@ python scripts/build_local_handoff.py --project-root .
 The builder fails closed when `dist/` is non-empty. Review its contents first; only then may an
 operator explicitly add `--replace-build-output`.
 
-The builder regenerates the schema and repository manifest, verifies the repository, runs all tests, builds wheel and source distributions, inspects distribution contents, runs a strict local dependency audit, creates a CycloneDX JSON software bill of materials, and writes SHA-256 checksums plus an aggregate local handoff manifest. Generated reports and distributions remain under ignored `artifacts/` and `dist/` paths and contain no record-level data.
+The builder regenerates the schema and repository manifest, verifies the generated error catalogue
+and fail-closed M8 release controls, verifies the repository, runs all tests, builds wheel and source
+distributions, inspects distribution contents, runs a strict local dependency audit, creates a
+CycloneDX JSON software bill of materials, and writes SHA-256 checksums plus an aggregate local
+handoff manifest. Generated reports and distributions remain under ignored `artifacts/` and `dist/`
+paths and contain no record-level data. The manifest binds the exact release policy and generated
+error-code catalogue by SHA-256 digest. A successful private handoff build does not authorize
+publication or deployment while the release policy remains blocked.

@@ -58,6 +58,20 @@ validation, local operation, and research evidence.
 - [`local_templates/`](local_templates/) — generic source mapping, label provenance, and
   output allow-list worksheets.
 
+## Release hardening
+
+- [`release/README.md`](release/README.md) — M8 private-candidate boundary and Phase 1 controls.
+- [`release/RELEASE_READINESS_POLICY.json`](release/RELEASE_READINESS_POLICY.json) —
+  machine-readable fail-closed release status and blockers.
+- [`release/COMPATIBILITY_MATRIX.md`](release/COMPATIBILITY_MATRIX.md)
+- [`release/API_STABILITY_POLICY.md`](release/API_STABILITY_POLICY.md)
+- [`release/ARTIFACT_MIGRATION_POLICY.md`](release/ARTIFACT_MIGRATION_POLICY.md)
+- [`release/SECURITY_AND_DEPENDENCY_REVIEW.md`](release/SECURITY_AND_DEPENDENCY_REVIEW.md)
+- [`release/MODEL_CARDS.md`](release/MODEL_CARDS.md)
+- [`release/ERROR_CODE_CATALOGUE.md`](release/ERROR_CODE_CATALOGUE.md)
+- [`release/PRIVATE_RELEASE_AND_ROLLBACK.md`](release/PRIVATE_RELEASE_AND_ROLLBACK.md)
+- [`release/SCALE_BENCHMARK_POLICY.md`](release/SCALE_BENCHMARK_POLICY.md)
+
 ## Implementation records
 
 - [`implementation/MILESTONES.md`](implementation/MILESTONES.md)
@@ -74,6 +88,7 @@ validation, local operation, and research evidence.
 - [`implementation/I1C_CONFIGURATION_DRIVEN_LINKAGE_MODES.md`](implementation/I1C_CONFIGURATION_DRIVEN_LINKAGE_MODES.md)
 - [`implementation/B1_ADVISOR_SCALE_CORPUS.md`](implementation/B1_ADVISOR_SCALE_CORPUS.md)
 - [`implementation/I2_ADVISOR_EMPIRICAL_QUALIFICATION.md`](implementation/I2_ADVISOR_EMPIRICAL_QUALIFICATION.md)
+- [`implementation/I2_ADVISOR_V31_QUALIFICATION.md`](implementation/I2_ADVISOR_V31_QUALIFICATION.md)
 
 M3 through M7 have a mix of integrated workflows and component-only capabilities. I1B adds
 the bounded configuration-driven all-model synthetic portfolio; I1C adds only five exact

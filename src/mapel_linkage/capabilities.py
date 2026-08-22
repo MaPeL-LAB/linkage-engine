@@ -376,6 +376,17 @@ _CAPABILITIES: Final[tuple[Capability, ...]] = (
         "not_qualified because Stage 3 failed the fixed regret-improvement gate. Similarity "
         "fallback remains mandatory and operational validity remains unestablished.",
     ),
+    Capability(
+        "release_readiness_controls",
+        "Private Release Readiness Controls",
+        "M8",
+        ComponentStatus.IMPLEMENTED,
+        WorkflowStatus.INTEGRATED,
+        RuntimeVerificationStatus.CORE_CI,
+        "Fail-closed private-candidate policy, generated error-code inventory, compatibility/API/"
+        "artifact/security/model-card/rollback controls, and resumable aggregate synthetic scale "
+        "tooling; release, publication, deployment, and operational validity remain blocked.",
+    ),
 )
 
 
